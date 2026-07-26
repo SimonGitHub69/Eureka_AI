@@ -1,0 +1,151 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ cliente.ragione_sociale|default:cliente.codice }} · Clienti · Eureka AI{% endblock %}
+
+{% block page_title %}Cliente{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ cliente.ragione_sociale|default:cliente.codice }}</h2>
+            <div class="text-secondary">
+                Codice {{ cliente.codice }}
+                {% if cliente.fl_disattivato %}· <span class="badge bg-secondary">Disattivato</span>{% endif %}
+            </div>
+        </div>
+        <a href="{% url 'anagrafiche:clienti_list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Anagrafica</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="datagrid-title">Ragione sociale</div>
+                <div class="datagrid-content">{{ cliente.ragione_sociale1|default:"—" }}</div>
+                {% if cliente.ragione_sociale2 %}
+                <div class="datagrid-content text-secondary">{{ cliente.ragione_sociale2 }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">P. IVA</div>
+                <div class="datagrid-content">{{ cliente.partita_iva|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Codice fiscale</div>
+                <div class="datagrid-content">{{ cliente.cod_fiscale|default:"—" }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="datagrid-title">Indirizzo</div>
+                <div class="datagrid-content">
+                    {{ cliente.indirizzo|default:"—" }}
+                    {% if cliente.cap or cliente.localita %}
+                    <div class="text-secondary">
+                        {% if cliente.cap %}{{ cliente.cap }} {% endif %}{{ cliente.localita|default:"" }}
+                        {% if cliente.provincia %} ({{ cliente.provincia }}){% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Nazione</div>
+                <div class="datagrid-content">{{ cliente.cod_nazione|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Gruppo / Zona</div>
+                <div class="datagrid-content">
+                    {{ cliente.gruppo|default:"—" }}
+                    {% if cliente.zona %} · {{ cliente.zona }}{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Contatti</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="datagrid-title">Telefono</div>
+                <div class="datagrid-content">{{ cliente.telefono|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Cellulare</div>
+                <div class="datagrid-content">{{ cliente.cellulare|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Fax</div>
+                <div class="datagrid-content">{{ cliente.fax|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Email</div>
+                <div class="datagrid-content">{{ cliente.email|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">PEC</div>
+                <div class="datagrid-content">{{ cliente.pec|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Email commerciale</div>
+                <div class="datagrid-content">{{ cliente.email_commerciale|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Sito web</div>
+                <div class="datagrid-content">{{ cliente.www|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Altri dati</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="datagrid-title">Agente</div>
+                <div class="datagrid-content">
+                    {{ cliente.agente|default:"—" }}
+                    {% if cliente.agente2 %} · {{ cliente.agente2 }}{% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Cond. pagamento</div>
+                <div class="datagrid-content">{{ cliente.cond_paga|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Listino</div>
+                <div class="datagrid-content">{{ cliente.listino|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Note</div>
+                <div class="datagrid-content">{{ cliente.note|default:"—" }}</div>
+            </div>
+            {% if cliente.annotazioni %}
+            <div class="col-12">
+                <div class="datagrid-title">Annotazioni</div>
+                <div class="datagrid-content">{{ cliente.annotazioni }}</div>
+            </div>
+            {% endif %}
+            {% if cliente.synced_at %}
+            <div class="col-12">
+                <div class="text-secondary small">Ultimo sync: {{ cliente.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

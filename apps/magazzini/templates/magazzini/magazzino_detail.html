@@ -1,0 +1,71 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ magazzino.descrizione|default:magazzino.codice }} · Magazzini · Eureka AI{% endblock %}
+
+{% block page_title %}Magazzino{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ magazzino.descrizione|default:magazzino.codice }}</h2>
+            <div class="text-secondary">Codice {{ magazzino.codice }}</div>
+        </div>
+        <a href="{% url 'magazzini:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dati principali</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="datagrid-title">Descrizione</div>
+                <div class="datagrid-content">{{ magazzino.descrizione|default:"—" }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="datagrid-title">Raggruppamento magazzini</div>
+                <div class="datagrid-content">
+                    {% if magazzino.cod_ragg_mag %}
+                    <a href="{% url 'gruppi_magazzini:detail' magazzino.cod_ragg_mag %}" class="text-decoration-none">
+                        {{ magazzino.cod_ragg_mag }}
+                    </a>
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            {% if magazzino.synced_at %}
+            <div class="col-12">
+                <div class="text-secondary small">Ultimo sync: {{ magazzino.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if campi %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

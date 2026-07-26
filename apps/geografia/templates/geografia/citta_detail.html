@@ -1,0 +1,46 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ citta.nome }} · Eureka AI{% endblock %}
+{% block page_title %}Città{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ citta.nome }}</h2>
+            <div class="text-secondary">
+                <a href="{% url 'geografia:provincia_detail' citta.provincia.sigla %}">{{ citta.provincia.nome }} ({{ citta.provincia.sigla }})</a>
+                · <a href="{% url 'geografia:regione_detail' citta.provincia.regione.codice %}">{{ citta.provincia.regione.nome }}</a>
+            </div>
+        </div>
+        <a href="{% url 'geografia:citta_list' %}" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Elenco</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="datagrid">
+            <div class="datagrid-item">
+                <div class="datagrid-title">Codice ISTAT</div>
+                <div class="datagrid-content"><code>{{ citta.codice_istat }}</code></div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title">CAP principale</div>
+                <div class="datagrid-content">{{ citta.cap|default:"—" }}</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title">Codice catastale</div>
+                <div class="datagrid-content">{{ citta.codice_catastale|default:"—" }}</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title">Provincia</div>
+                <div class="datagrid-content">{{ citta.provincia.nome }} ({{ citta.provincia.sigla }})</div>
+            </div>
+            <div class="datagrid-item">
+                <div class="datagrid-title">Regione</div>
+                <div class="datagrid-content">{{ citta.provincia.regione.nome }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

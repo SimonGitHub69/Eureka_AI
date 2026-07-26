@@ -1,0 +1,23 @@
+.navbar{
+    height:72px;
+    background:#fff;
+}
+
+[data-bs-theme="dark"] .navbar {
+    background: #111827 !important;
+    border-color: #243041 !important;
+}
+
+.navbar .form-control{
+    border-radius:12px;
+}
+
+.avatar{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+}

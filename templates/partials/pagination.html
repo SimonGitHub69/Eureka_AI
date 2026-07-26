@@ -1,0 +1,82 @@
+{% load pagination_tags %}
+{% if is_paginated %}
+<div class="card-footer eureka-pagination d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="eureka-pagination__meta d-flex flex-wrap align-items-center gap-3">
+        <span class="text-secondary">
+            Mostra {{ page_obj.start_index }}–{{ page_obj.end_index }} di {{ page_obj.paginator.count }}
+        </span>
+        {% if per_page_options %}
+        <div class="eureka-pagination__per-page d-flex align-items-center gap-2">
+            <span class="text-secondary small">Righe</span>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Righe per pagina">
+                {% for size in per_page_options %}
+                <a href="{% pagination_url per_page=size %}"
+                   class="btn btn-outline-secondary{% if per_page == size %} active{% endif %}">{{ size }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="eureka-pagination__nav ms-md-auto" aria-label="Paginazione elenco">
+        <ul class="pagination m-0 flex-wrap justify-content-center">
+            <li class="page-item{% if not page_obj.has_previous %} disabled{% endif %}">
+                {% if page_obj.has_previous %}
+                <a class="page-link" href="{% pagination_url page=1 %}" aria-label="Prima pagina">
+                    <span aria-hidden="true">«</span>
+                </a>
+                {% else %}
+                <span class="page-link" aria-hidden="true">«</span>
+                {% endif %}
+            </li>
+            <li class="page-item{% if not page_obj.has_previous %} disabled{% endif %}">
+                {% if page_obj.has_previous %}
+                <a class="page-link" href="{% pagination_url page=page_obj.previous_page_number %}" aria-label="Pagina precedente">
+                    <span aria-hidden="true">‹</span>
+                </a>
+                {% else %}
+                <span class="page-link" aria-hidden="true">‹</span>
+                {% endif %}
+            </li>
+
+            {% pagination_window page_obj as pages %}
+            {% for item in pages %}
+                {% if item == "ellipsis" %}
+                <li class="page-item disabled d-none d-sm-block">
+                    <span class="page-link">…</span>
+                </li>
+                {% elif item == page_obj.number %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ item }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{% pagination_url page=item %}">{{ item }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            <li class="page-item{% if not page_obj.has_next %} disabled{% endif %}">
+                {% if page_obj.has_next %}
+                <a class="page-link" href="{% pagination_url page=page_obj.next_page_number %}" aria-label="Pagina successiva">
+                    <span aria-hidden="true">›</span>
+                </a>
+                {% else %}
+                <span class="page-link" aria-hidden="true">›</span>
+                {% endif %}
+            </li>
+            <li class="page-item{% if not page_obj.has_next %} disabled{% endif %}">
+                {% if page_obj.has_next %}
+                <a class="page-link" href="{% pagination_url page=page_obj.paginator.num_pages %}" aria-label="Ultima pagina">
+                    <span aria-hidden="true">»</span>
+                </a>
+                {% else %}
+                <span class="page-link" aria-hidden="true">»</span>
+                {% endif %}
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endif %}

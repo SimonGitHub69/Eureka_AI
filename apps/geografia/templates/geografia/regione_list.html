@@ -1,0 +1,61 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Regioni · Eureka AI{% endblock %}
+{% block page_title %}Regioni{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <h2 class="page-title">Regioni</h2>
+    <div class="text-secondary">
+        Anagrafica ISTAT Italia
+        {% if totale %}· {{ totale }} totali{% endif %}
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label" for="regioniSearch">Ricerca</label>
+                <input type="text" id="regioniSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice o nome...">
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                {% if has_filters %}<a href="{% url 'geografia:regioni_list' %}" class="btn btn-outline-secondary"><i class="ti ti-x"></i></a>{% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Nome</th>
+                    <th class="text-end">Province</th>
+                    <th class="text-end">Città</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in regioni %}
+                <tr>
+                    <td><code>{{ r.codice }}</code></td>
+                    <td class="fw-semibold">{{ r.nome }}</td>
+                    <td class="text-end">{{ r.n_province }}</td>
+                    <td class="text-end">{{ r.n_citta }}</td>
+                    <td>
+                        <a href="{% url 'geografia:regione_detail' r.codice %}" class="btn btn-ghost-primary btn-icon"><i class="ti ti-chevron-right"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-secondary text-center py-4">Nessuna regione. Esegui <code>manage.py load_geografia_italia</code>.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

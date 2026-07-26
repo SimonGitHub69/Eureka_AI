@@ -1,0 +1,114 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Comandi vocali · Eureka AI{% endblock %}
+
+{% block page_title %}Comandi vocali{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Comandi vocali</h2>
+            <div class="text-secondary">
+                Configura le frasi riconosciute dal microfono e l'azione da eseguire
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'core:parametri_4d' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Parametri 4D
+            </a>
+            <a href="{% url 'core:comando_vocale_create' %}" class="btn btn-primary">
+                <i class="ti ti-plus"></i>
+                Nuovo comando
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="text-secondary">
+            <p class="mb-2">
+                L'assistente vocale (icona microfono) usa prima i comandi configurati qui, poi i comportamenti predefiniti.
+            </p>
+            <ul class="mb-0">
+                <li><strong>Apri pagina</strong> — naviga alla sezione scelta (es. frase <code>apri clienti</code>)</li>
+                <li><strong>Cerca</strong> — apre l'elenco con filtro <code>?q=</code> e, dove supportato, <code>stato=attivi</code> (solo record attivi); se la query è vuota usa il testo dopo la frase (es. <code>cerca cliente Rossi</code> → q=Rossi&amp;stato=attivi)</li>
+                <li><strong>Modalità di match</strong> — <em>Contiene</em>, <em>Esatto</em> o <em>Inizia con</em> sul testo normalizzato (minuscolo, senza accenti)</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-microphone me-1"></i>
+            Comandi configurati
+        </h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead>
+                <tr>
+                    <th>Ordine</th>
+                    <th>Frase</th>
+                    <th>Azione</th>
+                    <th>Destinazione</th>
+                    <th>Query</th>
+                    <th>Match</th>
+                    <th>Attivo</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comando in comandi %}
+                <tr>
+                    <td>{{ comando.ordine }}</td>
+                    <td><code>{{ comando.frase }}</code></td>
+                    <td>{{ comando.get_azione_display }}</td>
+                    <td>{{ comando.get_destinazione_display }}</td>
+                    <td>{% if comando.query %}<code>{{ comando.query }}</code>{% else %}<span class="text-secondary">—</span>{% endif %}</td>
+                    <td>{{ comando.get_match_mode_display }}</td>
+                    <td>
+                        {% if comando.attivo %}
+                        <span class="badge bg-success-lt">Sì</span>
+                        {% else %}
+                        <span class="badge bg-secondary-lt">No</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-list flex-nowrap justify-content-end">
+                            <a href="{% url 'core:comando_vocale_edit' comando.pk %}" class="btn btn-sm btn-outline-primary">
+                                Modifica
+                            </a>
+                            <form method="post" action="{% url 'core:comando_vocale_duplicate' comando.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                    <i class="ti ti-copy"></i>
+                                    Duplica
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'core:comando_vocale_delete' comando.pk %}" class="d-inline" onsubmit="return confirm('Eliminare il comando &quot;{{ comando.frase|escapejs }}&quot;?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Elimina</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-secondary text-center py-4">
+                        Nessun comando configurato. Aggiungi il primo oppure usa i comandi predefiniti dell'assistente.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

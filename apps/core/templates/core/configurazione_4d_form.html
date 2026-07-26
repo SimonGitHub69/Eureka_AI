@@ -1,0 +1,175 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Parametri 4D · Eureka AI{% endblock %}
+
+{% block page_title %}Parametri 4D{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Parametri 4D</h2>
+            <div class="text-secondary">
+                Configurazione ODBC per accedere alle tabelle di 4D Server
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'dashboard:sistema' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Sistema
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-database-cog me-1"></i>
+            Collegamento 4D
+        </h3>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-check mb-3">
+                        {{ form.attiva }}
+                        <span class="form-check-label">{{ form.attiva.label }}</span>
+                    </label>
+                    {% if form.attiva.errors %}
+                        <div class="invalid-feedback d-block">{{ form.attiva.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-check mb-3">
+                        {{ form.usa_ssl }}
+                        <span class="form-check-label">{{ form.usa_ssl.label }}</span>
+                    </label>
+                    {% if form.usa_ssl.errors %}
+                        <div class="invalid-feedback d-block">{{ form.usa_ssl.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.server.id_for_label }}">{{ form.server.label }}</label>
+                        {{ form.server }}
+                        <div class="form-hint">IP o hostname del 4D Server. Esempi: <code>192.168.1.50</code>, <code>localhost</code></div>
+                        {% if form.server.errors %}
+                            <div class="invalid-feedback d-block">{{ form.server.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.porta.id_for_label }}">{{ form.porta.label }}</label>
+                        {{ form.porta }}
+                        <div class="form-hint">Default 4D: <code>19812</code></div>
+                        {% if form.porta.errors %}
+                            <div class="invalid-feedback d-block">{{ form.porta.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.utente.id_for_label }}">{{ form.utente.label }}</label>
+                        {{ form.utente }}
+                        {% if form.utente.errors %}
+                            <div class="invalid-feedback d-block">{{ form.utente.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                        {{ form.password }}
+                        <div class="form-hint">La password non viene mostrata dopo il salvataggio per sicurezza.</div>
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">{{ form.password.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.driver_odbc.id_for_label }}">{{ form.driver_odbc.label }}</label>
+                        {{ form.driver_odbc }}
+                        <div class="form-hint">Lascia vuoto per auto-rilevamento del driver 4D installato.</div>
+                        {% if form.driver_odbc.errors %}
+                            <div class="invalid-feedback d-block">{{ form.driver_odbc.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.dsn.id_for_label }}">{{ form.dsn.label }}</label>
+                        {{ form.dsn }}
+                        <div class="form-hint">Se valorizzato, ha priorità su server/porta.</div>
+                        {% if form.dsn.errors %}
+                            <div class="invalid-feedback d-block">{{ form.dsn.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="mb-0">
+                        <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+                        {{ form.note }}
+                        {% if form.note.errors %}
+                            <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-footer d-flex flex-wrap justify-content-between gap-2">
+            <button type="submit" name="action" value="test" class="btn btn-outline-primary">
+                <i class="ti ti-plug-connected"></i>
+                Test connessione
+            </button>
+            <button type="submit" name="action" value="save" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                Salva parametri 4D
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="alert alert-info mt-3 mb-0">
+    <i class="ti ti-info-circle me-1"></i>
+    Il test usa i valori inseriti nel form, anche prima del salvataggio.
+    Serve il driver <strong>4D ODBC Driver 64-bit</strong> (stessa major version del 4D Server)
+    e che il SQL Server di 4D sia avviato sulla porta configurata.
+</div>
+
+<div class="card mt-3">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <div class="fw-semibold">Import tabelle Fatture</div>
+            <div class="text-secondary small">
+                Porta <code>Fatture</code> e <code>Fatture_Dettaglio</code> da 4D a PostgreSQL
+            </div>
+        </div>
+        <a href="{% url 'fatture:sync' %}" class="btn btn-outline-primary">
+            <i class="ti ti-file-invoice"></i>
+            Sync Fatture 4D
+        </a>
+    </div>
+</div>
+
+{% endblock %}

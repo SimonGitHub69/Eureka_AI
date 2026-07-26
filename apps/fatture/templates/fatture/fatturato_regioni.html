@@ -1,0 +1,2180 @@
+{% extends "base/layout.html" %}
+{% load static %}
+{% load format_tags %}
+{% load pagination_tags %}
+
+{% block title %}Fatturato geografico · Eureka AI{% endblock %}
+
+{% block page_title %}Fatturato geografico{% endblock %}
+
+{% block extra_css %}
+<style>
+    #mapGeo {
+        height: 560px;
+        width: 100%;
+        background: #eef2f7;
+        border-radius: 0 0 var(--tblr-border-radius) var(--tblr-border-radius);
+        position: relative;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+    }
+    #mapGeo svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        cursor: grab;
+    }
+    #mapGeo.is-panning svg {
+        cursor: grabbing;
+    }
+    #mapGeo .geo-region {
+        stroke: #fff;
+        stroke-width: 0.6;
+        cursor: grab;
+        vector-effect: non-scaling-stroke;
+        transition: fill 0.15s ease;
+    }
+    /* Mondo: contorni scuri (il bianco si perde su fill chiari / sfondo) */
+    #mapGeo.map-world .geo-region {
+        stroke: #64748b;
+        stroke-width: 0.85;
+        stroke-linejoin: round;
+    }
+    #mapGeo .geo-region:hover,
+    #mapGeo .geo-region.is-active {
+        stroke: #0f172a;
+        stroke-width: 1.2;
+    }
+    #mapGeo.map-world .geo-region:hover,
+    #mapGeo.map-world .geo-region.is-active {
+        stroke: #0f172a;
+        stroke-width: 1.35;
+    }
+    .geo-zoom-controls {
+        position: absolute;
+        top: .75rem;
+        left: .75rem;
+        z-index: 6;
+        display: flex;
+        flex-direction: column;
+        gap: .35rem;
+    }
+    .geo-zoom-controls .btn {
+        width: 2.1rem;
+        height: 2.1rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, .12);
+    }
+    #mapGeo .geo-region.is-clickable {
+        cursor: pointer;
+    }
+    #mapGeo .geo-region.is-dimmed {
+        opacity: 0.35;
+    }
+    #mapGeo .geo-region.is-selected {
+        stroke: #0f172a;
+        stroke-width: 1.6;
+        opacity: 1;
+    }
+    #geoTableBody tr.is-clickable {
+        cursor: pointer;
+    }
+    #geoTableBody tr.is-clickable:hover {
+        background: rgba(32, 107, 196, 0.06);
+    }
+    #geoTableBody tr.is-active-row {
+        background: rgba(32, 107, 196, 0.12);
+    }
+    .geo-side-table {
+        max-height: 560px;
+        overflow: auto;
+    }
+    .geo-side-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: var(--tblr-bg-surface, #fff);
+        box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
+    }
+    .geo-side-table tfoot td {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        background: #cbd5e1;
+        box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.12);
+        font-weight: 700;
+        border-top: 2px solid #64748b;
+        color: #0f172a;
+    }
+    #geoTableFoot tr.geo-total-row {
+        background: #cbd5e1;
+    }
+    #geoTableFoot tr.geo-total-row td {
+        background: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .geo-side-table tfoot td,
+    [data-bs-theme="dark"] #geoTableFoot tr.geo-total-row,
+    [data-bs-theme="dark"] #geoTableFoot tr.geo-total-row td {
+        background: #334155;
+        border-top-color: #94a3b8;
+        color: #f8fafc;
+    }
+    .geo-breadcrumb {
+        font-size: .85rem;
+    }
+    .geo-breadcrumb button {
+        border: 0;
+        background: none;
+        color: #206bc4;
+        padding: 0;
+        cursor: pointer;
+    }
+    .geo-breadcrumb button:hover {
+        text-decoration: underline;
+    }
+    .geo-zoom-hint {
+        position: absolute;
+        left: .75rem;
+        bottom: .75rem;
+        z-index: 4;
+        font-size: .72rem;
+        color: #64748b;
+        background: rgba(255, 255, 255, .88);
+        padding: .25rem .5rem;
+        border-radius: .3rem;
+        pointer-events: none;
+    }
+    .geo-tooltip-box {
+        position: absolute;
+        z-index: 5;
+        display: none;
+        pointer-events: none;
+        background: rgba(255,255,255,.96);
+        border: 1px solid rgba(15,23,42,.12);
+        border-radius: .375rem;
+        box-shadow: 0 4px 16px rgba(15,23,42,.12);
+        padding: .5rem .7rem;
+        font-size: .85rem;
+        line-height: 1.4;
+        max-width: 280px;
+    }
+    .geo-legend-box {
+        position: absolute;
+        right: .75rem;
+        bottom: .75rem;
+        z-index: 4;
+        background: rgba(255,255,255,.92);
+        padding: .5rem .75rem;
+        border-radius: .375rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,.12);
+        line-height: 1.35;
+        font-size: .75rem;
+        min-width: 7.5rem;
+    }
+    .geo-legend-box i {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-right: .4rem;
+        vertical-align: middle;
+        border: 1px solid rgba(0,0,0,.15);
+    }
+    .geo-map-status {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        font-size: .95rem;
+        padding: 1rem;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Fatturato geografico</h2>
+            <div class="text-secondary">
+                Italia per regione (provincia) · mondo per codice ISO · fatturato <strong>senza spese</strong>
+            </div>
+        </div>
+        <div class="btn-list">
+            <a href="{% url 'fatture:analisi' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-chart-bar"></i>
+                Analisi fatturato
+            </a>
+            <a class="btn btn-outline-secondary"
+               href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}{{ ambito_qs }}&export=csv">
+                <i class="ti ti-file-spreadsheet"></i>
+                CSV
+            </a>
+            <a class="btn btn-outline-secondary"
+               href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}{{ ambito_qs }}&export=xlsx">
+                <i class="ti ti-file-type-xls"></i>
+                XLSX
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'fatture:analisi_regioni' %}" id="geoForm">
+            <input type="hidden" name="ambito" value="{{ ambito }}">
+            <div class="row g-2 align-items-end mb-2">
+                <div class="col-12">
+                    <div class="text-secondary small mb-1">Scorciatoie</div>
+                    <div class="btn-list">
+                        <a class="btn btn-sm {% if preset == 'ytd' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                           href="{% url 'fatture:analisi_regioni' %}?preset=ytd{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}{{ ambito_qs }}&metrica={{ metrica }}">
+                            Anno corrente vs stesso periodo anno scorso
+                        </a>
+                        {% for p in anni_preset %}
+                        <a class="btn btn-sm {% if preset == p.preset %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                           href="{% url 'fatture:analisi_regioni' %}?preset={{ p.preset }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}{{ ambito_qs }}&metrica={{ metrica }}">
+                            {{ p.label }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-6 col-xl-3">
+                    <label class="form-label" for="geoCliente">Cliente</label>
+                    <div class="input-group">
+                        <input type="text" id="geoCliente" name="cliente"
+                               value="{% if cliente %}{{ cliente.codice }}{% else %}{{ cliente_q }}{% endif %}"
+                               class="form-control"
+                               placeholder="Codice o ragione sociale"
+                               list="geoClienteList"
+                               autocomplete="off">
+                        {% if cliente %}
+                        <a href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ ambito_qs }}"
+                           class="btn btn-outline-secondary" title="Togli filtro cliente">
+                            <i class="ti ti-x"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    <datalist id="geoClienteList">
+                        {% for s in clienti_suggeriti %}
+                        <option value="{{ s.codice }}">{{ s.ragione_sociale }}</option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <label class="form-label">Periodo riferimento</label>
+                    <div class="input-group">
+                        <input type="date" name="rif_da" value="{{ rif_da_str }}" class="form-control" required>
+                        <span class="input-group-text">→</span>
+                        <input type="date" name="rif_a" value="{{ rif_a_str }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <label class="form-label">Periodo confronto</label>
+                    <div class="input-group">
+                        <input type="date" name="con_da" value="{{ con_da_str }}" class="form-control" required>
+                        <span class="input-group-text">→</span>
+                        <input type="date" name="con_a" value="{{ con_a_str }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <label class="form-label" for="geoMetrica">Metrica</label>
+                    <select id="geoMetrica" name="metrica" class="form-select">
+                        <option value="imponibile" {% if metrica == 'imponibile' %}selected{% endif %}>Imponibile</option>
+                        <option value="totale" {% if metrica == 'totale' %}selected{% endif %}>Totale fattura</option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <label class="form-label" for="geoNoteCredito">Note di credito</label>
+                    <select id="geoNoteCredito" name="nc" class="form-select">
+                        {% for value, label in note_credito_modes.items %}
+                        <option value="{{ value }}" {% if note_credito == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 col-xl-1">
+                    <label class="form-label" for="geoAlfa">Serie</label>
+                    <input type="text" id="geoAlfa" name="alfa" value="{{ alfa }}" class="form-control" placeholder="Es. A">
+                </div>
+                <div class="col-md-2 col-xl-1">
+                    <label class="form-label" for="geoIso">ISO</label>
+                    <input type="text" id="geoIso" name="iso" value="{{ iso }}" class="form-control text-uppercase" placeholder="IT" maxlength="2">
+                </div>
+                <div class="col-md-4 col-xl-1">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-map"></i>
+                        Vai
+                    </button>
+                </div>
+            </div>
+            <div class="row g-2 align-items-end mt-1">
+                <div class="col-md-4 col-xl-2">
+                    <label class="form-label" for="geoFatOp">Fatturato clienti</label>
+                    <select id="geoFatOp" name="fat_op" class="form-select">
+                        {% for value, label in fatturato_ops.items %}
+                        <option value="{{ value }}" {% if fat_op == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 col-xl-2" id="geoFatValWrap">
+                    <label class="form-label" for="geoFatVal" id="geoFatValLabel">Importo €</label>
+                    <input type="text" id="geoFatVal" name="fat_val" value="{{ fat_val_str }}" class="form-control" placeholder="Es. 1000" inputmode="decimal">
+                </div>
+                <div class="col-md-4 col-xl-2 {% if fat_op != 'between' %}d-none{% endif %}" id="geoFatVal2Wrap">
+                    <label class="form-label" for="geoFatVal2">e €</label>
+                    <input type="text" id="geoFatVal2" name="fat_val2" value="{{ fat_val2_str }}" class="form-control" placeholder="Es. 5000" inputmode="decimal">
+                </div>
+            </div>
+            <div class="form-hint mt-2 mb-0">
+                Cartina e geo sul <strong>periodo di riferimento</strong>.
+                I clienti <strong>persi</strong> sono quelli del confronto assenti nel riferimento.
+            </div>
+            {% if cliente_q and not cliente and clienti_suggeriti %}
+            <div class="alert alert-info mt-3 mb-0">
+                <div class="fw-semibold mb-1">Più clienti corrispondono a «{{ cliente_q }}». Selezionane uno:</div>
+                <div class="list-group list-group-flush">
+                    {% for s in clienti_suggeriti %}
+                    <a class="list-group-item list-group-item-action py-2"
+                       href="{% url 'fatture:analisi_regioni' %}?cliente={{ s.codice|urlencode }}&rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ ambito_qs }}">
+                        <span class="fw-semibold">{{ s.codice }}</span>
+                        — {{ s.ragione_sociale|default:"—" }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif cliente_q and not cliente and not clienti_suggeriti %}
+            <div class="alert alert-warning mt-3 mb-0">
+                Nessun cliente trovato per «{{ cliente_q }}».
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if cliente %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div>
+                <div class="text-secondary small">Cliente selezionato</div>
+                <div class="h3 mb-1">
+                    <a href="{% url 'anagrafiche:cliente_detail' cliente.codice %}" class="text-decoration-none">
+                        {{ cliente.ragione_sociale|default:cliente.codice }}
+                    </a>
+                </div>
+                <div class="text-secondary">
+                    Codice <strong>{{ cliente.codice }}</strong>
+                    {% if cliente.cod_nazione %} · ISO {{ cliente.cod_nazione }}{% else %} · <span class="text-danger">ISO mancante</span>{% endif %}
+                    {% if cliente_geo.regione_nome %}
+                    · {{ cliente_geo.regione_nome }}{% if cliente_geo.sigla %} ({{ cliente_geo.sigla }}){% endif %}
+                    {% elif cliente.provincia %}
+                    · Prov. {{ cliente.provincia }}
+                    {% endif %}
+                </div>
+            </div>
+            {% if kpi_cliente_periodo %}
+            <div class="text-end">
+                <div class="text-secondary small">Fatturato nel periodo</div>
+                <div class="h2 mb-0">€ {{ kpi_cliente_periodo.fatturato|euro }}</div>
+                <div class="text-secondary small">{{ kpi_cliente_periodo.n_fatture|intit }} fatture</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# Totali fatturato periodi #}
+<div class="row row-cards mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">{{ metrica_label }} · riferimento</div>
+                <div class="h1 mb-0">€ {{ kpi_rif.fatturato|euro }}</div>
+                <div class="text-secondary mt-1">
+                    {{ rif_da|date:"d/m/Y" }} – {{ rif_a|date:"d/m/Y" }}
+                </div>
+                <div class="text-secondary small mt-1">
+                    {{ kpi_rif.n_clienti|intit }} clienti · {{ kpi_rif.n_fatture|intit }} fatture
+                </div>
+                {% if delta_fatturato != None %}
+                <div class="mt-1 {% if delta_fatturato >= 0 %}text-green{% else %}text-red{% endif %}">
+                    {% if delta_fatturato >= 0 %}+{% endif %}{{ delta_fatturato|floatformat:1 }}% vs confronto
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">{{ metrica_label }} · confronto</div>
+                <div class="h1 mb-0">€ {{ kpi_con.fatturato|euro }}</div>
+                <div class="text-secondary mt-1">
+                    {{ con_da|date:"d/m/Y" }} – {{ con_a|date:"d/m/Y" }}
+                </div>
+                <div class="text-secondary small mt-1">
+                    {{ kpi_con.n_clienti|intit }} clienti · {{ kpi_con.n_fatture|intit }} fatture
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Differenza</div>
+                <div class="h1 mb-0 {% if kpi_rif.fatturato|default:0 >= kpi_con.fatturato|default:0 %}text-green{% else %}text-red{% endif %}">
+                    {% if kpi_rif.fatturato|default:0 >= kpi_con.fatturato|default:0 %}+{% endif %}€ {{ delta_importo|euro }}
+                </div>
+                <div class="text-secondary mt-1">riferimento − confronto</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Spese (riferimento)</div>
+                <div class="h1 mb-0 text-orange">€ {{ kpi_rif.spese|euro }}</div>
+                <div class="text-secondary mt-1">
+                    Confronto € {{ kpi_con.spese|euro }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+            <li class="nav-item">
+                <a class="nav-link {% if ambito == 'italia' %}active{% endif %}"
+                   href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}&ambito=italia&tab={{ tab }}{% if preset %}&preset={{ preset|urlencode }}{% endif %}">
+                    <i class="ti ti-map-2"></i> Italia (regioni)
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if ambito == 'mondo' %}active{% endif %}"
+                   href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}&ambito=mondo&tab={{ tab }}{% if preset %}&preset={{ preset|urlencode }}{% endif %}">
+                    <i class="ti ti-world"></i> Mondo (ISO)
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if ambito == 'errori' %}active{% endif %}"
+                   href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}&ambito=errori&tab={{ tab }}{% if preset %}&preset={{ preset|urlencode }}{% endif %}">
+                    <i class="ti ti-alert-triangle"></i> Errori ISO
+                    {% if n_errori_iso %}
+                    <span class="badge bg-red-lt ms-1">{{ n_errori_iso|intit }}</span>
+                    {% endif %}
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    {% if ambito == 'italia' %}
+    <div class="card-body border-bottom">
+        <div class="row row-cards">
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Fatturato IT mappato</div>
+                <div class="h2 mb-0">€ {{ totale_mappato|euro }}</div>
+                <div class="text-secondary small">{{ n_clienti_mappati|intit }} clienti · {{ n_fatture_mappate|intit }} fatture</div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Totale IT</div>
+                <div class="h2 mb-0">€ {{ totale_italia|euro }}</div>
+                <div class="text-secondary small">inclusi non mappati</div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Non mappati</div>
+                <div class="h2 mb-0">€ {{ totale_non_mappato|euro }}</div>
+                <div class="text-secondary small">{{ n_clienti_non_mappati|intit }} clienti senza provincia valida</div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Metrica</div>
+                <div class="h2 mb-0">{{ metrica_label }}</div>
+                <div class="text-secondary small">provincia → regione</div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-0">
+        <div class="col-lg-7 border-end">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Cartina Italia</h3>
+                <div class="text-secondary small">Clicca una regione per le province</div>
+            </div>
+            <div id="mapGeo" class="map-italy" data-mode="italy">
+                <div class="geo-map-status" id="mapGeoStatus">Caricamento cartina…</div>
+                <div class="geo-tooltip-box" id="mapGeoTip"></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card-header flex-column align-items-stretch gap-1">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <h3 class="card-title mb-0" id="geoTableTitle">
+                        {% if provincia %}Clienti · {{ provincia_nome }} ({{ provincia }})
+                        {% elif regione %}Province · {{ regione_nome }}
+                        {% else %}Dettaglio regioni{% endif %}
+                    </h3>
+                </div>
+                <div class="geo-breadcrumb" id="geoBreadcrumb">
+                    {% if provincia %}
+                    <button type="button" data-drill-back="regioni">← Regioni</button>
+                    <span class="text-secondary"> · </span>
+                    <button type="button" data-drill-back="province">{{ regione_nome }}</button>
+                    <span class="text-secondary"> · {{ provincia_nome }}</span>
+                    {% elif regione %}
+                    <button type="button" data-drill-back="regioni">← Tutte le regioni</button>
+                    <span class="text-secondary"> · {{ regione_nome }}</span>
+                    {% else %}
+                    <span class="text-secondary">Clicca una regione sulla cartina o in elenco</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="table-responsive geo-side-table">
+                <table class="table table-vcenter table-sm card-table mb-0">
+                    <thead id="geoTableHead">
+                        {% if provincia %}
+                        <tr>
+                            <th>Cliente</th>
+                            <th class="text-end">Fatturato</th>
+                            <th class="text-end">Fatture</th>
+                            <th>Ultima</th>
+                        </tr>
+                        {% elif regione %}
+                        <tr>
+                            <th>Provincia</th>
+                            <th class="text-end">%</th>
+                            <th class="text-end">Fatturato</th>
+                            <th class="text-end">Clienti</th>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <th>Regione</th>
+                            <th class="text-end">%</th>
+                            <th class="text-end">Fatturato</th>
+                            <th class="text-end">Clienti</th>
+                        </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody id="geoTableBody">
+                        {% if provincia %}
+                            <tr><td colspan="4" class="text-secondary text-center py-4">Caricamento clienti…</td></tr>
+                        {% elif regione %}
+                            {% for p in province_regione %}
+                            <tr class="is-clickable" data-provincia="{{ p.sigla }}">
+                                <td>
+                                    <span class="fw-semibold">{{ p.nome }}</span>
+                                    <span class="text-secondary small">({{ p.sigla }})</span>
+                                </td>
+                                <td class="text-end text-nowrap"><strong>{{ p.percentuale|floatformat:2 }}%</strong></td>
+                                <td class="text-end text-nowrap">€ {{ p.fatturato|euro }}</td>
+                                <td class="text-end">{{ p.n_clienti|intit }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-secondary text-center py-4">Nessuna provincia con fatturato</td></tr>
+                            {% endfor %}
+                        {% else %}
+                            {% for r in regioni %}
+                            <tr class="is-clickable" data-regione="{{ r.codice }}">
+                                <td>
+                                    <span class="geo-swatch me-1" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--geo-{{ r.codice }}, #94a3b8);"></span>
+                                    {{ r.nome }}
+                                </td>
+                                <td class="text-end text-nowrap"><strong>{{ r.percentuale|floatformat:2 }}%</strong></td>
+                                <td class="text-end text-nowrap">€ {{ r.fatturato|euro }}</td>
+                                <td class="text-end">{{ r.n_clienti|intit }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-secondary text-center py-4">Nessun dato</td></tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                    <tfoot id="geoTableFoot">
+                        {% if regione and province_regione and not provincia %}
+                        <tr class="geo-total-row">
+                            <td colspan="2"><strong>Totale</strong></td>
+                            <td class="text-end text-nowrap"><strong>€ {{ province_regione_totale.fatturato|euro }}</strong></td>
+                            <td class="text-end"><strong>{{ province_regione_totale.n_clienti|intit }}</strong></td>
+                        </tr>
+                        {% elif not regione and not provincia and regioni %}
+                        <tr class="geo-total-row">
+                            <td colspan="2"><strong>Totale</strong></td>
+                            <td class="text-end text-nowrap"><strong>€ {{ regioni_totale.fatturato|euro }}</strong></td>
+                            <td class="text-end"><strong>{{ regioni_totale.n_clienti|intit }}</strong></td>
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% elif ambito == 'mondo' %}
+    <div class="card-body border-bottom">
+        <div class="row row-cards">
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Fatturato mondo (ISO)</div>
+                <div class="h2 mb-0">€ {{ totale_mondo|euro }}</div>
+                <div class="text-secondary small">{{ n_clienti_mondo|intit }} clienti · {{ n_nazioni|intit }} nazioni</div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Solo estero (≠ IT)</div>
+                <div class="h2 mb-0">€ {{ totale_estero|euro }}</div>
+                <div class="text-secondary small">{{ n_nazioni_estero|intit }} nazioni</div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Italia (ISO IT)</div>
+                <div class="h2 mb-0">€ {{ totale_it_iso|euro }}</div>
+                <div class="text-secondary small">clicca IT per i clienti · <a href="{{ italia_url }}">regioni</a></div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="subheader">Metrica</div>
+                <div class="h2 mb-0">{{ metrica_label }}</div>
+                <div class="text-secondary small">% sul totale con ISO valido</div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-0">
+        <div class="col-lg-7 border-end">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Cartina mondo</h3>
+                <div class="text-secondary small">Clicca una nazione per i clienti</div>
+            </div>
+            <div id="mapGeo" class="map-world" data-mode="world">
+                <div class="geo-map-status" id="mapGeoStatus">Caricamento cartina…</div>
+                <div class="geo-tooltip-box" id="mapGeoTip"></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card-header flex-column align-items-stretch gap-1">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <h3 class="card-title mb-0" id="geoTableTitle">
+                        {% if nazione %}Clienti · {{ nazione_nome }} ({{ nazione }})
+                        {% else %}Dettaglio nazioni (ISO){% endif %}
+                    </h3>
+                </div>
+                <div class="geo-breadcrumb" id="geoBreadcrumb">
+                    {% if nazione %}
+                    <button type="button" data-drill-back="nazioni">← Tutte le nazioni</button>
+                    <span class="text-secondary"> · {{ nazione_nome }}</span>
+                    {% if nazione == 'IT' %}
+                    <span class="text-secondary"> · </span>
+                    <a href="{{ italia_url }}">→ regioni Italia</a>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-secondary">Clicca una nazione sulla cartina o in elenco</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="table-responsive geo-side-table">
+                <table class="table table-vcenter table-sm card-table mb-0">
+                    <thead id="geoTableHead">
+                        {% if nazione %}
+                        <tr>
+                            <th>Cliente</th>
+                            <th class="text-end">Fatturato</th>
+                            <th class="text-end">Fatture</th>
+                            <th>Ultima</th>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <th>Nazione</th>
+                            <th class="text-end">%</th>
+                            <th class="text-end">Fatturato</th>
+                            <th class="text-end">Clienti</th>
+                        </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody id="geoTableBody">
+                        {% if nazione %}
+                            <tr><td colspan="4" class="text-secondary text-center py-4">Caricamento clienti…</td></tr>
+                        {% else %}
+                            {% for r in nazioni %}
+                            <tr class="is-clickable{% if r.codice == nazione %} is-active-row{% endif %}" data-nazione="{{ r.codice }}">
+                                <td>
+                                    <span class="geo-swatch me-1" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--geo-{{ r.codice }}, #94a3b8);"></span>
+                                    <code class="me-1">{{ r.codice }}</code>{{ r.nome }}
+                                    {% if r.codice == 'IT' %}
+                                    <a href="{{ italia_url }}" class="text-secondary small ms-1" onclick="event.stopPropagation()">→ regioni</a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-nowrap"><strong>{{ r.percentuale|floatformat:2 }}%</strong></td>
+                                <td class="text-end text-nowrap">€ {{ r.fatturato|euro }}</td>
+                                <td class="text-end">{{ r.n_clienti|intit }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-secondary text-center py-4">Nessun dato</td></tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                    <tfoot id="geoTableFoot">
+                        {% if not nazione and nazioni %}
+                        <tr class="geo-total-row">
+                            <td colspan="2"><strong>Totale</strong></td>
+                            <td class="text-end text-nowrap"><strong>€ {{ nazioni_totale.fatturato|euro }}</strong></td>
+                            <td class="text-end"><strong>{{ nazioni_totale.n_clienti|intit }}</strong></td>
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card-body border-bottom">
+        <div class="alert alert-danger mb-0">
+            <div class="d-flex">
+                <div><i class="ti ti-alert-triangle icon alert-icon"></i></div>
+                <div>
+                    <h4 class="alert-title">Codice ISO nazione mancante</h4>
+                    <div class="text-secondary">
+                        Clienti fatturati nel periodo senza <code>CodNazione</code>.
+                        Correggi l’anagrafica per includerli in Italia o Mondo.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row">
+            <div class="col-sm-4">
+                <div class="subheader">Clienti in errore</div>
+                <div class="h2 mb-0 text-danger">{{ n_errori_iso|intit }}</div>
+            </div>
+            <div class="col-sm-4">
+                <div class="subheader">Fatturato coinvolto</div>
+                <div class="h2 mb-0">€ {{ totale_errori_iso|euro }}</div>
+            </div>
+            <div class="col-sm-4">
+                <div class="subheader">Fatture</div>
+                <div class="h2 mb-0">{{ n_fatture_errori_iso|intit }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Errore</th>
+                    <th class="text-end">Fatturato</th>
+                    <th class="text-end">N. fatture</th>
+                    <th>Ultima fattura</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in errori_iso %}
+                <tr>
+                    <td>
+                        <a href="{% url 'anagrafiche:cliente_detail' c.codice %}" class="fw-semibold text-decoration-none">
+                            {{ c.ragione_sociale|default:c.codice }}
+                        </a>
+                        <div class="text-secondary small">{{ c.codice }}</div>
+                    </td>
+                    <td><span class="badge bg-red-lt">{{ c.errore }}</span></td>
+                    <td class="text-end text-nowrap">€ {{ c.fatturato|euro }}</td>
+                    <td class="text-end">{{ c.n_fatture|intit }}</td>
+                    <td>{% if c.ultima %}{{ c.ultima|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-secondary text-center py-4">
+                        Nessun errore: tutti i clienti fatturati hanno un codice ISO.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+
+{# Confronto clienti: periodo / persi / nuovi #}
+<div class="row row-cards mb-3" id="geoKpiClienti">
+    <div class="col-sm-6 col-xl-3">
+        <a href="#" data-geo-tab="periodo"
+           class="card card-link {% if tab == 'periodo' %}border-primary{% endif %}" title="Clienti del periodo">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti del periodo</div>
+                <div class="display-6 text-primary" data-geo-kpi="periodo">{{ n_periodo|intit }}</div>
+                <div class="text-secondary small">Fatturato di riferimento</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a href="#" data-geo-tab="persi"
+           class="card card-link {% if tab == 'persi' %}border-danger{% endif %}" title="Clienti persi">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti persi</div>
+                <div class="display-6 text-red" data-geo-kpi="persi">{{ n_persi|intit }}</div>
+                <div class="text-secondary small">Nel confronto, assenti nel riferimento</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a href="#" data-geo-tab="nuovi"
+           class="card card-link {% if tab == 'nuovi' %}border-info{% endif %}" title="Clienti nuovi">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti nuovi</div>
+                <div class="display-6 text-azure" data-geo-kpi="nuovi">{{ n_nuovi|intit }}</div>
+                <div class="text-secondary small">Nel riferimento, assenti nel confronto</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a href="#" data-geo-tab="entrambi"
+           class="card card-link {% if tab == 'entrambi' %}border-secondary{% endif %}" title="In entrambi">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti in entrambi</div>
+                <div class="display-6" data-geo-kpi="entrambi">{{ n_entrambi|intit }}</div>
+                <div class="text-secondary small">Presenti nei due periodi</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3" id="geoClientiCard">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" id="geoClientiTabs">
+            <li class="nav-item">
+                <a class="nav-link {% if tab == 'periodo' %}active{% endif %}" href="#" data-geo-tab="periodo">
+                    Periodo <span class="badge bg-blue-lt ms-1" data-geo-count="periodo">{{ n_periodo|intit }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if tab == 'persi' %}active{% endif %}" href="#" data-geo-tab="persi">
+                    Persi <span class="badge bg-red-lt ms-1" data-geo-count="persi">{{ n_persi|intit }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if tab == 'nuovi' %}active{% endif %}" href="#" data-geo-tab="nuovi">
+                    Nuovi <span class="badge bg-azure-lt ms-1" data-geo-count="nuovi">{{ n_nuovi|intit }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if tab == 'entrambi' %}active{% endif %}" href="#" data-geo-tab="entrambi">
+                    Entrambi <span class="badge bg-secondary-lt ms-1" data-geo-count="entrambi">{{ n_entrambi|intit }}</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body border-bottom py-2">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <div class="text-secondary small" id="geoListaHint">
+                {% if tab == 'periodo' %}
+                Clienti del riferimento ({{ rif_da|date:"d/m/Y" }} – {{ rif_a|date:"d/m/Y" }})
+                {% elif tab == 'persi' %}
+                Presenti nel confronto, assenti nel riferimento
+                {% elif tab == 'nuovi' %}
+                Presenti nel riferimento, assenti nel confronto
+                {% else %}
+                Presenti in entrambi i periodi
+                {% endif %}
+                <span id="geoProvinciaBadge"{% if not provincia and not nazione %} hidden{% endif %}>
+                · <span class="badge bg-azure-lt"><span id="geoProvinciaBadgeLabel">{% if nazione %}{{ nazione_nome|default:nazione }} ({{ nazione }}){% elif provincia %}Prov. {{ provincia_nome|default:provincia }} ({{ provincia }}){% endif %}</span></span>
+                <button type="button" class="btn btn-link btn-sm p-0 align-baseline ms-1" id="geoProvinciaClear">togli filtro</button>
+                </span>
+            </div>
+            <div class="btn-list">
+                <a class="btn btn-sm btn-outline-secondary" id="geoExportCsv"
+                   href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}{{ ambito_qs }}&export={{ tab }}&fmt=csv">
+                    <i class="ti ti-download"></i> CSV
+                </a>
+                <a class="btn btn-sm btn-outline-secondary" id="geoExportXlsx"
+                   href="{% url 'fatture:analisi_regioni' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{{ cliente_qs }}{{ ambito_qs }}&export={{ tab }}&fmt=xlsx">
+                    <i class="ti ti-file-type-xls"></i> XLSX
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover mb-0" id="geoClientiTable">
+            <thead id="geoClientiHead">
+                {% if tab == 'entrambi' %}
+                <tr>
+                    <th class="w-1">#</th>
+                    <th>Cliente</th>
+                    <th>Località</th>
+                    <th>Provincia</th>
+                    <th class="text-end">Riferimento</th>
+                    <th class="text-end">Confronto</th>
+                    <th class="text-end">Delta</th>
+                </tr>
+                {% else %}
+                <tr>
+                    <th class="w-1">#</th>
+                    <th>Cliente</th>
+                    <th>Località</th>
+                    <th>Provincia</th>
+                    <th class="text-end">{{ metrica_label }}{% if tab == 'persi' %} (confronto){% else %} (riferimento){% endif %}</th>
+                    <th class="text-end">N. fatture</th>
+                    <th>Ultima fattura</th>
+                </tr>
+                {% endif %}
+            </thead>
+            <tbody id="geoClientiBody">
+                {% if tab == 'entrambi' %}
+                {% for c in clienti_page %}
+                <tr>
+                    <td class="text-secondary">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                    <td>
+                        <a href="{% url 'anagrafiche:cliente_detail' c.codice %}" class="fw-semibold text-decoration-none">
+                            {{ c.ragione_sociale|default:c.codice }}
+                        </a>
+                        <div class="text-secondary small">{{ c.codice }}</div>
+                    </td>
+                    <td>{{ c.localita|default:"—" }}</td>
+                    <td>{% if c.provincia %}<code>{{ c.provincia }}</code>{% else %}—{% endif %}</td>
+                    <td class="text-end">€ {{ c.fatturato_rif|euro }}</td>
+                    <td class="text-end">€ {{ c.fatturato_con|euro }}</td>
+                    <td class="text-end {% if c.delta >= 0 %}text-green{% else %}text-red{% endif %}">
+                        {% if c.delta >= 0 %}+{% endif %}€ {{ c.delta|euro }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-secondary text-center py-4">Nessun cliente</td></tr>
+                {% endfor %}
+                {% else %}
+                {% for c in clienti_page %}
+                <tr>
+                    <td class="text-secondary">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                    <td>
+                        <a href="{% url 'anagrafiche:cliente_detail' c.codice %}" class="fw-semibold text-decoration-none">
+                            {{ c.ragione_sociale|default:c.codice }}
+                        </a>
+                        <div class="text-secondary small">{{ c.codice }}</div>
+                    </td>
+                    <td>{{ c.localita|default:"—" }}</td>
+                    <td>{% if c.provincia %}<code>{{ c.provincia }}</code>{% else %}—{% endif %}</td>
+                    <td class="text-end">€ {{ c.fatturato|euro }}</td>
+                    <td class="text-end">{{ c.n_fatture|intit }}</td>
+                    <td>{% if c.ultima %}{{ c.ultima|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-secondary text-center py-4">Nessun cliente</td></tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    <div id="geoClientiPagination">
+    {% include "partials/pagination.html" %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if ambito == 'italia' or ambito == 'mondo' %}
+<script src="{% static '@tabler/core/dist/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script type="application/json" id="geoListeJson">{{ liste_json|safe }}</script>
+<script type="application/json" id="geoClienteSiglaJson">{{ cliente_sigla_json|safe }}</script>
+<script type="application/json" id="geoClienteIsoJson">{{ cliente_iso_json|safe }}</script>
+<script>
+(function () {
+    const mapDataRegioni = {{ map_json|safe }};
+    let mapData = mapDataRegioni;
+    const mapMode = "{{ map_mode }}";
+    const geoUrlRegions = "{% static 'eureka/geo/limits_IT_regions.simple.geojson' %}";
+    const geoUrlProvinces = "{% static 'eureka/geo/limits_IT_provinces.simple.geojson' %}";
+    const geoUrlWorld = "{% static 'eureka/geo/world_countries.simple.geojson' %}";
+    const geoUrl = mapMode === "world" ? geoUrlWorld : geoUrlRegions;
+    let maxPct = {{ max_percentuale_js }};
+    const maxPctRegioni = maxPct;
+    const drill = {{ drill_json|safe }};
+    let listeAll = null;
+    let clienteSigla = null;
+    let clienteIso = null;
+    let currentTab = "{{ tab|escapejs }}";
+    const metricaLabel = "{{ metrica_label|escapejs }}";
+    const italiaUrl = "{{ italia_url|escapejs }}";
+    let selectedRegione = "{{ regione|escapejs }}";
+    let selectedProvincia = "{{ provincia|escapejs }}";
+    let selectedNazione = "{{ nazione|escapejs }}";
+    let mapLevel = "regions"; // regions | provinces
+    const clienteDetailBase = "{% url 'anagrafiche:cliente_detail' '___COD___' %}";
+    const chartCliente = {% if cliente %}{{ chart_cliente_annuale|safe }}{% else %}null{% endif %};
+
+    function ensureListeData() {
+        if (listeAll && clienteSigla && clienteIso) return;
+        try {
+            const lj = document.getElementById("geoListeJson");
+            const sj = document.getElementById("geoClienteSiglaJson");
+            const ij = document.getElementById("geoClienteIsoJson");
+            listeAll = lj ? JSON.parse(lj.textContent || "{}") : {};
+            clienteSigla = sj ? JSON.parse(sj.textContent || "{}") : {};
+            clienteIso = ij ? JSON.parse(ij.textContent || "{}") : {};
+        } catch (e) {
+            console.error("Liste geo:", e);
+            listeAll = listeAll || {};
+            clienteSigla = clienteSigla || {};
+            clienteIso = clienteIso || {};
+        }
+    }
+
+    function formatEuro(v) {
+        return Number(v || 0).toLocaleString("it-IT", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    const euro = (v) => new Intl.NumberFormat("it-IT", {
+        style: "currency", currency: "EUR",
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }).format(v || 0);
+
+    if (chartCliente && document.getElementById("chartClienteAnnuale") && window.ApexCharts) {
+        new ApexCharts(document.getElementById("chartClienteAnnuale"), {
+            chart: { type: "area", height: 280, toolbar: { show: false }, fontFamily: "inherit" },
+            series: [{ name: "{{ metrica_label|escapejs }}", data: chartCliente.fatturato }],
+            xaxis: { categories: chartCliente.labels },
+            yaxis: { labels: { formatter: (v) => euro(v) } },
+            dataLabels: { enabled: false },
+            tooltip: { y: { formatter: (v, opts) => {
+                const n = (chartCliente.n_fatture || [])[opts.dataPointIndex] || 0;
+                return euro(v) + " · " + n + " fatture";
+            }}},
+            colors: ["#206bc4"],
+            fill: { type: "gradient", gradient: { opacityFrom: 0.45, opacityTo: 0.05 } },
+            stroke: { curve: "smooth", width: 2 },
+            grid: { strokeDashArray: 4 }
+        }).render();
+    }
+
+    function colorFor(pct) {
+        // Mondo: fill bianco per 0% così i contorni slate restano leggibili
+        if (!maxPct || !pct) return mapMode === "world" ? "#ffffff" : "#e2e8f0";
+        const t = Math.min(1, Math.max(0, pct / maxPct));
+        const stops = [[226,232,240],[147,197,253],[59,130,246],[29,78,216],[30,58,138]];
+        const idx = t * (stops.length - 1);
+        const i = Math.floor(idx);
+        const f = idx - i;
+        const a = stops[i], b = stops[Math.min(i + 1, stops.length - 1)];
+        return "rgb(" +
+            Math.round(a[0] + (b[0] - a[0]) * f) + "," +
+            Math.round(a[1] + (b[1] - a[1]) * f) + "," +
+            Math.round(a[2] + (b[2] - a[2]) * f) + ")";
+    }
+
+    Object.keys(mapData).forEach(function (cod) {
+        document.documentElement.style.setProperty("--geo-" + cod, colorFor(mapData[cod].percentuale || 0));
+    });
+
+    const mapEl = document.getElementById("mapGeo");
+    const statusEl = document.getElementById("mapGeoStatus");
+    const tipEl = document.getElementById("mapGeoTip");
+    if (!mapEl) return;
+
+    function setStatus(msg) {
+        if (!statusEl) return;
+        statusEl.textContent = msg || "";
+        statusEl.style.display = msg ? "flex" : "none";
+    }
+
+    // Avvia subito il caricamento cartina (prima dei dati liste)
+    if (mapMode === "italy") {
+        fetch(geoUrlProvinces)
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (geo) { if (geo) mapEl._geoProvinces = geo; })
+            .catch(function () { /* lazy load on click */ });
+    }
+
+    fetch(geoUrl)
+        .then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+        })
+        .then(function (geojson) {
+            mapEl._geojson = geojson;
+            if (mapMode === "italy" && selectedRegione) {
+                if (selectedProvincia) {
+                    renderClientiTable(selectedProvincia);
+                } else {
+                    renderProvinceTable(selectedRegione);
+                }
+                showProvinceMap(selectedRegione);
+            } else {
+                renderMap(geojson, false);
+            }
+            let t = null;
+            window.addEventListener("resize", function () {
+                clearTimeout(t);
+                t = setTimeout(function () {
+                    if (mapLevel === "provinces" && selectedRegione && mapEl._geoProvinces) {
+                        const feats = (mapEl._geoProvinces.features || []).filter(function (f) {
+                            const reg = String((f.properties || {}).reg_istat_code || "").padStart(2, "0");
+                            return reg === selectedRegione;
+                        });
+                        if (feats.length) {
+                            renderMap({ type: "FeatureCollection", features: feats }, true);
+                        }
+                    } else if (mapEl._geojson) {
+                        renderMap(mapEl._geojson, true);
+                    }
+                }, 150);
+            });
+        })
+        .catch(function (err) {
+            console.error("GeoJSON:", err);
+            setStatus("Impossibile caricare la cartina.");
+        });
+
+    function bboxOf(geojson) {
+        let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+        function walk(coords) {
+            if (!coords || !coords.length) return;
+            if (typeof coords[0] === "number") {
+                const lon = coords[0], lat = coords[1];
+                if (lon < minLon) minLon = lon;
+                if (lat < minLat) minLat = lat;
+                if (lon > maxLon) maxLon = lon;
+                if (lat > maxLat) maxLat = lat;
+                return;
+            }
+            coords.forEach(walk);
+        }
+        (geojson.features || []).forEach(function (f) {
+            if (f.geometry && f.geometry.coordinates) walk(f.geometry.coordinates);
+        });
+        return { minLon: minLon, minLat: minLat, maxLon: maxLon, maxLat: maxLat };
+    }
+
+    function project(lon, lat, bbox, width, height, pad) {
+        const dx = Math.max(bbox.maxLon - bbox.minLon, 0.0001);
+        const dy = Math.max(bbox.maxLat - bbox.minLat, 0.0001);
+        const usableW = width - pad * 2;
+        const usableH = height - pad * 2;
+        const scale = Math.min(usableW / dx, usableH / dy);
+        const ox = pad + (usableW - dx * scale) / 2;
+        const oy = pad + (usableH - dy * scale) / 2;
+        return [ox + (lon - bbox.minLon) * scale, oy + (bbox.maxLat - lat) * scale];
+    }
+
+    function ringPath(ring, bbox, width, height, pad) {
+        if (!ring || ring.length < 2) return "";
+        return ring.map(function (pt, i) {
+            const p = project(pt[0], pt[1], bbox, width, height, pad);
+            return (i === 0 ? "M" : "L") + p[0].toFixed(2) + " " + p[1].toFixed(2);
+        }).join(" ") + " Z";
+    }
+
+    function geometryPath(geometry, bbox, width, height, pad) {
+        if (!geometry) return "";
+        const type = geometry.type;
+        const coords = geometry.coordinates;
+        if (type === "Polygon") {
+            return (coords || []).map(function (ring) {
+                return ringPath(ring, bbox, width, height, pad);
+            }).join(" ");
+        }
+        if (type === "MultiPolygon") {
+            return (coords || []).map(function (poly) {
+                return (poly || []).map(function (ring) {
+                    return ringPath(ring, bbox, width, height, pad);
+                }).join(" ");
+            }).join(" ");
+        }
+        return "";
+    }
+
+    function featureCode(feature) {
+        const p = feature.properties || {};
+        if (mapMode === "world") return String(p.iso || "").toUpperCase();
+        if (mapLevel === "provinces") return String(p.sigla || "").toUpperCase();
+        return String(p.reg_istat_code || "").padStart(2, "0");
+    }
+
+    function featureName(feature, d) {
+        const p = feature.properties || {};
+        if (p.label) return p.label;
+        return (d && d.nome) || p.name || p.reg_name || featureCode(feature);
+    }
+
+    function showTip(html, evt) {
+        if (!tipEl || mapEl._panning) return;
+        tipEl.innerHTML = html;
+        tipEl.style.display = "block";
+        const rect = mapEl.getBoundingClientRect();
+        tipEl.style.left = Math.max(8, Math.min(evt.clientX - rect.left + 12, rect.width - 180)) + "px";
+        tipEl.style.top = Math.max(8, Math.min(evt.clientY - rect.top + 12, rect.height - 80)) + "px";
+    }
+    function hideTip() { if (tipEl) tipEl.style.display = "none"; }
+
+    const MIN_SCALE = 0.4;
+    const MAX_SCALE = 14;
+    const view = mapEl._view || { scale: 1, tx: 0, ty: 0 };
+    mapEl._view = view;
+    let layerG = null;
+
+    function applyView() {
+        if (!layerG) return;
+        layerG.setAttribute(
+            "transform",
+            "translate(" + view.tx + " " + view.ty + ") scale(" + view.scale + ")"
+        );
+    }
+
+    function clampScale(s) {
+        return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+    }
+
+    function zoomAt(clientX, clientY, factor) {
+        const rect = mapEl.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const cx = (x - view.tx) / view.scale;
+        const cy = (y - view.ty) / view.scale;
+        const next = clampScale(view.scale * factor);
+        view.tx = x - cx * next;
+        view.ty = y - cy * next;
+        view.scale = next;
+        applyView();
+    }
+
+    function zoomCenter(factor) {
+        const rect = mapEl.getBoundingClientRect();
+        zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor);
+    }
+
+    function resetView() {
+        view.scale = 1;
+        view.tx = 0;
+        view.ty = 0;
+        applyView();
+    }
+
+    function ensureChrome() {
+        if (!mapEl.querySelector(".geo-zoom-controls")) {
+            const controls = document.createElement("div");
+            controls.className = "geo-zoom-controls";
+            controls.innerHTML =
+                '<button type="button" class="btn btn-white" data-zoom="in" title="Ingrandisci">+</button>' +
+                '<button type="button" class="btn btn-white" data-zoom="out" title="Riduci">−</button>' +
+                '<button type="button" class="btn btn-white" data-zoom="reset" title="Vista completa"><i class="ti ti-focus-2"></i></button>';
+            controls.addEventListener("click", function (evt) {
+                const btn = evt.target.closest("[data-zoom]");
+                if (!btn) return;
+                evt.preventDefault();
+                evt.stopPropagation();
+                const action = btn.getAttribute("data-zoom");
+                if (action === "in") zoomCenter(1.25);
+                else if (action === "out") zoomCenter(1 / 1.25);
+                else resetView();
+            });
+            mapEl.appendChild(controls);
+        }
+        if (!mapEl.querySelector(".geo-zoom-hint")) {
+            const hint = document.createElement("div");
+            hint.className = "geo-zoom-hint";
+            hint.textContent = mapMode === "world"
+                ? "Clicca Italia · Rotella = zoom · Trascina = sposta"
+                : "Clicca regione · Rotella = zoom · Trascina = sposta";
+            mapEl.appendChild(hint);
+        }
+    }
+
+    function pctLabel(v) {
+        return (Number(v) || 0).toFixed(2).replace(".", ",") + "%";
+    }
+
+    function syncUrlDrill() {
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set("ambito", mapMode === "world" ? "mondo" : "italia");
+            url.searchParams.set("tab", currentTab || "periodo");
+            if (mapMode === "italy") {
+                if (selectedRegione) url.searchParams.set("regione", selectedRegione);
+                else url.searchParams.delete("regione");
+                if (selectedProvincia) url.searchParams.set("provincia", selectedProvincia);
+                else url.searchParams.delete("provincia");
+                url.searchParams.delete("nazione");
+            } else {
+                if (selectedNazione) url.searchParams.set("nazione", selectedNazione);
+                else url.searchParams.delete("nazione");
+                url.searchParams.delete("regione");
+                url.searchParams.delete("provincia");
+            }
+            url.searchParams.delete("page");
+            window.history.replaceState({}, "", url.toString());
+        } catch (e) { /* ignore */ }
+    }
+
+    function highlightMap(cod) {
+        Array.from(mapEl.querySelectorAll(".geo-region")).forEach(function (path) {
+            const c = path.getAttribute("data-code") || "";
+            path.classList.remove("is-selected", "is-dimmed");
+            if (!cod) return;
+            if (c === cod) path.classList.add("is-selected");
+            else path.classList.add("is-dimmed");
+        });
+    }
+
+    function clienteUrl(codice) {
+        return clienteDetailBase.replace("___COD___", encodeURIComponent(codice));
+    }
+
+    function formatUltima(v) {
+        if (!v) return "—";
+        const s = String(v);
+        if (s.length >= 10 && s.charAt(4) === "-") {
+            const p = s.slice(0, 10).split("-");
+            return p[2] + "/" + p[1] + "/" + p[0];
+        }
+        return s;
+    }
+
+    function sumGeo(rows, fatKey, cliKey) {
+        let fatturato = 0;
+        let nClienti = 0;
+        (rows || []).forEach(function (r) {
+            fatturato += Number(r[fatKey] || 0);
+            nClienti += Number(r[cliKey] || 0);
+        });
+        return { fatturato: fatturato, n_clienti: nClienti };
+    }
+
+    function setGeoFoot(html) {
+        const foot = document.getElementById("geoTableFoot");
+        if (foot) foot.innerHTML = html || "";
+    }
+
+    function renderRegioniTable() {
+        const title = document.getElementById("geoTableTitle");
+        const crumb = document.getElementById("geoBreadcrumb");
+        const head = document.getElementById("geoTableHead");
+        const body = document.getElementById("geoTableBody");
+        if (!body) return;
+        if (title) title.textContent = "Dettaglio regioni";
+        if (crumb) {
+            crumb.innerHTML = '<span class="text-secondary">Clicca una regione sulla cartina o in elenco</span>';
+        }
+        if (head) {
+            head.innerHTML = "<tr><th>Regione</th><th class=\"text-end\">%</th><th class=\"text-end\">Fatturato</th><th class=\"text-end\">Clienti</th></tr>";
+        }
+        const rows = (drill.regioni || []).slice().sort(function (a, b) {
+            return (b.fatturato || 0) - (a.fatturato || 0);
+        });
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="4" class="text-secondary text-center py-4">Nessun dato</td></tr>';
+            setGeoFoot("");
+            return;
+        }
+        const tot = sumGeo(rows, "fatturato", "n_clienti");
+        body.innerHTML = rows.map(function (r) {
+            return '<tr class="is-clickable" data-regione="' + r.codice + '">' +
+                '<td><span class="geo-swatch me-1" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--geo-' + r.codice + ', #94a3b8);"></span>' +
+                r.nome + "</td>" +
+                '<td class="text-end text-nowrap"><strong>' + pctLabel(r.percentuale) + "</strong></td>" +
+                '<td class="text-end text-nowrap">€ ' + formatEuro(r.fatturato) + "</td>" +
+                '<td class="text-end">' + (r.n_clienti || 0).toLocaleString("it-IT") + "</td>" +
+                "</tr>";
+        }).join("");
+        setGeoFoot(
+            '<tr class="geo-total-row"><td colspan="2"><strong>Totale</strong></td>' +
+            '<td class="text-end text-nowrap"><strong>€ ' + formatEuro(tot.fatturato) + "</strong></td>" +
+            '<td class="text-end"><strong>' + tot.n_clienti.toLocaleString("it-IT") + "</strong></td></tr>"
+        );
+    }
+
+    function renderProvinceTable(cod) {
+        const title = document.getElementById("geoTableTitle");
+        const crumb = document.getElementById("geoBreadcrumb");
+        const head = document.getElementById("geoTableHead");
+        const body = document.getElementById("geoTableBody");
+        if (!body) return;
+        const nome = (drill.regioni_nome || {})[cod] || cod;
+        if (title) title.textContent = "Province · " + nome;
+        if (crumb) {
+            crumb.innerHTML = '<button type="button" data-drill-back="regioni">← Tutte le regioni</button>' +
+                '<span class="text-secondary"> · ' + nome + "</span>";
+        }
+        if (head) {
+            head.innerHTML = "<tr><th>Provincia</th><th class=\"text-end\">%</th><th class=\"text-end\">Fatturato</th><th class=\"text-end\">Clienti</th></tr>";
+        }
+        const rows = (drill.province_by_regione || {})[cod] || [];
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="4" class="text-secondary text-center py-4">Nessuna provincia con fatturato</td></tr>';
+            setGeoFoot("");
+            return;
+        }
+        const tot = sumGeo(rows, "fatturato", "n_clienti");
+        body.innerHTML = rows.map(function (p) {
+            const active = selectedProvincia === p.sigla ? " is-active-row" : "";
+            return '<tr class="is-clickable' + active + '" data-provincia="' + p.sigla + '"><td>' +
+                '<span class="geo-swatch me-1" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--geo-' + p.sigla + ', #94a3b8);"></span>' +
+                '<span class="fw-semibold">' + p.nome + "</span> " +
+                '<span class="text-secondary small">(' + p.sigla + ")</span></td>" +
+                '<td class="text-end text-nowrap"><strong>' + pctLabel(p.percentuale) + "</strong></td>" +
+                '<td class="text-end text-nowrap">€ ' + formatEuro(p.fatturato) + "</td>" +
+                '<td class="text-end">' + (p.n_clienti || 0).toLocaleString("it-IT") + "</td></tr>";
+        }).join("");
+        setGeoFoot(
+            '<tr class="geo-total-row"><td colspan="2"><strong>Totale</strong></td>' +
+            '<td class="text-end text-nowrap"><strong>€ ' + formatEuro(tot.fatturato) + "</strong></td>" +
+            '<td class="text-end"><strong>' + tot.n_clienti.toLocaleString("it-IT") + "</strong></td></tr>"
+        );
+    }
+
+    function renderClientiTable(sigla) {
+        ensureListeData();
+        const title = document.getElementById("geoTableTitle");
+        const crumb = document.getElementById("geoBreadcrumb");
+        const head = document.getElementById("geoTableHead");
+        const body = document.getElementById("geoTableBody");
+        if (!body) return;
+        const regNome = (drill.regioni_nome || {})[selectedRegione] || selectedRegione;
+        const provNome = (drill.province_nome || {})[sigla] || sigla;
+        if (title) title.textContent = "Clienti · " + provNome + " (" + sigla + ")";
+        if (crumb) {
+            crumb.innerHTML =
+                '<button type="button" data-drill-back="regioni">← Regioni</button>' +
+                '<span class="text-secondary"> · </span>' +
+                '<button type="button" data-drill-back="province">' + regNome + "</button>" +
+                '<span class="text-secondary"> · ' + provNome + "</span>";
+        }
+        if (head) {
+            head.innerHTML = "<tr><th>Cliente</th><th class=\"text-end\">Fatturato</th><th class=\"text-end\">Fatture</th><th>Ultima</th></tr>";
+        }
+        const rows = (listeAll.periodo || []).filter(function (c) {
+            return clienteSigla[c.codice] === sigla;
+        });
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="4" class="text-secondary text-center py-4">Nessun cliente in questa provincia</td></tr>';
+            setGeoFoot("");
+            return;
+        }
+        let totFat = 0;
+        let totFatue = 0;
+        rows.forEach(function (c) {
+            totFat += Number(c.fatturato || 0);
+            totFatue += Number(c.n_fatture || 0);
+        });
+        body.innerHTML = rows.map(function (c) {
+            const nome = c.ragione_sociale || c.codice;
+            return "<tr><td>" +
+                '<a href="' + clienteUrl(c.codice) + '" class="fw-semibold text-decoration-none">' + nome + "</a>" +
+                '<div class="text-secondary small">' + c.codice + "</div></td>" +
+                '<td class="text-end text-nowrap">€ ' + formatEuro(c.fatturato) + "</td>" +
+                '<td class="text-end">' + (c.n_fatture || 0).toLocaleString("it-IT") + "</td>" +
+                "<td>" + formatUltima(c.ultima) + "</td></tr>";
+        }).join("");
+        setGeoFoot(
+            '<tr class="geo-total-row"><td><strong>Totale</strong> <span class="text-secondary fw-normal">(' +
+            rows.length.toLocaleString("it-IT") + " clienti)</span></td>" +
+            '<td class="text-end text-nowrap"><strong>€ ' + formatEuro(totFat) + "</strong></td>" +
+            '<td class="text-end"><strong>' + totFatue.toLocaleString("it-IT") + "</strong></td>" +
+            "<td></td></tr>"
+        );
+    }
+
+    function renderNazioniTable() {
+        const title = document.getElementById("geoTableTitle");
+        const crumb = document.getElementById("geoBreadcrumb");
+        const head = document.getElementById("geoTableHead");
+        const body = document.getElementById("geoTableBody");
+        if (!body) return;
+        if (title) title.textContent = "Dettaglio nazioni (ISO)";
+        if (crumb) {
+            crumb.innerHTML = '<span class="text-secondary">Clicca una nazione sulla cartina o in elenco</span>';
+        }
+        if (head) {
+            head.innerHTML = "<tr><th>Nazione</th><th class=\"text-end\">%</th><th class=\"text-end\">Fatturato</th><th class=\"text-end\">Clienti</th></tr>";
+        }
+        const rows = (drill.nazioni || []).slice().sort(function (a, b) {
+            return (b.fatturato || 0) - (a.fatturato || 0);
+        });
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="4" class="text-secondary text-center py-4">Nessun dato</td></tr>';
+            setGeoFoot("");
+            return;
+        }
+        const tot = sumGeo(rows, "fatturato", "n_clienti");
+        body.innerHTML = rows.map(function (r) {
+            const active = selectedNazione === r.codice ? " is-active-row" : "";
+            const itLink = r.codice === "IT"
+                ? ' <a href="' + italiaUrl + '" class="text-secondary small ms-1" onclick="event.stopPropagation()">→ regioni</a>'
+                : "";
+            return '<tr class="is-clickable' + active + '" data-nazione="' + r.codice + '">' +
+                '<td><span class="geo-swatch me-1" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--geo-' + r.codice + ', #94a3b8);"></span>' +
+                "<code class=\"me-1\">" + r.codice + "</code>" + r.nome + itLink + "</td>" +
+                '<td class="text-end text-nowrap"><strong>' + pctLabel(r.percentuale) + "</strong></td>" +
+                '<td class="text-end text-nowrap">€ ' + formatEuro(r.fatturato) + "</td>" +
+                '<td class="text-end">' + (r.n_clienti || 0).toLocaleString("it-IT") + "</td>" +
+                "</tr>";
+        }).join("");
+        setGeoFoot(
+            '<tr class="geo-total-row"><td colspan="2"><strong>Totale</strong></td>' +
+            '<td class="text-end text-nowrap"><strong>€ ' + formatEuro(tot.fatturato) + "</strong></td>" +
+            '<td class="text-end"><strong>' + tot.n_clienti.toLocaleString("it-IT") + "</strong></td></tr>"
+        );
+    }
+
+    function renderClientiNazioneTable(iso) {
+        ensureListeData();
+        const title = document.getElementById("geoTableTitle");
+        const crumb = document.getElementById("geoBreadcrumb");
+        const head = document.getElementById("geoTableHead");
+        const body = document.getElementById("geoTableBody");
+        if (!body) return;
+        const nome = (drill.nazioni_nome || {})[iso] || iso;
+        if (title) title.textContent = "Clienti · " + nome + " (" + iso + ")";
+        if (crumb) {
+            let html = '<button type="button" data-drill-back="nazioni">← Tutte le nazioni</button>' +
+                '<span class="text-secondary"> · ' + nome + "</span>";
+            if (iso === "IT" && italiaUrl) {
+                html += '<span class="text-secondary"> · </span><a href="' + italiaUrl + '">→ regioni Italia</a>';
+            }
+            crumb.innerHTML = html;
+        }
+        if (head) {
+            head.innerHTML = "<tr><th>Cliente</th><th class=\"text-end\">Fatturato</th><th class=\"text-end\">Fatture</th><th>Ultima</th></tr>";
+        }
+        const rows = (listeAll.periodo || []).filter(function (c) {
+            return clienteIso[c.codice] === iso;
+        });
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="4" class="text-secondary text-center py-4">Nessun cliente in questa nazione</td></tr>';
+            setGeoFoot("");
+            return;
+        }
+        let totFat = 0;
+        let totFatue = 0;
+        rows.forEach(function (c) {
+            totFat += Number(c.fatturato || 0);
+            totFatue += Number(c.n_fatture || 0);
+        });
+        body.innerHTML = rows.map(function (c) {
+            const cNome = c.ragione_sociale || c.codice;
+            return "<tr><td>" +
+                '<a href="' + clienteUrl(c.codice) + '" class="fw-semibold text-decoration-none">' + cNome + "</a>" +
+                '<div class="text-secondary small">' + c.codice + "</div></td>" +
+                '<td class="text-end text-nowrap">€ ' + formatEuro(c.fatturato) + "</td>" +
+                '<td class="text-end">' + (c.n_fatture || 0).toLocaleString("it-IT") + "</td>" +
+                "<td>" + formatUltima(c.ultima) + "</td></tr>";
+        }).join("");
+        setGeoFoot(
+            '<tr class="geo-total-row"><td><strong>Totale</strong> <span class="text-secondary fw-normal">(' +
+            rows.length.toLocaleString("it-IT") + " clienti)</span></td>" +
+            '<td class="text-end text-nowrap"><strong>€ ' + formatEuro(totFat) + "</strong></td>" +
+            '<td class="text-end"><strong>' + totFatue.toLocaleString("it-IT") + "</strong></td>" +
+            "<td></td></tr>"
+        );
+    }
+
+    function updateWorldMapTitle() {
+        const el = mapEl && mapEl.closest(".col-lg-7");
+        const title = el && el.querySelector(".card-title");
+        const hint = el && el.querySelector(".text-secondary.small");
+        const zoomHint = mapEl.querySelector(".geo-zoom-hint");
+        if (!title) return;
+        title.textContent = "Cartina mondo";
+        if (hint) {
+            hint.textContent = selectedNazione
+                ? ("Nazione " + selectedNazione + " · clicca un’altra o torna all’elenco")
+                : "Clicca una nazione per i clienti";
+        }
+        if (zoomHint) zoomHint.textContent = "Clicca nazione · Rotella = zoom · Trascina = sposta";
+    }
+
+    function selectNazione(iso) {
+        if (mapMode !== "world") return;
+        selectedNazione = (iso || "").toUpperCase();
+        if (selectedNazione) {
+            renderClientiNazioneTable(selectedNazione);
+            highlightMap(selectedNazione);
+        } else {
+            renderNazioniTable();
+            highlightMap("");
+        }
+        updateWorldMapTitle();
+        syncUrlDrill();
+        refreshClientiLista();
+    }
+
+    function provinceMapData(cod) {
+        const rows = (drill.province_by_regione || {})[cod] || [];
+        const out = {};
+        rows.forEach(function (p) {
+            out[p.sigla] = {
+                nome: p.nome,
+                fatturato: p.fatturato,
+                percentuale: p.percentuale,
+                n_fatture: p.n_fatture,
+                n_clienti: p.n_clienti
+            };
+        });
+        return out;
+    }
+
+    function maxPctOf(dataObj) {
+        let m = 0;
+        Object.keys(dataObj || {}).forEach(function (k) {
+            const p = Number((dataObj[k] && dataObj[k].percentuale) || 0);
+            if (p > m) m = p;
+        });
+        return m;
+    }
+
+    function updateMapTitle() {
+        const el = document.querySelector("#mapGeo") && document.querySelector("#mapGeo").closest(".col-lg-7");
+        const title = el && el.querySelector(".card-title");
+        const hint = el && el.querySelector(".text-secondary.small");
+        const zoomHint = mapEl.querySelector(".geo-zoom-hint");
+        if (!title) return;
+        if (mapLevel === "provinces" && selectedRegione) {
+            const nome = (drill.regioni_nome || {})[selectedRegione] || selectedRegione;
+            title.textContent = "Cartina province · " + nome;
+            if (hint) hint.textContent = selectedProvincia
+                ? "Provincia " + selectedProvincia + " · clicca un’altra o torna alle province"
+                : "Clicca una provincia per i clienti";
+            if (zoomHint) zoomHint.textContent = "Clicca provincia · Rotella = zoom · Trascina = sposta";
+        } else {
+            title.textContent = "Cartina Italia";
+            if (hint) hint.textContent = "Clicca una regione per le province";
+            if (zoomHint) zoomHint.textContent = "Clicca regione · Rotella = zoom · Trascina = sposta";
+        }
+    }
+
+    function showProvinceMap(cod) {
+        if (!mapEl._geoProvinces) {
+            setStatus("Caricamento province…");
+            fetch(geoUrlProvinces)
+                .then(function (r) {
+                    if (!r.ok) throw new Error("HTTP " + r.status);
+                    return r.json();
+                })
+                .then(function (geo) {
+                    mapEl._geoProvinces = geo;
+                    showProvinceMap(cod);
+                })
+                .catch(function (err) {
+                    console.error(err);
+                    setStatus("Impossibile caricare le province.");
+                });
+            return;
+        }
+        const feats = (mapEl._geoProvinces.features || []).filter(function (f) {
+            const reg = String((f.properties || {}).reg_istat_code || "").padStart(2, "0");
+            return reg === cod;
+        });
+        if (!feats.length) {
+            setStatus("Nessuna geometria province per questa regione.");
+            return;
+        }
+        mapLevel = "provinces";
+        mapData = provinceMapData(cod);
+        maxPct = maxPctOf(mapData) || 1;
+        Object.keys(mapData).forEach(function (sigla) {
+            document.documentElement.style.setProperty(
+                "--geo-" + sigla,
+                colorFor(mapData[sigla].percentuale || 0)
+            );
+        });
+        mapEl.classList.remove("map-italy");
+        mapEl.classList.add("map-provinces");
+        updateMapTitle();
+        renderMap({ type: "FeatureCollection", features: feats }, false);
+        if (selectedProvincia) highlightMap(selectedProvincia);
+    }
+
+    function showRegionsMap() {
+        mapLevel = "regions";
+        mapData = mapDataRegioni;
+        maxPct = maxPctRegioni;
+        mapEl.classList.remove("map-provinces");
+        mapEl.classList.add("map-italy");
+        updateMapTitle();
+        if (mapEl._geojson) renderMap(mapEl._geojson, false);
+    }
+
+    function selectRegione(cod) {
+        if (mapMode !== "italy") return;
+        selectedProvincia = "";
+        selectedRegione = cod ? String(cod).padStart(2, "0") : "";
+        if (selectedRegione) {
+            renderProvinceTable(selectedRegione);
+            showProvinceMap(selectedRegione);
+        } else {
+            renderRegioniTable();
+            showRegionsMap();
+        }
+        syncUrlDrill();
+        refreshClientiLista();
+    }
+
+    function selectProvincia(sigla) {
+        if (mapMode !== "italy" || !selectedRegione) return;
+        selectedProvincia = (sigla || "").toUpperCase();
+        if (selectedProvincia) {
+            renderClientiTable(selectedProvincia);
+            highlightMap(selectedProvincia);
+            updateMapTitle();
+        } else {
+            renderProvinceTable(selectedRegione);
+            highlightMap("");
+            updateMapTitle();
+        }
+        syncUrlDrill();
+        refreshClientiLista();
+    }
+
+    function rowsForTab(tab) {
+        ensureListeData();
+        const rows = (listeAll && listeAll[tab]) ? listeAll[tab].slice() : [];
+        if (mapMode === "world") {
+            if (!selectedNazione) return rows;
+            return rows.filter(function (r) {
+                return clienteIso[r.codice] === selectedNazione;
+            });
+        }
+        if (!selectedProvincia) return rows;
+        return rows.filter(function (r) {
+            return clienteSigla[r.codice] === selectedProvincia;
+        });
+    }
+
+    function formatInt(n) {
+        return Number(n || 0).toLocaleString("it-IT");
+    }
+
+    function refreshClientiLista() {
+        const tabs = ["periodo", "persi", "nuovi", "entrambi"];
+        tabs.forEach(function (t) {
+            const n = rowsForTab(t).length;
+            document.querySelectorAll('[data-geo-count="' + t + '"]').forEach(function (el) {
+                el.textContent = formatInt(n);
+            });
+            document.querySelectorAll('[data-geo-kpi="' + t + '"]').forEach(function (el) {
+                el.textContent = formatInt(n);
+            });
+        });
+
+        const badge = document.getElementById("geoProvinciaBadge");
+        const label = document.getElementById("geoProvinciaBadgeLabel");
+        if (badge && label) {
+            if (mapMode === "world" && selectedNazione) {
+                const nome = (drill.nazioni_nome || {})[selectedNazione] || selectedNazione;
+                label.textContent = nome + " (" + selectedNazione + ")";
+                badge.hidden = false;
+            } else if (mapMode === "italy" && selectedProvincia) {
+                const nome = (drill.province_nome || {})[selectedProvincia] || selectedProvincia;
+                label.textContent = "Prov. " + nome + " (" + selectedProvincia + ")";
+                badge.hidden = false;
+            } else {
+                badge.hidden = true;
+            }
+        }
+
+        const filtered = (mapMode === "world" && selectedNazione) ||
+            (mapMode === "italy" && selectedProvincia);
+        const pag = document.getElementById("geoClientiPagination");
+        if (pag) pag.style.display = filtered ? "none" : "";
+
+        renderMainClientiTable(rowsForTab(currentTab));
+        updateExportLinks();
+        updateTabActive();
+    }
+
+    function updateTabActive() {
+        document.querySelectorAll("[data-geo-tab]").forEach(function (el) {
+            const t = el.getAttribute("data-geo-tab");
+            const active = t === currentTab;
+            el.classList.toggle("active", active && el.classList.contains("nav-link"));
+            if (el.classList.contains("card") || el.classList.contains("card-link")) {
+                el.classList.toggle("border-primary", active && t === "periodo");
+                el.classList.toggle("border-danger", active && t === "persi");
+                el.classList.toggle("border-info", active && t === "nuovi");
+                el.classList.toggle("border-secondary", active && t === "entrambi");
+            }
+        });
+        document.querySelectorAll("#geoClientiTabs .nav-link").forEach(function (el) {
+            el.classList.toggle("active", el.getAttribute("data-geo-tab") === currentTab);
+        });
+    }
+
+    function updateExportLinks() {
+        ["geoExportCsv", "geoExportXlsx"].forEach(function (id) {
+            const a = document.getElementById(id);
+            if (!a) return;
+            try {
+                const url = new URL(a.href, window.location.origin);
+                url.searchParams.set("export", currentTab);
+                if (mapMode === "italy") {
+                    if (selectedProvincia) url.searchParams.set("provincia", selectedProvincia);
+                    else url.searchParams.delete("provincia");
+                    if (selectedRegione) url.searchParams.set("regione", selectedRegione);
+                    else url.searchParams.delete("regione");
+                    url.searchParams.delete("nazione");
+                } else {
+                    if (selectedNazione) url.searchParams.set("nazione", selectedNazione);
+                    else url.searchParams.delete("nazione");
+                    url.searchParams.delete("provincia");
+                    url.searchParams.delete("regione");
+                }
+                a.href = url.pathname + url.search;
+            } catch (e) { /* ignore */ }
+        });
+    }
+
+    function renderMainClientiTable(rows) {
+        const head = document.getElementById("geoClientiHead");
+        const body = document.getElementById("geoClientiBody");
+        if (!body) return;
+        function geoCells(c) {
+            const loc = c.localita || "—";
+            const prov = c.provincia
+                ? "<code>" + c.provincia + "</code>"
+                : "—";
+            return "<td>" + loc + "</td><td>" + prov + "</td>";
+        }
+        if (currentTab === "entrambi") {
+            if (head) {
+                head.innerHTML = "<tr><th class=\"w-1\">#</th><th>Cliente</th>" +
+                    "<th>Località</th><th>Provincia</th>" +
+                    "<th class=\"text-end\">Riferimento</th><th class=\"text-end\">Confronto</th>" +
+                    "<th class=\"text-end\">Delta</th></tr>";
+            }
+            if (!rows.length) {
+                body.innerHTML = '<tr><td colspan="7" class="text-secondary text-center py-4">Nessun cliente</td></tr>';
+                return;
+            }
+            body.innerHTML = rows.map(function (c, i) {
+                const nome = c.ragione_sociale || c.codice;
+                const delta = Number(c.delta || 0);
+                const cls = delta >= 0 ? "text-green" : "text-red";
+                const sign = delta >= 0 ? "+" : "";
+                return "<tr><td class=\"text-secondary\">" + (i + 1) + "</td><td>" +
+                    '<a href="' + clienteUrl(c.codice) + '" class="fw-semibold text-decoration-none">' + nome + "</a>" +
+                    '<div class="text-secondary small">' + c.codice + "</div></td>" +
+                    geoCells(c) +
+                    '<td class="text-end">€ ' + formatEuro(c.fatturato_rif) + "</td>" +
+                    '<td class="text-end">€ ' + formatEuro(c.fatturato_con) + "</td>" +
+                    '<td class="text-end ' + cls + '">' + sign + "€ " + formatEuro(delta) + "</td></tr>";
+            }).join("");
+            return;
+        }
+        const fatLbl = metricaLabel + (currentTab === "persi" ? " (confronto)" : " (riferimento)");
+        if (head) {
+            head.innerHTML = "<tr><th class=\"w-1\">#</th><th>Cliente</th>" +
+                "<th>Località</th><th>Provincia</th>" +
+                '<th class="text-end">' + fatLbl + "</th>" +
+                "<th class=\"text-end\">N. fatture</th><th>Ultima fattura</th></tr>";
+        }
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="7" class="text-secondary text-center py-4">Nessun cliente</td></tr>';
+            return;
+        }
+        body.innerHTML = rows.map(function (c, i) {
+            const nome = c.ragione_sociale || c.codice;
+            return "<tr><td class=\"text-secondary\">" + (i + 1) + "</td><td>" +
+                '<a href="' + clienteUrl(c.codice) + '" class="fw-semibold text-decoration-none">' + nome + "</a>" +
+                '<div class="text-secondary small">' + c.codice + "</div></td>" +
+                geoCells(c) +
+                '<td class="text-end">€ ' + formatEuro(c.fatturato) + "</td>" +
+                '<td class="text-end">' + formatInt(c.n_fatture) + "</td>" +
+                "<td>" + formatUltima(c.ultima) + "</td></tr>";
+        }).join("");
+    }
+
+    function setGeoTab(tab) {
+        if (!listeAll || !listeAll[tab]) return;
+        currentTab = tab;
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set("tab", tab);
+            url.searchParams.delete("page");
+            window.history.replaceState({}, "", url.toString());
+        } catch (e) { /* ignore */ }
+        refreshClientiLista();
+    }
+
+    function gotoItalia() {
+        if (italiaUrl) window.location.href = italiaUrl;
+    }
+
+    function bindDrillUi() {
+        const body = document.getElementById("geoTableBody");
+        const crumb = document.getElementById("geoBreadcrumb");
+        if (body && mapMode === "italy") {
+            body.addEventListener("click", function (evt) {
+                if (evt.target.closest("a")) return;
+                const trProv = evt.target.closest("tr[data-provincia]");
+                if (trProv) {
+                    selectProvincia(trProv.getAttribute("data-provincia"));
+                    return;
+                }
+                const tr = evt.target.closest("tr[data-regione]");
+                if (!tr) return;
+                selectRegione(tr.getAttribute("data-regione"));
+            });
+        }
+        if (body && mapMode === "world") {
+            body.addEventListener("click", function (evt) {
+                if (evt.target.closest("a")) return;
+                const tr = evt.target.closest("tr[data-nazione]");
+                if (!tr) return;
+                selectNazione(tr.getAttribute("data-nazione"));
+            });
+        }
+        if (crumb) {
+            crumb.addEventListener("click", function (evt) {
+                const btn = evt.target.closest("[data-drill-back]");
+                if (!btn) return;
+                const level = btn.getAttribute("data-drill-back");
+                if (level === "nazioni") {
+                    selectNazione("");
+                } else if (level === "province") {
+                    selectProvincia("");
+                } else {
+                    selectRegione("");
+                }
+            });
+        }
+        document.querySelectorAll("[data-goto-italia]").forEach(function (el) {
+            el.addEventListener("click", gotoItalia);
+        });
+        document.querySelectorAll("[data-geo-tab]").forEach(function (el) {
+            el.addEventListener("click", function (evt) {
+                evt.preventDefault();
+                setGeoTab(el.getAttribute("data-geo-tab"));
+            });
+        });
+        const clearBtn = document.getElementById("geoProvinciaClear");
+        if (clearBtn) {
+            clearBtn.addEventListener("click", function () {
+                if (mapMode === "world") selectNazione("");
+                else if (selectedRegione) selectProvincia("");
+            });
+        }
+        if (mapMode === "world") {
+            if (selectedNazione) {
+                renderClientiNazioneTable(selectedNazione);
+                updateWorldMapTitle();
+            }
+            refreshClientiLista();
+        } else if (selectedProvincia) {
+            refreshClientiLista();
+        }
+    }
+
+    function bindInteractions(svg) {
+        if (mapEl._zoomBound) return;
+        mapEl._zoomBound = true;
+
+        mapEl.addEventListener("wheel", function (evt) {
+            evt.preventDefault();
+            const factor = evt.deltaY < 0 ? 1.12 : 1 / 1.12;
+            zoomAt(evt.clientX, evt.clientY, factor);
+        }, { passive: false });
+
+        mapEl.addEventListener("dblclick", function (evt) {
+            if (evt.target.closest(".geo-zoom-controls")) return;
+            evt.preventDefault();
+            zoomAt(evt.clientX, evt.clientY, 1.6);
+        });
+
+        let drag = null;
+        mapEl.addEventListener("pointerdown", function (evt) {
+            if (evt.button !== 0) return;
+            if (evt.target.closest(".geo-zoom-controls")) return;
+            const regionPath = evt.target.closest ? evt.target.closest(".geo-region") : null;
+            drag = {
+                pointerId: evt.pointerId,
+                x: evt.clientX,
+                y: evt.clientY,
+                tx: view.tx,
+                ty: view.ty,
+                moved: false,
+                code: regionPath ? (regionPath.getAttribute("data-code") || "") : ""
+            };
+            mapEl._panning = false;
+            mapEl._suppressClick = false;
+        });
+        mapEl.addEventListener("pointermove", function (evt) {
+            if (!drag || drag.pointerId !== evt.pointerId) return;
+            const dx = evt.clientX - drag.x;
+            const dy = evt.clientY - drag.y;
+            if (!drag.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+                drag.moved = true;
+                mapEl._panning = true;
+                mapEl._suppressClick = true;
+                try { mapEl.setPointerCapture(evt.pointerId); } catch (e) { /* ignore */ }
+                mapEl.classList.add("is-panning");
+                hideTip();
+            }
+            if (!drag.moved) return;
+            view.tx = drag.tx + dx;
+            view.ty = drag.ty + dy;
+            applyView();
+        });
+        function endDrag(evt) {
+            if (!drag || drag.pointerId !== evt.pointerId) return;
+            const wasMoved = drag.moved;
+            const code = drag.code;
+            if (wasMoved) {
+                try { mapEl.releasePointerCapture(evt.pointerId); } catch (e) { /* ignore */ }
+            }
+            drag = null;
+            mapEl.classList.remove("is-panning");
+            mapEl._suppressClick = wasMoved;
+            setTimeout(function () { mapEl._panning = false; }, 0);
+            // Click senza trascinamento: drill regione / provincia / nazione
+            if (!wasMoved && code) {
+                mapEl._suppressClick = true;
+                if (mapMode === "world") {
+                    selectNazione(code);
+                } else if (mapMode === "italy" && mapLevel === "regions") {
+                    selectRegione(code);
+                } else if (mapMode === "italy" && mapLevel === "provinces") {
+                    selectProvincia(code);
+                }
+            }
+        }
+        mapEl.addEventListener("pointerup", endDrag);
+        mapEl.addEventListener("pointercancel", endDrag);
+    }
+
+    function renderMap(geojson, keepView) {
+        const width = mapEl.clientWidth || 640;
+        const height = mapEl.clientHeight || 560;
+        const pad = mapMode === "world" ? 12 : 18;
+        const bbox = bboxOf(geojson);
+        if (!isFinite(bbox.minLon)) {
+            setStatus("Cartina non disponibile.");
+            return;
+        }
+        if (!keepView) resetView();
+
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+        svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+        const g = document.createElementNS(svgNS, "g");
+        layerG = g;
+
+        (geojson.features || []).forEach(function (feature) {
+            const code = featureCode(feature);
+            if (!code) return;
+            const d = mapData[code] || {
+                nome: featureName(feature, null),
+                percentuale: 0, fatturato: 0, n_clienti: 0, n_fatture: 0
+            };
+            const path = document.createElementNS(svgNS, "path");
+            const clickable = (mapMode === "world")
+                || (mapMode === "italy" && (mapLevel === "regions" || mapLevel === "provinces"));
+            path.setAttribute("class", "geo-region" + (clickable ? " is-clickable" : ""));
+            path.setAttribute("data-code", code);
+            path.setAttribute("d", geometryPath(feature.geometry, bbox, width, height, pad));
+            path.setAttribute("fill", colorFor(d.percentuale || 0));
+            path.addEventListener("mousemove", function (evt) {
+                if (mapEl._panning) return;
+                path.classList.add("is-active");
+                const label = featureName(feature, d);
+                const isoBit = mapMode === "world"
+                    ? " <code>" + code + "</code>"
+                    : (mapLevel === "provinces" ? " <code>" + code + "</code>" : "");
+                const hint = mapMode === "world"
+                    ? "<br><span class=\"text-secondary\">Clicca per i clienti</span>"
+                    : (mapMode === "italy" && mapLevel === "regions"
+                        ? "<br><span class=\"text-secondary\">Clicca per le province</span>"
+                        : (mapMode === "italy" && mapLevel === "provinces"
+                            ? "<br><span class=\"text-secondary\">Clicca per i clienti</span>"
+                            : ""));
+                showTip(
+                    "<strong>" + label + "</strong>" + isoBit + "<br>" +
+                    (d.percentuale || 0).toFixed(2).replace(".", ",") + "% · € " + formatEuro(d.fatturato) + "<br>" +
+                    (d.n_clienti || 0) + " clienti · " + (d.n_fatture || 0) + " fatture" + hint,
+                    evt
+                );
+            });
+            path.addEventListener("mouseleave", function () {
+                path.classList.remove("is-active");
+                hideTip();
+            });
+            path.addEventListener("click", function () {
+                if (mapEl._suppressClick) {
+                    mapEl._suppressClick = false;
+                    return;
+                }
+                if (mapMode === "world") {
+                    selectNazione(code);
+                    return;
+                }
+                if (mapMode === "italy" && mapLevel === "regions") {
+                    selectRegione(code);
+                } else if (mapMode === "italy" && mapLevel === "provinces") {
+                    selectProvincia(code);
+                }
+            });
+            g.appendChild(path);
+        });
+        svg.appendChild(g);
+
+        Array.from(mapEl.querySelectorAll("svg")).forEach(function (n) { n.remove(); });
+        Array.from(mapEl.querySelectorAll(".geo-legend-box")).forEach(function (n) { n.remove(); });
+        setStatus("");
+        mapEl.insertBefore(svg, tipEl || null);
+        applyView();
+        ensureChrome();
+        bindInteractions(svg);
+        if (mapMode === "world" && selectedNazione) highlightMap(selectedNazione);
+
+        const legend = document.createElement("div");
+        legend.className = "geo-legend-box";
+        legend.innerHTML = "<div class=\"mb-1\"><strong>% fatturato</strong></div>";
+        [0, 0.25, 0.5, 0.75, 1].forEach(function (s, i, arr) {
+            const label = i === 0 ? "0%" : (i === arr.length - 1 ? "max" : Math.round(maxPct * s) + "%");
+            legend.innerHTML += "<div><i style=\"background:" + colorFor(maxPct * s) + "\"></i>" + label + "</div>";
+        });
+        mapEl.appendChild(legend);
+    }
+
+    bindDrillUi();
+})();
+</script>
+{% else %}
+<script>
+(function () {
+    document.querySelectorAll("[data-geo-tab]").forEach(function (el) {
+        el.addEventListener("click", function (evt) {
+            evt.preventDefault();
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set("tab", el.getAttribute("data-geo-tab") || "periodo");
+                url.searchParams.delete("page");
+                window.location.href = url.toString();
+            } catch (e) { /* ignore */ }
+        });
+    });
+})();
+</script>
+{% endif %}
+<script>
+(function () {
+    const fatOp = document.getElementById("geoFatOp");
+    const fatVal2Wrap = document.getElementById("geoFatVal2Wrap");
+    const fatValLabel = document.getElementById("geoFatValLabel");
+    function syncFatOp() {
+        if (!fatOp) return;
+        const between = fatOp.value === "between";
+        if (fatVal2Wrap) fatVal2Wrap.classList.toggle("d-none", !between);
+        if (fatValLabel) fatValLabel.textContent = between ? "Da €" : "Importo €";
+    }
+    if (fatOp) {
+        fatOp.addEventListener("change", syncFatOp);
+        syncFatOp();
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+:root{
+    --st-primary:#1d4ed8;
+    --st-sidebar:#1f2937;
+    --st-sidebar-hover:rgba(255,255,255,.06);
+    --st-sidebar-active:rgba(59,130,246,.14);
+    --st-sidebar-accent:#3b82f6;
+    --st-sidebar-border:rgba(255,255,255,.08);
+    --st-sidebar-text:rgba(255,255,255,.74);
+    --st-sidebar-text-muted:rgba(255,255,255,.48);
+    --st-sidebar-section:rgba(255,255,255,.38);
+    --st-bg:#f5f7fb;
+}

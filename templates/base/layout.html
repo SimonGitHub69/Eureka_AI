@@ -1,0 +1,104 @@
+{% load static %}
+<!doctype html>
+<html lang="it">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+
+    <title>{% block title %}Eureka AI{% endblock %}</title>
+
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem("eureka-theme");
+                const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                const theme = savedTheme || (prefersDark ? "dark" : "light");
+                document.documentElement.setAttribute("data-bs-theme", theme);
+            } catch (error) {
+                document.documentElement.setAttribute("data-bs-theme", "light");
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="{% static '@tabler/core/dist/css/tabler.min.css' %}">
+    <link rel="stylesheet" href="{% static '@tabler/icons-webfont/dist/tabler-icons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'eureka/css/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}">
+    {% if user.is_authenticated %}
+    <link rel="stylesheet" href="{% static 'eureka/css/voice-assistant.css' %}">
+    {% endif %}
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<div class="page">
+
+    {% include "base/sidebar.html" %}
+
+    <div class="page-wrapper">
+
+        {% include "base/navbar.html" %}
+
+        <div class="page-body">
+            <div class="container-xl">
+                {% include "base/messages.html" %}
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+
+        {% include "base/footer.html" %}
+
+    </div>
+
+</div>
+
+<script src="{% static '@tabler/core/dist/js/tabler.min.js' %}"></script>
+<script defer src="{% static 'alpinejs/dist/cdn.min.js' %}"></script>
+<script src="{% static 'htmx.org/dist/htmx.min.js' %}"></script>
+<script src="{% static 'eureka/js/disable-autocomplete.js' %}"></script>
+<script src="{% static 'eureka/js/app.js' %}"></script>
+{% if user.is_authenticated %}
+<script>
+    window.EUREKA_VOICE_ENABLED = true;
+    window.EUREKA_VOICE_ROUTES = {
+        dashboard: "{% url 'dashboard:index' %}",
+        clienti: "{% url 'anagrafiche:clienti_list' %}",
+        fornitori: "{% url 'anagrafiche:fornitori_list' %}",
+        agenti: "{% url 'anagrafiche:agenti_list' %}",
+        articoli: "{% url 'articoli:list' %}",
+        fatture: "{% url 'fatture:list' %}",
+        analisi_fatturato: "{% url 'fatture:analisi' %}",
+        fatturato_regioni: "{% url 'fatture:analisi_regioni' %}",
+        classifica_clienti: "{% url 'fatture:classifica' %}",
+        categorie: "{% url 'categorie:list' %}",
+        gruppi_articoli: "{% url 'gruppi_articoli:list' %}",
+        gruppi_magazzini: "{% url 'gruppi_magazzini:list' %}",
+        magazzini: "{% url 'magazzini:list' %}",
+        regioni: "{% url 'geografia:regioni_list' %}",
+        province: "{% url 'geografia:province_list' %}",
+        citta: "{% url 'geografia:citta_list' %}",
+        parametri_4d: "{% url 'core:parametri_4d' %}",
+        parametri4d: "{% url 'core:parametri_4d' %}",
+        sistema: "{% url 'dashboard:sistema' %}",
+        sync_fatture: "{% url 'fatture:sync' %}",
+        sync_anagrafiche: "{% url 'core:sync_anagrafiche' %}",
+        sync_categorie: "{% url 'categorie:sync' %}",
+        sync_gruppi_articoli: "{% url 'gruppi_articoli:sync' %}",
+        sync_gruppi_magazzini: "{% url 'gruppi_magazzini:sync' %}",
+        sync_magazzini: "{% url 'magazzini:sync' %}"
+    };
+    window.EUREKA_VOICE_COMMANDS = {{ eureka_voice_commands_json|safe }};
+</script>
+<script src="{% static 'eureka/js/voice-assistant.js' %}"></script>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

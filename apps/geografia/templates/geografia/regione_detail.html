@@ -1,0 +1,37 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ regione.nome }} · Eureka AI{% endblock %}
+{% block page_title %}Regione{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ regione.nome }}</h2>
+            <div class="text-secondary">Codice ISTAT {{ regione.codice }}</div>
+        </div>
+        <a href="{% url 'geografia:regioni_list' %}" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Elenco</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">Province ({{ province|length }})</h3></div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead><tr><th>Sigla</th><th>Nome</th><th class="text-end">Città</th><th></th></tr></thead>
+            <tbody>
+                {% for p in province %}
+                <tr>
+                    <td><code>{{ p.sigla }}</code></td>
+                    <td>{{ p.nome }}</td>
+                    <td class="text-end">{{ p.n_citta }}</td>
+                    <td class="w-1"><a href="{% url 'geografia:provincia_detail' p.sigla %}" class="btn btn-ghost-primary btn-icon"><i class="ti ti-chevron-right"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-secondary">Nessuna provincia.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{% if is_edit %}Modifica comando{% else %}Nuovo comando{% endif %} · Comandi vocali · Eureka AI{% endblock %}
+
+{% block page_title %}Comandi vocali{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{% if is_edit %}Modifica comando vocale{% else %}Nuovo comando vocale{% endif %}</h2>
+            <div class="text-secondary">
+                Definisci una frase e l'azione da eseguire quando l'assistente la riconosce
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'core:comandi_vocali_list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Elenco comandi
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="ti ti-microphone me-1"></i>
+                    Dettaglio comando
+                </h3>
+            </div>
+            <form method="post" id="comando-vocale-form">
+                {% csrf_token %}
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.frase.id_for_label }}">{{ form.frase.label }}</label>
+                        {{ form.frase }}
+                        <div class="form-hint">
+                            Esempi: <code>apri clienti</code>, <code>vai alla dashboard</code>, <code>cerca cliente</code>
+                        </div>
+                        {% if form.frase.errors %}
+                            <div class="invalid-feedback d-block">{{ form.frase.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ form.azione.id_for_label }}">{{ form.azione.label }}</label>
+                                {{ form.azione }}
+                                {% if form.azione.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.azione.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ form.destinazione.id_for_label }}">{{ form.destinazione.label }}</label>
+                                {{ form.destinazione }}
+                                {% if form.destinazione.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.destinazione.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.query.id_for_label }}">{{ form.query.label }}</label>
+                        {{ form.query }}
+                        <div class="form-hint">
+                            Solo per azione <strong>Cerca</strong>. Lascia vuoto per estrarre la query dal resto della frase parlata.
+                        </div>
+                        {% if form.query.errors %}
+                            <div class="invalid-feedback d-block">{{ form.query.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ form.match_mode.id_for_label }}">{{ form.match_mode.label }}</label>
+                                {{ form.match_mode }}
+                                {% if form.match_mode.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.match_mode.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ form.ordine.id_for_label }}">{{ form.ordine.label }}</label>
+                                {{ form.ordine }}
+                                <div class="form-hint">Priorità più bassa = valutato prima.</div>
+                                {% if form.ordine.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.ordine.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-check mb-3 mt-4">
+                                {{ form.attivo }}
+                                <span class="form-check-label">{{ form.attivo.label }}</span>
+                            </label>
+                            {% if form.attivo.errors %}
+                                <div class="invalid-feedback d-block">{{ form.attivo.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+                        {{ form.note }}
+                        {% if form.note.errors %}
+                            <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+            <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
+                {% if is_edit %}
+                <form method="post" action="{% url 'core:comando_vocale_duplicate' comando.pk %}" class="mb-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary">
+                        <i class="ti ti-copy"></i>
+                        Duplica
+                    </button>
+                </form>
+                {% else %}
+                <span></span>
+                {% endif %}
+                <div class="ms-auto">
+                    <a href="{% url 'core:comandi_vocali_list' %}" class="btn btn-link">Annulla</a>
+                    <button type="submit" form="comando-vocale-form" class="btn btn-primary">
+                        <i class="ti ti-device-floppy"></i>
+                        Salva comando
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Esempi utili</h3>
+            </div>
+            <div class="card-body text-secondary">
+                <p><strong>Navigazione</strong></p>
+                <ul class="mb-3">
+                    <li><code>apri clienti</code> → Clienti</li>
+                    <li><code>vai alle categorie</code> → Categorie</li>
+                    <li><code>mostra parametri 4d</code> → Parametri 4D</li>
+                </ul>
+                <p><strong>Ricerca dinamica</strong></p>
+                <ul class="mb-3">
+                    <li>Frase <code>cerca cliente</code>, parli <em>cerca cliente Rossi</em> → Clienti con q=Rossi</li>
+                    <li>Frase <code>cerca articolo</code>, parli <em>cerca articolo viti</em> → Articoli con q=viti</li>
+                </ul>
+                <p><strong>Ricerca fissa</strong></p>
+                <ul class="mb-0">
+                    <li>Frase <code>cerca rossi</code>, query <code>Rossi</code>, destinazione Clienti → sempre q=Rossi</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

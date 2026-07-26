@@ -1,0 +1,182 @@
+{% extends "base/layout.html" %}
+
+
+
+{% block title %}{{ categoria.descrizione|default:categoria.codice }} · Categorie · Eureka AI{% endblock %}
+
+
+
+{% block page_title %}Categoria{% endblock %}
+
+
+
+{% block content %}
+
+
+
+<div class="page-header d-print-none mb-3">
+
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+
+        <div>
+
+            <h2 class="page-title">{{ categoria.descrizione|default:categoria.codice }}</h2>
+
+            <div class="text-secondary">Codice {{ categoria.codice }}</div>
+
+        </div>
+
+        <a href="{% url 'categorie:list' %}" class="btn btn-outline-secondary">
+
+            <i class="ti ti-arrow-left"></i>
+
+            Elenco
+
+        </a>
+
+    </div>
+
+</div>
+
+
+
+<div class="card mb-3">
+
+    <div class="card-header">
+
+        <h3 class="card-title mb-0">Dati principali</h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <div class="datagrid-title">Descrizione</div>
+
+                <div class="datagrid-content">{{ categoria.descrizione|default:"—" }}</div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="datagrid-title">Provvigione</div>
+
+                <div class="datagrid-content">
+
+                    {% if categoria.provvigione is not None %}{{ categoria.provvigione|floatformat:2 }}%{% else %}—{% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="datagrid-title">Categoria UTF</div>
+
+                <div class="datagrid-content">{{ categoria.categoria_utf|default:"—" }}</div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="datagrid-title">Conto vendita prop.</div>
+
+                <div class="datagrid-content">{{ categoria.c_vendita_prop|default:"—" }}</div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="datagrid-title">Calcola sfrido</div>
+
+                <div class="datagrid-content">
+
+                    {% if categoria.fl_calcola_sfrido %}Sì{% elif categoria.fl_calcola_sfrido is False %}No{% else %}—{% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="datagrid-title">Tipo rotolo</div>
+
+                <div class="datagrid-content">
+
+                    {% if categoria.tipo_rotolo %}Sì{% elif categoria.tipo_rotolo is False %}No{% else %}—{% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="datagrid-title">Data modifica</div>
+
+                <div class="datagrid-content">
+
+                    {% if categoria.data_modifica %}{{ categoria.data_modifica|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+
+                </div>
+
+            </div>
+
+            {% if categoria.synced_at %}
+
+            <div class="col-12">
+
+                <div class="text-secondary small">Ultimo sync: {{ categoria.synced_at|date:"d/m/Y H:i" }}</div>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+{% if campi %}
+
+<div class="card">
+
+    <div class="card-header">
+
+        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            {% for name, value in campi %}
+
+            <div class="col-md-4">
+
+                <div class="datagrid-title">{{ name }}</div>
+
+                <div class="datagrid-content">{{ value }}</div>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+
+{% endblock %}
+

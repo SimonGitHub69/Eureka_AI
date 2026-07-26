@@ -1,0 +1,179 @@
+{% load static %}
+
+<aside class="st-sidebar">
+
+    <div class="st-sidebar-brand">
+        <div class="st-brand-mark" style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:rgba(59,130,246,.18);color:#93c5fd;">
+            <i class="ti ti-bulb" style="font-size:1.6rem;"></i>
+        </div>
+        <div class="st-brand-subtitle">Eureka AI</div>
+    </div>
+
+    <nav class="st-sidebar-nav" data-sidebar-nav>
+
+        <a class="st-nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'dashboard:index' %}">
+            <span class="st-nav-icon"><i class="ti ti-home"></i></span>
+            <span class="st-nav-label">Dashboard</span>
+        </a>
+
+        <div class="st-nav-collapse {% if request.resolver_match.namespace == 'fatture' and request.resolver_match.url_name != 'analisi' and request.resolver_match.url_name != 'sync' or request.path|slice:':9' == '/clienti/' or request.path|slice:':11' == '/fornitori/' or request.path|slice:':8' == '/agenti/' or request.path|slice:':10' == '/articoli/' %}is-open{% endif %}" data-nav-section="gestione">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Gestione</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.resolver_match.namespace == 'fatture' and request.resolver_match.url_name != 'analisi' and request.resolver_match.url_name != 'sync' %}active{% endif %}" href="{% url 'fatture:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-file-invoice"></i></span>
+                    <span class="st-nav-label">Fatture</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':9' == '/clienti/' %}active{% endif %}" href="{% url 'anagrafiche:clienti_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-users"></i></span>
+                    <span class="st-nav-label">Clienti</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':11' == '/fornitori/' %}active{% endif %}" href="{% url 'anagrafiche:fornitori_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-truck"></i></span>
+                    <span class="st-nav-label">Fornitori</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':8' == '/agenti/' %}active{% endif %}" href="{% url 'anagrafiche:agenti_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-user-star"></i></span>
+                    <span class="st-nav-label">Agenti</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':10' == '/articoli/' %}active{% endif %}" href="{% url 'articoli:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-package"></i></span>
+                    <span class="st-nav-label">Articoli</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="st-nav-collapse {% if request.resolver_match.url_name == 'analisi' or request.resolver_match.url_name == 'analisi_regioni' or request.resolver_match.url_name == 'classifica' %}is-open{% endif %}" data-nav-section="elaborazioni">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Elaborazioni</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.resolver_match.url_name == 'analisi' %}active{% endif %}" href="{% url 'fatture:analisi' %}">
+                    <span class="st-nav-icon"><i class="ti ti-chart-bar"></i></span>
+                    <span class="st-nav-label">Analisi fatturato</span>
+                </a>
+                <a class="st-nav-link {% if request.resolver_match.url_name == 'classifica' %}active{% endif %}" href="{% url 'fatture:classifica' %}">
+                    <span class="st-nav-icon"><i class="ti ti-trophy"></i></span>
+                    <span class="st-nav-label">Classifica clienti</span>
+                </a>
+                <a class="st-nav-link {% if request.resolver_match.url_name == 'analisi_regioni' %}active{% endif %}" href="{% url 'fatture:analisi_regioni' %}">
+                    <span class="st-nav-icon"><i class="ti ti-map-2"></i></span>
+                    <span class="st-nav-label">Fatturato geografico</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="st-nav-collapse {% if request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Tabelle</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.path|slice:':11' == '/categorie/' %}active{% endif %}" href="{% url 'categorie:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-category"></i></span>
+                    <span class="st-nav-label">Categorie</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':17' == '/gruppi-articoli/' %}active{% endif %}" href="{% url 'gruppi_articoli:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-folders"></i></span>
+                    <span class="st-nav-label">Gruppi articoli</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':18' == '/gruppi-magazzini/' %}active{% endif %}" href="{% url 'gruppi_magazzini:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-building-warehouse"></i></span>
+                    <span class="st-nav-label">Raggruppamenti magazzini</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':11' == '/magazzini/' %}active{% endif %}" href="{% url 'magazzini:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-building-store"></i></span>
+                    <span class="st-nav-label">Magazzini</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':9' == '/regioni/' %}active{% endif %}" href="{% url 'geografia:regioni_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-map"></i></span>
+                    <span class="st-nav-label">Regioni</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':10' == '/province/' %}active{% endif %}" href="{% url 'geografia:province_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-map-pin"></i></span>
+                    <span class="st-nav-label">Province</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':7' == '/citta/' %}active{% endif %}" href="{% url 'geografia:citta_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-building-community"></i></span>
+                    <span class="st-nav-label">Città</span>
+                </a>
+            </div>
+        </div>
+
+        {% if perms.core.access_parametri_4d or user.is_superuser %}
+        <div class="st-nav-collapse {% if '/parametri/' in request.path %}is-open{% endif %}" data-nav-section="parametri">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Parametri</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/' %}active{% endif %}" href="{% url 'core:parametri_4d' %}">
+                    <span class="st-nav-icon"><i class="ti ti-database-cog"></i></span>
+                    <span class="st-nav-label">Parametri 4D</span>
+                </a>
+                <a class="st-nav-link {% if '/parametri/comandi-vocali/' in request.path %}active{% endif %}" href="{% url 'core:comandi_vocali_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-microphone"></i></span>
+                    <span class="st-nav-label">Comandi vocali</span>
+                </a>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/sync-fatture/' %}active{% endif %}" href="{% url 'fatture:sync' %}">
+                    <span class="st-nav-icon"><i class="ti ti-refresh"></i></span>
+                    <span class="st-nav-label">Sync Fatture 4D</span>
+                </a>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/sync-anagrafiche/' %}active{% endif %}" href="{% url 'core:sync_anagrafiche' %}">
+                    <span class="st-nav-icon"><i class="ti ti-users"></i></span>
+                    <span class="st-nav-label">Sync Anagrafiche 4D</span>
+                </a>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/sync-categorie/' %}active{% endif %}" href="{% url 'categorie:sync' %}">
+                    <span class="st-nav-icon"><i class="ti ti-category"></i></span>
+                    <span class="st-nav-label">Sync Categorie 4D</span>
+                </a>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/sync-gruppi-articoli/' %}active{% endif %}" href="{% url 'gruppi_articoli:sync' %}">
+                    <span class="st-nav-icon"><i class="ti ti-folders"></i></span>
+                    <span class="st-nav-label">Sync Gruppi Articoli 4D</span>
+                </a>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/sync-gruppi-magazzini/' %}active{% endif %}" href="{% url 'gruppi_magazzini:sync' %}">
+                    <span class="st-nav-icon"><i class="ti ti-building-warehouse"></i></span>
+                    <span class="st-nav-label">Sync Raggruppamenti Magazzini 4D</span>
+                </a>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/sync-magazzini/' %}active{% endif %}" href="{% url 'magazzini:sync' %}">
+                    <span class="st-nav-icon"><i class="ti ti-building-store"></i></span>
+                    <span class="st-nav-label">Sync Magazzini 4D</span>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="st-nav-collapse {% if request.path == '/sistema/' %}is-open{% endif %}" data-nav-section="sistema">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Sistema</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.path == '/sistema/' %}active{% endif %}" href="{% url 'dashboard:sistema' %}">
+                    <span class="st-nav-icon"><i class="ti ti-settings"></i></span>
+                    <span class="st-nav-label">Sistema</span>
+                </a>
+            </div>
+        </div>
+
+    </nav>
+
+</aside>

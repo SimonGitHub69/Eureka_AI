@@ -1,0 +1,109 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Dashboard · Eureka AI{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-4">
+    <h2 class="page-title">Dashboard</h2>
+    <div class="text-secondary">Benvenuto in Eureka AI</div>
+</div>
+
+<div class="row row-cards">
+    <div class="col-md-6 col-lg-4">
+        <a class="card card-link card-link-pop" href="{% url 'fatture:list' %}">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="avatar bg-primary-lt me-3">
+                        <i class="ti ti-file-invoice"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold">Fatture</div>
+                        <div class="text-secondary">Elenco documenti da 4D</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a class="card card-link card-link-pop" href="{% url 'fatture:analisi' %}">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="avatar bg-cyan-lt me-3">
+                        <i class="ti ti-chart-bar"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold">Analisi fatturato</div>
+                        <div class="text-secondary">Confronti periodi e clienti persi</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a class="card card-link card-link-pop" href="{% url 'fatture:classifica' %}">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="avatar bg-yellow-lt me-3">
+                        <i class="ti ti-trophy"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold">Classifica clienti</div>
+                        <div class="text-secondary">Migliori clienti nel periodo</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a class="card card-link card-link-pop" href="{% url 'fatture:analisi_regioni' %}">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="avatar bg-green-lt me-3">
+                        <i class="ti ti-map-2"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold">Fatturato geografico</div>
+                        <div class="text-secondary">Italia, mondo ISO e cartine</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% if perms.core.access_parametri_4d or user.is_superuser %}
+    <div class="col-md-6 col-lg-4">
+        <a class="card card-link card-link-pop" href="{% url 'core:parametri_4d' %}">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="avatar bg-azure-lt me-3">
+                        <i class="ti ti-database-cog"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold">Parametri 4D</div>
+                        <div class="text-secondary">Configura accesso alle tabelle 4D</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    <div class="col-md-6 col-lg-4">
+        <a class="card card-link card-link-pop" href="{% url 'dashboard:sistema' %}">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <span class="avatar bg-secondary-lt me-3">
+                        <i class="ti ti-settings"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold">Sistema</div>
+                        <div class="text-secondary">Impostazioni generali</div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+{% endblock %}

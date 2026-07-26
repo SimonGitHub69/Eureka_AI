@@ -1,0 +1,115 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Agenti · Eureka AI{% endblock %}
+
+{% block page_title %}Agenti{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Agenti</h2>
+            <div class="text-secondary">
+                Anagrafica importata da 4D
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'anagrafiche:agenti_list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-8">
+                    <label class="form-label" for="agentiSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="agentiSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="Codice, ragione sociale, email...">
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'anagrafiche:agenti_list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Ragione sociale</th>
+                    <th>Email</th>
+                    <th>Provvigione</th>
+                    <th>Listino art.</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for agente in agenti %}
+                <tr>
+                    <td>
+                        <a href="{% url 'anagrafiche:agente_detail' agente.codice %}" class="fw-semibold text-decoration-none">
+                            {{ agente.codice }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 260px;" title="{{ agente.ragione_sociale }}">
+                            {{ agente.ragione_sociale|default:"—" }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 180px;" title="{{ agente.email }}">
+                            {{ agente.email|default:"—" }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if agente.provvigione is not None %}
+                            {{ agente.provvigione|floatformat:2 }}%
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ agente.listino_art|default:"—" }}</td>
+                    <td>
+                        <a href="{% url 'anagrafiche:agente_detail' agente.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-secondary py-5">
+                        <i class="ti ti-user-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
+                        Nessun agente trovato
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'anagrafiche:agenti_list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

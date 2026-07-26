@@ -1,0 +1,11 @@
+{
+  "name": "eureka-ai",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@tabler/core": "^1.4.0",
+    "@tabler/icons-webfont": "^3.44.0",
+    "alpinejs": "^3.15.12",
+    "htmx.org": "^2.0.10"
+  }
+}

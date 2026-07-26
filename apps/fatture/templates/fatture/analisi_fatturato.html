@@ -1,0 +1,511 @@
+{% extends "base/layout.html" %}
+{% load static %}
+{% load format_tags %}
+{% load pagination_tags %}
+
+{% block title %}Analisi fatturato · Eureka AI{% endblock %}
+
+{% block page_title %}Analisi fatturato{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Analisi fatturato</h2>
+            <div class="text-secondary">
+                Confronto periodi sul fatturato <strong>senza spese</strong>, andamento e clienti
+            </div>
+        </div>
+        <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-list"></i>
+            Elenco fatture
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'fatture:analisi' %}" id="analisiForm">
+            <div class="row g-2 align-items-end mb-2">
+                <div class="col-12">
+                    <div class="text-secondary small mb-1">Scorciatoie</div>
+                    <div class="btn-list">
+                        <a class="btn btn-sm {% if preset == 'ytd' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                           href="{% url 'fatture:analisi' %}?preset=ytd{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&metrica={{ metrica }}">
+                            Anno corrente vs stesso periodo anno scorso
+                        </a>
+                        {% for p in anni_preset %}
+                        <a class="btn btn-sm {% if preset == p.preset %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                           href="{% url 'fatture:analisi' %}?preset={{ p.preset }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&metrica={{ metrica }}">
+                            {{ p.label }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-6 col-xl-3">
+                    <label class="form-label">Periodo riferimento</label>
+                    <div class="input-group">
+                        <input type="date" name="rif_da" value="{{ rif_da_str }}" class="form-control" required>
+                        <span class="input-group-text">→</span>
+                        <input type="date" name="rif_a" value="{{ rif_a_str }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <label class="form-label">Periodo confronto</label>
+                    <div class="input-group">
+                        <input type="date" name="con_da" value="{{ con_da_str }}" class="form-control" required>
+                        <span class="input-group-text">→</span>
+                        <input type="date" name="con_a" value="{{ con_a_str }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-4 col-xl-2">
+                    <label class="form-label" for="analisiMetrica">Metrica</label>
+                    <select id="analisiMetrica" name="metrica" class="form-select">
+                        <option value="imponibile" {% if metrica == 'imponibile' %}selected{% endif %}>Imponibile</option>
+                        <option value="totale" {% if metrica == 'totale' %}selected{% endif %}>Totale fattura</option>
+                    </select>
+                </div>
+                <div class="col-md-4 col-xl-2">
+                    <label class="form-label" for="analisiNoteCredito">Note di credito</label>
+                    <select id="analisiNoteCredito" name="nc" class="form-select">
+                        {% for value, label in note_credito_modes.items %}
+                        <option value="{{ value }}" {% if note_credito == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 col-xl-1">
+                    <label class="form-label" for="analisiAlfa">Serie</label>
+                    <input type="text" id="analisiAlfa" name="alfa" value="{{ alfa }}" class="form-control" placeholder="Es. A">
+                </div>
+                <div class="col-md-4 col-xl-1">
+                    <label class="form-label" for="analisiIso">ISO</label>
+                    <input type="text" id="analisiIso" name="iso" value="{{ iso }}" class="form-control text-uppercase" placeholder="IT" maxlength="2">
+                </div>
+                <div class="col-md-6 col-xl-1 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-chart-bar"></i>
+                        Confronta
+                    </button>
+                </div>
+            </div>
+            <div class="row g-2 align-items-end mt-1">
+                <div class="col-md-4 col-xl-2">
+                    <label class="form-label" for="analisiFatOp">Fatturato clienti</label>
+                    <select id="analisiFatOp" name="fat_op" class="form-select">
+                        {% for value, label in fatturato_ops.items %}
+                        <option value="{{ value }}" {% if fat_op == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 col-xl-2" id="analisiFatValWrap">
+                    <label class="form-label" for="analisiFatVal" id="analisiFatValLabel">Importo €</label>
+                    <input type="text" id="analisiFatVal" name="fat_val" value="{{ fat_val_str }}" class="form-control" placeholder="Es. 1000" inputmode="decimal">
+                </div>
+                <div class="col-md-4 col-xl-2 {% if fat_op != 'between' %}d-none{% endif %}" id="analisiFatVal2Wrap">
+                    <label class="form-label" for="analisiFatVal2">e €</label>
+                    <input type="text" id="analisiFatVal2" name="fat_val2" value="{{ fat_val2_str }}" class="form-control" placeholder="Es. 5000" inputmode="decimal">
+                </div>
+            </div>
+            <div class="form-hint mt-2 mb-0">
+                I clienti <strong>persi</strong> sono quelli fatturati nel periodo di confronto ma non nel periodo di riferimento
+                (es. comprarono nel 2022–2025, non nel 2026).
+                Il filtro fatturato agisce sulle liste clienti (periodo / persi / nuovi / entrambi).
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">{{ metrica_label }} · riferimento</div>
+                <div class="d-flex align-items-baseline">
+                    <div class="h1 mb-0">€ {{ kpi_rif.fatturato|euro }}</div>
+                </div>
+                <div class="mt-1 {% if delta_fatturato != None and delta_fatturato >= 0 %}text-green{% elif delta_fatturato != None %}text-red{% else %}text-secondary{% endif %}">
+                    {% if delta_fatturato != None %}
+                        {% if delta_fatturato >= 0 %}+{% endif %}{{ delta_fatturato|floatformat:1 }}% vs confronto
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+                <div class="text-secondary small mt-1">
+                    Lordo € {{ kpi_rif.lordo|euro }} − spese € {{ kpi_rif.spese|euro }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-orange">
+            <div class="card-body">
+                <div class="subheader text-orange">Totale spese (rif.)</div>
+                <div class="d-flex align-items-baseline">
+                    <div class="h1 mb-0 text-orange">€ {{ kpi_rif.spese|euro }}</div>
+                </div>
+                <div class="mt-1 text-secondary">
+                    {% if delta_spese != None %}
+                    {% if delta_spese >= 0 %}+{% endif %}{{ delta_spese|floatformat:1 }}% vs confronto
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">{{ metrica_label }} · confronto</div>
+                <div class="h1 mb-0">€ {{ kpi_con.fatturato|euro }}</div>
+                <div class="text-secondary mt-1">
+                    {{ con_da|date:"d/m/Y" }} – {{ con_a|date:"d/m/Y" }}
+                </div>
+                <div class="text-secondary small mt-1">
+                    Spese € {{ kpi_con.spese|euro }} · lordo € {{ kpi_con.lordo|euro }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Clienti / ticket (su netto)</div>
+                <div class="h1 mb-0">{{ kpi_rif.n_clienti|intit }}</div>
+                <div class="text-secondary mt-1">
+                    {{ kpi_rif.n_fatture|intit }} doc.
+                    · media € {{ kpi_rif.ticket_medio|euro }}
+                    · per cliente € {{ kpi_rif.media_cliente|euro }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=periodo"
+           class="card card-link {% if tab == 'periodo' %}border-primary{% endif %}"
+           title="Mostra clienti del periodo">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti del periodo</div>
+                <div class="display-6 text-primary">{{ n_periodo|intit }}</div>
+                <div class="text-secondary small">Compongono il fatturato di riferimento</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=persi"
+           class="card card-link {% if tab == 'persi' %}border-danger{% endif %}"
+           title="Mostra clienti persi">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti persi</div>
+                <div class="display-6 text-red">{{ n_persi|intit }}</div>
+                <div class="text-secondary small">Nel confronto, assenti nel riferimento</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=nuovi"
+           class="card card-link {% if tab == 'nuovi' %}border-info{% endif %}"
+           title="Mostra clienti nuovi">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti nuovi</div>
+                <div class="display-6 text-azure">{{ n_nuovi|intit }}</div>
+                <div class="text-secondary small">Nel riferimento, assenti nel confronto</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=entrambi"
+           class="card card-link {% if tab == 'entrambi' %}border-secondary{% endif %}"
+           title="Mostra clienti in entrambi i periodi">
+            <div class="card-body text-center">
+                <div class="subheader">Clienti in entrambi</div>
+                <div class="display-6">{{ n_entrambi|intit }}</div>
+                <div class="text-secondary small">Presenti nei due periodi</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Confronto mensile (stesso mese dell’anno)</h3>
+            </div>
+            <div class="card-body">
+                <div id="chartYoy" style="min-height: 280px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Andamento annuale</h3>
+            </div>
+            <div class="card-body">
+                <div id="chartAnnuale" style="min-height: 280px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+            <li class="nav-item">
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=periodo{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                   class="nav-link {% if tab == 'periodo' %}active{% endif %}">
+                    Clienti del periodo
+                    <span class="badge bg-primary-lt ms-1">{{ n_periodo|intit }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=persi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                   class="nav-link {% if tab == 'persi' %}active{% endif %}">
+                    Non hanno più comprato
+                    <span class="badge bg-red-lt ms-1">{{ n_persi|intit }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=nuovi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                   class="nav-link {% if tab == 'nuovi' %}active{% endif %}">
+                    Nuovi nel riferimento
+                    <span class="badge bg-azure-lt ms-1">{{ n_nuovi|intit }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=entrambi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                   class="nav-link {% if tab == 'entrambi' %}active{% endif %}">
+                    In entrambi i periodi
+                    <span class="badge bg-secondary-lt ms-1">{{ n_entrambi|intit }}</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body border-bottom py-2">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <div class="text-secondary small">
+                {% if tab == 'periodo' %}
+                Tutti i clienti fatturati nel periodo di riferimento ({{ rif_da|date:"d/m/Y" }} – {{ rif_a|date:"d/m/Y" }})
+                {% elif tab == 'persi' %}
+                Clienti presenti nel confronto ({{ con_da|date:"d/m/Y" }} – {{ con_a|date:"d/m/Y" }}) ma assenti nel riferimento
+                {% elif tab == 'nuovi' %}
+                Clienti presenti nel riferimento ({{ rif_da|date:"d/m/Y" }} – {{ rif_a|date:"d/m/Y" }}) ma assenti nel confronto
+                {% else %}
+                Clienti fatturati in entrambi i periodi
+                {% endif %}
+            </div>
+            <div class="btn-list">
+                <div class="dropdown">
+                    <a class="btn btn-sm btn-outline-secondary dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                        <i class="ti ti-download"></i> Esporta
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <div class="dropdown-header">CSV</div>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=periodo&fmt=csv">
+                            Periodo
+                        </a>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=persi&fmt=csv">
+                            Persi
+                        </a>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=nuovi&fmt=csv">
+                            Nuovi
+                        </a>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=entrambi&fmt=csv">
+                            Entrambi
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-header">Excel (XLSX)</div>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=periodo&fmt=xlsx">
+                            Periodo
+                        </a>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=persi&fmt=xlsx">
+                            Persi
+                        </a>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=nuovi&fmt=xlsx">
+                            Nuovi
+                        </a>
+                        <a class="dropdown-item"
+                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=entrambi&fmt=xlsx">
+                            Entrambi
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="tab-content">
+        {% if tab == 'periodo' or tab == 'persi' or tab == 'nuovi' %}
+        <div class="tab-pane active show">
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="w-1">#</th>
+                            {% sort_th "cliente" "Cliente" default_dir="asc" %}
+                            {% if tab == 'periodo' %}
+                            {% with lbl=metrica_label|add:" periodo" %}
+                            {% sort_th "fatturato" lbl align="end" %}
+                            {% endwith %}
+                            {% elif tab == 'persi' %}
+                            {% with lbl=metrica_label|add:" (confronto)" %}
+                            {% sort_th "fatturato" lbl align="end" %}
+                            {% endwith %}
+                            {% else %}
+                            {% with lbl=metrica_label|add:" (riferimento)" %}
+                            {% sort_th "fatturato" lbl align="end" %}
+                            {% endwith %}
+                            {% endif %}
+                            {% sort_th "n_fatture" "N. fatture" align="end" %}
+                            {% sort_th "ultima" "Ultima fattura" %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in clienti_page %}
+                        <tr>
+                            <td class="text-secondary">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                            <td>
+                                <a href="{% url 'anagrafiche:cliente_detail' c.codice %}" class="fw-semibold text-decoration-none">
+                                    {{ c.ragione_sociale|default:c.codice }}
+                                </a>
+                                <div class="text-secondary small">{{ c.codice }}</div>
+                            </td>
+                            <td class="text-end">€ {{ c.fatturato|euro }}</td>
+                            <td class="text-end">{{ c.n_fatture|intit }}</td>
+                            <td>{% if c.ultima %}{{ c.ultima|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-secondary">
+                                {% if tab == 'periodo' %}
+                                Nessun cliente fatturato nel periodo di riferimento.
+                                {% elif tab == 'persi' %}
+                                Nessun cliente perso: tutti i clienti del confronto risultano anche nel riferimento.
+                                {% else %}
+                                Nessun cliente nuovo: tutti i clienti del riferimento erano già nel confronto.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="tab-pane active show" id="tab-entrambi">
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="w-1">#</th>
+                            {% sort_th "cliente" "Cliente" default_dir="asc" %}
+                            {% sort_th "fatturato_rif" "Riferimento" align="end" %}
+                            {% sort_th "fatturato_con" "Confronto" align="end" %}
+                            {% sort_th "delta" "Delta" align="end" %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in clienti_page %}
+                        <tr>
+                            <td class="text-secondary">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                            <td>
+                                <a href="{% url 'anagrafiche:cliente_detail' c.codice %}" class="fw-semibold text-decoration-none">
+                                    {{ c.ragione_sociale|default:c.codice }}
+                                </a>
+                                <div class="text-secondary small">{{ c.codice }}</div>
+                            </td>
+                            <td class="text-end">€ {{ c.fatturato_rif|euro }}</td>
+                            <td class="text-end">€ {{ c.fatturato_con|euro }}</td>
+                            <td class="text-end {% if c.delta >= 0 %}text-green{% else %}text-red{% endif %}">
+                                {% if c.delta >= 0 %}+{% endif %}€ {{ c.delta|euro }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-secondary">Nessun cliente presente in entrambi i periodi.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static '@tabler/core/dist/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script>
+(function () {
+  const yoy = {{ chart_yoy|safe }};
+  const annuale = {{ chart_annuale|safe }};
+  const euro = (v) => new Intl.NumberFormat('it-IT', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(v || 0);
+
+  if (document.getElementById('chartYoy') && window.ApexCharts) {
+    new ApexCharts(document.getElementById('chartYoy'), {
+      chart: { type: 'bar', height: 280, toolbar: { show: false }, fontFamily: 'inherit' },
+      series: [
+        { name: 'Riferimento', data: yoy.rif },
+        { name: 'Confronto', data: yoy.con }
+      ],
+      xaxis: { categories: yoy.labels },
+      yaxis: { labels: { formatter: (v) => euro(v) } },
+      dataLabels: { enabled: false },
+      tooltip: { y: { formatter: (v) => euro(v) } },
+      colors: ['#206bc4', '#a0aec0'],
+      plotOptions: { bar: { columnWidth: '60%', borderRadius: 2 } },
+      legend: { position: 'top' },
+      grid: { strokeDashArray: 4 }
+    }).render();
+  }
+
+  if (document.getElementById('chartAnnuale') && window.ApexCharts) {
+    new ApexCharts(document.getElementById('chartAnnuale'), {
+      chart: { type: 'area', height: 280, toolbar: { show: false }, fontFamily: 'inherit' },
+      series: [{ name: '{{ metrica_label|escapejs }}', data: annuale.fatturato }],
+      xaxis: { categories: annuale.labels },
+      yaxis: { labels: { formatter: (v) => euro(v) } },
+      dataLabels: { enabled: false },
+      tooltip: { y: { formatter: (v) => euro(v) } },
+      colors: ['#206bc4'],
+      fill: { type: 'gradient', gradient: { opacityFrom: 0.45, opacityTo: 0.05 } },
+      stroke: { curve: 'smooth', width: 2 },
+      grid: { strokeDashArray: 4 }
+    }).render();
+  }
+
+  const fatOp = document.getElementById("analisiFatOp");
+  const fatVal2Wrap = document.getElementById("analisiFatVal2Wrap");
+  const fatValLabel = document.getElementById("analisiFatValLabel");
+  function syncFatOp() {
+    if (!fatOp) return;
+    const between = fatOp.value === "between";
+    if (fatVal2Wrap) fatVal2Wrap.classList.toggle("d-none", !between);
+    if (fatValLabel) fatValLabel.textContent = between ? "Da €" : "Importo €";
+  }
+  if (fatOp) {
+    fatOp.addEventListener("change", syncFatOp);
+    syncFatOp();
+  }
+})();
+</script>
+{% endblock %}

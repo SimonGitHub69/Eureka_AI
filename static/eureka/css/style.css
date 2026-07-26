@@ -1,0 +1,52 @@
+body {
+    background-color: #f5f7fb;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: #111827;
+}
+
+.page-wrapper {
+    margin-left: 260px;
+}
+
+.table.table-vcenter:not(.st-no-zebra) > tbody > tr:nth-of-type(even) > * {
+    background-color: rgba(32, 107, 196, 0.06);
+}
+
+.table.table-vcenter:not(.st-no-zebra) > tbody > tr:hover > * {
+    background-color: rgba(32, 107, 196, 0.11);
+}
+
+[data-bs-theme="dark"] .table.table-vcenter:not(.st-no-zebra) > tbody > tr:nth-of-type(even) > * {
+    background-color: rgba(255, 255, 255, 0.055);
+}
+
+[data-bs-theme="dark"] .table.table-vcenter:not(.st-no-zebra) > tbody > tr:hover > * {
+    background-color: rgba(255, 255, 255, 0.095);
+}
+
+.eureka-pagination {
+    row-gap: 0.75rem;
+}
+
+.eureka-pagination__meta {
+    min-width: 0;
+}
+
+.eureka-pagination__per-page .btn-group {
+    flex-wrap: wrap;
+}
+
+.eureka-pagination__nav {
+    max-width: 100%;
+}
+
+.eureka-pagination__nav .pagination {
+    gap: 0.15rem;
+}
+
+.eureka-pagination__nav .page-link {
+    min-width: 2.25rem;
+    text-align: center;
+}

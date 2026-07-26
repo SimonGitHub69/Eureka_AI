@@ -1,0 +1,99 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Sync Fatture 4D · Eureka AI{% endblock %}
+
+{% block page_title %}Sync Fatture 4D{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Sync Fatture 4D</h2>
+            <div class="text-secondary">
+                Importa <code>Fatture</code> e <code>Fatture_Dettaglio</code> da 4D verso PostgreSQL
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'core:parametri_4d' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-settings"></i>
+                Parametri 4D
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Fatture in PostgreSQL</div>
+                <div class="h1 mb-0">{{ fatture_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Righe dettaglio</div>
+                <div class="h1 mb-0">{{ dettaglio_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Ultimo sync</div>
+                {% if last_log %}
+                    <div class="fw-bold">{% if last_log.ok %}OK{% else %}Errore{% endif %}</div>
+                    <div class="text-secondary small">
+                        {{ last_log.finished_at|default:last_log.started_at }}
+                    </div>
+                {% else %}
+                    <div class="text-secondary">Mai eseguito</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <p class="mb-2">
+            Il sync ricrea le tabelle mirror <code>fatture</code> e <code>fatture_dettaglio</code>
+            con tutte le colonne 4D, poi importa i dati.
+            Relazione: <code>fatture_dettaglio.id_added_by_converter</code> → <code>fatture.ID_Testa</code>.
+        </p>
+        <p class="text-secondary mb-0">
+            Per volumi grandi (~100k+577k) è preferibile da terminale:
+            <code>.\.venv\Scripts\python.exe manage.py sync_fatture_4d</code>
+        </p>
+    </div>
+    <div class="card-footer d-flex justify-content-between">
+        <a href="/admin/fatture/fattura/" class="btn btn-outline-secondary">
+            <i class="ti ti-table"></i>
+            Apri in Admin
+        </a>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary"
+                    onclick="this.disabled=true; this.innerHTML='<i class=&quot;ti ti-loader-2&quot;></i> Sync in corso...'; this.form.submit();">
+                <i class="ti ti-refresh"></i>
+                Avvia sincronizzazione
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if last_log %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dettaglio ultimo sync</h3>
+    </div>
+    <div class="card-body">
+        <pre class="mb-0" style="white-space: pre-wrap;">{{ last_log.message }}</pre>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

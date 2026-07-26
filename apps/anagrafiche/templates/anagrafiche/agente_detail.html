@@ -1,0 +1,145 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ agente.ragione_sociale|default:agente.codice }} · Agenti · Eureka AI{% endblock %}
+
+{% block page_title %}Agente{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ agente.ragione_sociale|default:agente.codice }}</h2>
+            <div class="text-secondary">Codice {{ agente.codice }}</div>
+        </div>
+        <a href="{% url 'anagrafiche:agenti_list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Anagrafica</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="datagrid-title">Ragione sociale</div>
+                <div class="datagrid-content">{{ agente.ragione_sociale|default:"—" }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="datagrid-title">Email</div>
+                <div class="datagrid-content">{{ agente.email|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Provvigione</div>
+                <div class="datagrid-content">
+                    {% if agente.provvigione is not None %}{{ agente.provvigione|floatformat:2 }}%{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Sconto base</div>
+                <div class="datagrid-content">
+                    {% if agente.sconto_base is not None %}{{ agente.sconto_base|floatformat:2 }}%{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Listino articoli</div>
+                <div class="datagrid-content">{{ agente.listino_art|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Ritenuta acconto</div>
+                <div class="datagrid-content">
+                    {% if agente.ritenuta_acconto is not None %}{{ agente.ritenuta_acconto|floatformat:2 }}%{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Flag e provvigioni</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="datagrid-title">Mono mandatario</div>
+                <div class="datagrid-content">
+                    {% if agente.flag_mono_mandatario %}Sì{% elif agente.flag_mono_mandatario is False %}No{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Agente venditore</div>
+                <div class="datagrid-content">
+                    {% if agente.flag_agente_venditore %}Sì{% elif agente.flag_agente_venditore is False %}No{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Soc. capitale</div>
+                <div class="datagrid-content">
+                    {% if agente.flag_soc_capitale %}Sì{% elif agente.flag_soc_capitale is False %}No{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">% imp. rit. acc.</div>
+                <div class="datagrid-content">
+                    {% if agente.perc_imp_rit_acc is not None %}{{ agente.perc_imp_rit_acc|floatformat:2 }}%{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Prog. fatture</div>
+                <div class="datagrid-content">{{ agente.progr_fatt|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Prog. provvigioni</div>
+                <div class="datagrid-content">{{ agente.progr_provv|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Prog. ENASARCO</div>
+                <div class="datagrid-content">{{ agente.progr_enasarco|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Target e altri dati</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="datagrid-title">Target annuale 1</div>
+                <div class="datagrid-content">{{ agente.target_annuale1|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Target annuale 2</div>
+                <div class="datagrid-content">{{ agente.target_annuale2|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Target annuale 3</div>
+                <div class="datagrid-content">{{ agente.target_annuale3|default:"—" }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="datagrid-title">Ultimo conguaglio shopping</div>
+                <div class="datagrid-content">
+                    {% if agente.data_ultimo_conguaglio_shopping %}
+                        {{ agente.data_ultimo_conguaglio_shopping|date:"d/m/Y H:i" }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+            </div>
+            {% if agente.synced_at %}
+            <div class="col-12">
+                <div class="text-secondary small">Ultimo sync: {{ agente.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

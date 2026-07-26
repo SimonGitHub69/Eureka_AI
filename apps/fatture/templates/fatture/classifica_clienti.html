@@ -1,0 +1,333 @@
+{% extends "base/layout.html" %}
+{% load static %}
+{% load format_tags %}
+
+{% block title %}Classifica clienti · Eureka AI{% endblock %}
+
+{% block page_title %}Classifica clienti{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Classifica clienti</h2>
+            <div class="text-secondary">
+                Migliori clienti per fatturato <strong>senza spese</strong> nel periodo
+            </div>
+        </div>
+        <div class="btn-list">
+            <a href="{% url 'fatture:analisi' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-chart-bar"></i>
+                Analisi fatturato
+            </a>
+            <a class="btn btn-outline-secondary"
+               href="{% url 'fatture:classifica' %}?data_da={{ data_da_str }}&data_a={{ data_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ top_qs }}&export=csv">
+                <i class="ti ti-file-spreadsheet"></i>
+                CSV
+            </a>
+            <a class="btn btn-outline-secondary"
+               href="{% url 'fatture:classifica' %}?data_da={{ data_da_str }}&data_a={{ data_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ top_qs }}&export=xlsx">
+                <i class="ti ti-file-type-xls"></i>
+                XLSX
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'fatture:classifica' %}" id="classificaForm">
+            <div class="row g-2 align-items-end mb-2">
+                <div class="col-12">
+                    <div class="text-secondary small mb-1">Scorciatoie</div>
+                    <div class="btn-list">
+                        <a class="btn btn-sm {% if preset == 'ytd' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                           href="{% url 'fatture:classifica' %}?preset=ytd{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ top_qs }}&metrica={{ metrica }}">
+                            Anno corrente
+                        </a>
+                        {% for p in anni_preset %}
+                        <a class="btn btn-sm {% if preset == p.preset %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                           href="{% url 'fatture:classifica' %}?preset={{ p.preset }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ top_qs }}&metrica={{ metrica }}">
+                            {{ p.label }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-5 col-xl-3">
+                    <label class="form-label">Periodo</label>
+                    <div class="input-group">
+                        <input type="date" name="data_da" value="{{ data_da_str }}" class="form-control" required>
+                        <span class="input-group-text">→</span>
+                        <input type="date" name="data_a" value="{{ data_a_str }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <label class="form-label" for="clsMetrica">Metrica</label>
+                    <select id="clsMetrica" name="metrica" class="form-select">
+                        <option value="imponibile" {% if metrica == 'imponibile' %}selected{% endif %}>Imponibile</option>
+                        <option value="totale" {% if metrica == 'totale' %}selected{% endif %}>Totale fattura</option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <label class="form-label" for="clsTop">Classifica</label>
+                    <select id="clsTop" name="top" class="form-select">
+                        {% for opt in top_n_options %}
+                        <option value="{{ opt }}" {% if top_n == opt %}selected{% endif %}>
+                            {% if opt == 0 %}Tutti i clienti{% else %}Top {{ opt }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <label class="form-label" for="clsNoteCredito">Note di credito</label>
+                    <select id="clsNoteCredito" name="nc" class="form-select">
+                        {% for value, label in note_credito_modes.items %}
+                        <option value="{{ value }}" {% if note_credito == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 col-xl-1">
+                    <label class="form-label" for="clsAlfa">Serie</label>
+                    <input type="text" id="clsAlfa" name="alfa" value="{{ alfa }}" class="form-control" placeholder="Es. A">
+                </div>
+                <div class="col-md-2 col-xl-1">
+                    <label class="form-label" for="clsIso">ISO</label>
+                    <input type="text" id="clsIso" name="iso" value="{{ iso }}" class="form-control text-uppercase" placeholder="IT" maxlength="2">
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-trophy"></i>
+                        Classifica
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Fatturato periodo</div>
+                <div class="h2 mb-0">€ {{ totale|euro }}</div>
+                <div class="text-secondary small">{{ metrica_label }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Clienti fatturati</div>
+                <div class="h2 mb-0">{{ n_clienti|intit }}</div>
+                <div class="text-secondary small">{{ kpi.n_fatture|intit }} fatture</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">1° classificato</div>
+                <div class="h2 mb-0">{{ top1_percentuale|floatformat:1 }}%</div>
+                <div class="text-secondary small">€ {{ top1_fatturato|euro }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Top 10 / Top 20</div>
+                <div class="h2 mb-0">{{ top10_percentuale|floatformat:1 }}% <span class="fs-4 text-secondary">/ {{ top20_percentuale|floatformat:1 }}%</span></div>
+                <div class="text-secondary small">quota sul totale periodo</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    {% if top_n %}Top {{ top_n }} — grafico{% else %}Grafico (primi 100){% endif %}
+                </h3>
+                <div class="card-actions">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalTopN">
+                        <i class="ti ti-adjustments-horizontal"></i>
+                        Cambia selezione
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="chartClassifica" style="min-height: 380px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="modalTopN" tabindex="-1" aria-labelledby="modalTopNLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTopNLabel">Quanti clienti mostrare</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary mb-3">La scelta vale per grafico e lista sottostante.</p>
+                <div class="d-grid gap-2">
+                    {% for n in top_n_options %}
+                    <a class="btn {% if top_n == n %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                       href="{% url 'fatture:classifica' %}?data_da={{ data_da_str }}&data_a={{ data_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}&top={{ n }}{% if preset %}&preset={{ preset|urlencode }}{% endif %}">
+                        {% if n == 0 %}Tutti i clienti{% else %}Top {{ n }}{% endif %}
+                        {% if top_n == n %}<i class="ti ti-check ms-1"></i>{% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Annulla</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            {% if top_n %}Top {{ top_n }}{% else %}Classifica completa{% endif %}
+            <span class="text-secondary fw-normal">· {{ n_in_lista|intit }} clienti</span>
+        </h3>
+        <div class="card-actions text-secondary small">
+            {{ data_da|date:"d/m/Y" }} – {{ data_a|date:"d/m/Y" }}
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 4rem;">#</th>
+                    <th>Cliente</th>
+                    <th class="text-end">{{ metrica_label }}</th>
+                    <th class="text-end" style="min-width: 7rem;">% totale</th>
+                    <th class="text-end" style="min-width: 7rem;">% cumulata</th>
+                    <th class="text-end">N. fatture</th>
+                    <th>Ultima fattura</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in classifica %}
+                <tr>
+                    <td>
+                        {% if c.posizione <= 3 %}
+                        <span class="badge {% if c.posizione == 1 %}bg-yellow text-yellow-fg{% elif c.posizione == 2 %}bg-secondary text-secondary-fg{% else %}bg-orange-lt{% endif %}">
+                            {{ c.posizione }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">{{ c.posizione }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'anagrafiche:cliente_detail' c.codice %}" class="fw-semibold text-decoration-none">
+                            {{ c.ragione_sociale|default:c.codice }}
+                        </a>
+                        <div class="text-secondary small">{{ c.codice }}</div>
+                    </td>
+                    <td class="text-end text-nowrap fw-semibold">€ {{ c.fatturato|euro }}</td>
+                    <td class="text-end">
+                        <div>{{ c.percentuale|floatformat:2 }}%</div>
+                        <div class="progress progress-sm mt-1">
+                            <div class="progress-bar bg-blue" style="width: {{ c.percentuale|floatformat:2 }}%"></div>
+                        </div>
+                    </td>
+                    <td class="text-end text-nowrap">{{ c.percentuale_cumulata|floatformat:1 }}%</td>
+                    <td class="text-end">{{ c.n_fatture|intit }}</td>
+                    <td>
+                        {% if c.ultima %}{{ c.ultima|date:"d/m/Y" }}{% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-secondary text-center py-4">
+                        Nessun cliente fatturato nel periodo selezionato.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static '@tabler/core/dist/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script>
+(function () {
+  const data = {{ chart_json|safe }};
+  const el = document.getElementById("chartClassifica");
+  if (!el || !window.ApexCharts || !data.labels.length) {
+    if (el && !data.labels.length) {
+      el.innerHTML = '<div class="text-secondary text-center py-5">Nessun dato da graficare</div>';
+    }
+    return;
+  }
+  const euro = (v) => new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(v || 0);
+
+  new ApexCharts(el, {
+    chart: {
+      type: "bar",
+      height: Math.max(320, Math.min(2400, data.labels.length * 28)),
+      toolbar: { show: false },
+      fontFamily: "inherit"
+    },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        borderRadius: 3,
+        barHeight: "70%",
+        dataLabels: { position: "top" }
+      }
+    },
+    series: [{ name: "{{ metrica_label|escapejs }}", data: data.fatturato }],
+    xaxis: {
+      categories: data.labels,
+      labels: { formatter: (v) => euro(v) }
+    },
+    yaxis: {
+      labels: {
+        maxWidth: 220,
+        style: { fontSize: "12px" }
+      }
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: function (v, opts) {
+        const pct = (data.percentuale || [])[opts.dataPointIndex];
+        return pct != null ? pct.toFixed(1).replace(".", ",") + "%" : "";
+      },
+      offsetX: 28,
+      style: { fontSize: "11px", colors: ["#64748b"] }
+    },
+    tooltip: {
+      y: {
+        formatter: function (v, opts) {
+          const pct = (data.percentuale || [])[opts.dataPointIndex];
+          const cod = (data.codici || [])[opts.dataPointIndex] || "";
+          return euro(v) + (pct != null ? " (" + pct.toFixed(1).replace(".", ",") + "%)" : "") + (cod ? " · " + cod : "");
+        }
+      }
+    },
+    colors: ["#206bc4"],
+    grid: { strokeDashArray: 4, xaxis: { lines: { show: true } } }
+  }).render();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ articolo.descrizione|default:articolo.codice }} · Articoli · Eureka AI{% endblock %}
+
+{% block page_title %}Articolo{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ articolo.descrizione|default:articolo.codice }}</h2>
+            <div class="text-secondary">
+                Codice {{ articolo.codice }}
+                {% if articolo.fl_disattivato %}· <span class="badge bg-secondary">Disattivato</span>{% endif %}
+            </div>
+        </div>
+        <a href="{% url 'articoli:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dati principali</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="datagrid-title">Codice</div>
+                <div class="datagrid-content">{{ articolo.codice }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="datagrid-title">Descrizione</div>
+                <div class="datagrid-content">{{ articolo.descrizione|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Categoria omogenea</div>
+                <div class="datagrid-content">{{ articolo.cat_omogenea|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">U.M.</div>
+                <div class="datagrid-content">{{ articolo.unita_misura|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Cod. IVA</div>
+                <div class="datagrid-content">{{ articolo.cod_iva|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Fornitore</div>
+                <div class="datagrid-content">{{ articolo.cod_fornitore|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Magazzino</div>
+                <div class="datagrid-content">{{ articolo.cod_magazzino|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Listino 1</div>
+                <div class="datagrid-content">
+                    {% if articolo.listino1 is not None %}{{ articolo.listino1|floatformat:2 }}{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Ultimo carico</div>
+                <div class="datagrid-content">
+                    {% if articolo.prezzo_ult_car is not None %}{{ articolo.prezzo_ult_car|floatformat:2 }}{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for nome, valore in campi %}
+            <div class="col-md-4 col-lg-3">
+                <div class="datagrid-title">{{ nome }}</div>
+                <div class="datagrid-content">{{ valore }}</div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-secondary">Nessun dato disponibile.</div>
+            {% endfor %}
+        </div>
+        {% if articolo.synced_at %}
+        <div class="text-secondary small mt-3">Ultimo sync: {{ articolo.synced_at|date:"d/m/Y H:i" }}</div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

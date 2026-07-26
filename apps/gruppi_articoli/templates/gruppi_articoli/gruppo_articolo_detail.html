@@ -1,0 +1,83 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ gruppo_articolo.descrizione|default:gruppo_articolo.codice }} · Gruppi articoli · Eureka AI{% endblock %}
+
+{% block page_title %}Gruppo articolo{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ gruppo_articolo.descrizione|default:gruppo_articolo.codice }}</h2>
+            <div class="text-secondary">Codice {{ gruppo_articolo.codice }}</div>
+        </div>
+        <a href="{% url 'gruppi_articoli:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dati principali</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="datagrid-title">Descrizione</div>
+                <div class="datagrid-content">{{ gruppo_articolo.descrizione|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Disattivato</div>
+                <div class="datagrid-content">
+                    {% if gruppo_articolo.f_disattivato %}Sì{% elif gruppo_articolo.f_disattivato is False %}No{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Data modifica</div>
+                <div class="datagrid-content">
+                    {% if gruppo_articolo.data_modifica %}{{ gruppo_articolo.data_modifica|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Stile font</div>
+                <div class="datagrid-content">{{ gruppo_articolo.font_style|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Stile font GZ</div>
+                <div class="datagrid-content">{{ gruppo_articolo.font_style_gz|default:"—" }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Stile font MZ</div>
+                <div class="datagrid-content">{{ gruppo_articolo.font_style_mz|default:"—" }}</div>
+            </div>
+            {% if gruppo_articolo.synced_at %}
+            <div class="col-12">
+                <div class="text-secondary small">Ultimo sync: {{ gruppo_articolo.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if campi %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

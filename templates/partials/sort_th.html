@@ -1,0 +1,16 @@
+{% load pagination_tags %}
+<th{% if align %} class="text-{{ align }}"{% endif %}>
+    <a href="{% sort_url field default_dir %}"
+       class="text-reset text-decoration-none d-inline-flex align-items-center gap-1{% if align == 'end' %} justify-content-end w-100{% endif %}">
+        <span>{{ label }}</span>
+        {% if active %}
+            {% if dir == 'asc' %}
+            <i class="ti ti-chevron-up" aria-hidden="true"></i>
+            {% else %}
+            <i class="ti ti-chevron-down" aria-hidden="true"></i>
+            {% endif %}
+        {% else %}
+            <i class="ti ti-selector text-secondary" aria-hidden="true"></i>
+        {% endif %}
+    </a>
+</th>

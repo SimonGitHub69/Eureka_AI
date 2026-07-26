@@ -1,0 +1,168 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}Fatture · Eureka AI{% endblock %}
+
+{% block page_title %}Fatture{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Fatture</h2>
+            <div class="text-secondary">
+                Elenco documenti importati da 4D
+                {% if totale_fatture %}· {{ totale_fatture }} totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'fatture:list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-3">
+                    <label class="form-label" for="fattureSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="fattureSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="Numero, cliente, ragione sociale, destinatario, ID...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="fattureAlfa">Serie</label>
+                    <input type="text" id="fattureAlfa" name="alfa" value="{{ alfa }}" class="form-control" placeholder="Es. A, C">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label" for="fattureIso">ISO</label>
+                    <input type="text" id="fattureIso" name="iso" value="{{ iso }}" class="form-control text-uppercase" placeholder="IT" maxlength="2">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="fattureNoteCredito">Note di credito</label>
+                    <select id="fattureNoteCredito" name="nc" class="form-select">
+                        {% for value, label in note_credito_modes.items %}
+                        <option value="{{ value }}" {% if note_credito == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="fattureDataDa">Data da</label>
+                    <input type="date" id="fattureDataDa" name="data_da" value="{{ data_da }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="fattureDataA">Data a</label>
+                    <input type="date" id="fattureDataA" name="data_a" value="{{ data_a }}" class="form-control">
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Destinatario</th>
+                    <th class="text-end">Imponibile</th>
+                    <th class="text-end text-orange">Spese</th>
+                    <th class="text-end">Totale</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fattura in fatture %}
+                <tr>
+                    <td>
+                        <a href="{% url 'fatture:detail' fattura.id_testa %}" class="fw-semibold text-decoration-none">
+                            {{ fattura.numero_documento }}
+                        </a>
+                        <div class="text-secondary small">ID {{ fattura.id_testa }}</div>
+                    </td>
+                    <td>
+                        {% if fattura.data_fattura %}
+                            {{ fattura.data_fattura|date:"d/m/Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if fattura.cliente_ragione_sociale %}
+                        <div class="fw-semibold text-truncate" style="max-width: 220px;" title="{{ fattura.cliente_ragione_sociale }}">
+                            {{ fattura.cliente_ragione_sociale }}
+                        </div>
+                        {% if fattura.cliente %}
+                        <div class="text-secondary small">{{ fattura.cliente }}</div>
+                        {% endif %}
+                        {% elif fattura.cliente %}
+                        <div class="fw-semibold">{{ fattura.cliente }}</div>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 220px;" title="{{ fattura.destinatario }}">
+                            {{ fattura.destinatario|default:"—" }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        {% if fattura.imponibile != None %}
+                            € {{ fattura.imponibile|euro }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="text-end {% if fattura.totale_spese %}text-orange fw-semibold{% else %}text-secondary{% endif %}">
+                        € {{ fattura.totale_spese|euro }}
+                    </td>
+                    <td class="text-end fw-semibold">
+                        {% if fattura.totale_fattura != None %}
+                            € {{ fattura.totale_fattura|euro }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'fatture:detail' fattura.id_testa %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-secondary py-5">
+                        <i class="ti ti-file-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
+                        Nessuna fattura trovata
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'fatture:list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

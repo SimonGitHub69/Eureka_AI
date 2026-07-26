@@ -1,0 +1,76 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Città · Eureka AI{% endblock %}
+{% block page_title %}Città{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <h2 class="page-title">Città</h2>
+    <div class="text-secondary">Comuni ISTAT Italia{% if totale %} · {{ totale }} totali{% endif %}</div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-lg-4">
+                <label class="form-label" for="cittaSearch">Ricerca</label>
+                <input type="text" id="cittaSearch" name="q" value="{{ q }}" class="form-control" placeholder="Nome, CAP, codice...">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="cittaRegione">Regione</label>
+                <select id="cittaRegione" name="regione" class="form-select">
+                    <option value="">Tutte</option>
+                    {% for r in regioni %}
+                    <option value="{{ r.codice }}" {% if regione == r.codice %}selected{% endif %}>{{ r.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="cittaProvincia">Provincia</label>
+                <select id="cittaProvincia" name="provincia" class="form-select">
+                    <option value="">Tutte</option>
+                    {% for p in province %}
+                    <option value="{{ p.sigla }}" {% if provincia == p.sigla %}selected{% endif %}>{{ p.nome }} ({{ p.sigla }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                {% if has_filters %}<a href="{% url 'geografia:citta_list' %}" class="btn btn-outline-secondary"><i class="ti ti-x"></i></a>{% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Provincia</th>
+                    <th>Regione</th>
+                    <th>CAP</th>
+                    <th>ISTAT</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in citta_list %}
+                <tr>
+                    <td class="fw-semibold">{{ c.nome }}</td>
+                    <td><a href="{% url 'geografia:provincia_detail' c.provincia.sigla %}">{{ c.provincia.sigla }}</a></td>
+                    <td>{{ c.provincia.regione.nome }}</td>
+                    <td>{{ c.cap|default:"—" }}</td>
+                    <td><code>{{ c.codice_istat }}</code></td>
+                    <td><a href="{% url 'geografia:citta_detail' c.codice_istat %}" class="btn btn-ghost-primary btn-icon"><i class="ti ti-chevron-right"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-secondary text-center py-4">Nessuna città. Esegui <code>manage.py load_geografia_italia</code>.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

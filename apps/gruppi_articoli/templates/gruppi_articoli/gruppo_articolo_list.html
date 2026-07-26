@@ -1,0 +1,107 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Gruppi articoli · Eureka AI{% endblock %}
+
+{% block page_title %}Gruppi articoli{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Gruppi articoli</h2>
+            <div class="text-secondary">
+                Gruppi articolo importati da 4D (<code>GruppoArt</code>)
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'gruppi_articoli:list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-8">
+                    <label class="form-label" for="gruppiArticoliSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="gruppiArticoliSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="Codice, descrizione, stile font...">
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'gruppi_articoli:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Disattivato</th>
+                    <th>Data modifica</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gruppo in gruppi_articoli %}
+                <tr>
+                    <td>
+                        <a href="{% url 'gruppi_articoli:detail' gruppo.codice %}" class="fw-semibold text-decoration-none">
+                            {{ gruppo.codice }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 420px;" title="{{ gruppo.descrizione }}">
+                            {{ gruppo.descrizione|default:"—" }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if gruppo.f_disattivato %}Sì{% elif gruppo.f_disattivato is False %}No{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if gruppo.data_modifica %}{{ gruppo.data_modifica|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'gruppi_articoli:detail' gruppo.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-secondary py-5">
+                        <i class="ti ti-folders-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
+                        Nessun gruppo articolo trovato
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'gruppi_articoli:list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

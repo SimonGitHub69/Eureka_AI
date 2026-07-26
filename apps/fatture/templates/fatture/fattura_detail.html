@@ -1,0 +1,117 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}Fattura {{ fattura.numero_documento }} · Eureka AI{% endblock %}
+
+{% block page_title %}Fattura{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">
+                Fattura {{ fattura.numero_documento }}
+            </h2>
+            <div class="text-secondary">
+                ID {{ fattura.id_testa }}
+                {% if fattura.data_fattura %}· {{ fattura.data_fattura|date:"d/m/Y" }}{% endif %}
+                {% if fattura.is_nota_credito %}<span class="badge bg-orange-lt ms-1">Nota di credito</span>{% endif %}
+            </div>
+        </div>
+        <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="datagrid-title">Cliente</div>
+                <div class="datagrid-content">
+                    {% if fattura.cliente_ragione_sociale %}
+                    <div class="fw-semibold">{{ fattura.cliente_ragione_sociale }}</div>
+                    {% if fattura.cliente %}
+                    <div class="text-secondary small mt-1">{{ fattura.cliente }}</div>
+                    {% endif %}
+                    {% elif fattura.cliente %}
+                    <div class="fw-semibold">{{ fattura.cliente }}</div>
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Destinatario</div>
+                <div class="datagrid-content">{{ fattura.destinatario|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Imponibile</div>
+                <div class="datagrid-content">
+                    {% if fattura.imponibile != None %}€ {{ fattura.imponibile|euro }}{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title text-orange">Totale spese</div>
+                <div class="datagrid-content text-orange fw-semibold">
+                    € {{ fattura.totale_spese|euro }}
+                    {% if fattura.imponibile_netto_spese != None %}
+                    <div class="text-secondary small fw-normal mt-1">
+                        Netto € {{ fattura.imponibile_netto_spese|euro }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Totale</div>
+                <div class="datagrid-content fw-bold">
+                    {% if fattura.totale_fattura != None %}€ {{ fattura.totale_fattura|euro }}{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-list-details me-1"></i>
+            Righe ({{ righe|length }})
+        </h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead>
+                <tr>
+                    <th class="w-1">#</th>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th class="text-end">Q.tà</th>
+                    <th class="text-end">Prezzo</th>
+                    <th>IVA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for riga in righe %}
+                <tr>
+                    <td class="text-secondary">{{ riga.numero_riga|default:forloop.counter }}</td>
+                    <td class="fw-semibold">{{ riga.codice|default:"—" }}</td>
+                    <td>{{ riga.descrizione|default:"" }}</td>
+                    <td class="text-end">{% if riga.quantita != None %}{{ riga.quantita|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td class="text-end">{% if riga.prezzo_unitario != None %}{{ riga.prezzo_unitario|floatformat:4 }}{% else %}—{% endif %}</td>
+                    <td>{{ riga.iva|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-secondary py-4">Nessuna riga di dettaglio</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

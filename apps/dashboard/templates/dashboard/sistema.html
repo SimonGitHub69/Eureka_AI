@@ -1,0 +1,87 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Sistema · Eureka AI{% endblock %}
+
+{% block page_title %}Sistema{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-4">
+    <h2 class="page-title">Sistema</h2>
+    <div class="text-secondary">Impostazioni e collegamenti</div>
+</div>
+
+<div class="list-group list-group-flush mb-4">
+    {% if perms.core.access_parametri_4d or user.is_superuser %}
+    <a class="list-group-item list-group-item-action" href="{% url 'core:parametri_4d' %}">
+        <div class="d-flex align-items-center">
+            <i class="ti ti-database-cog me-2"></i>
+            <div>
+                <div class="fw-semibold">Parametri 4D</div>
+                <div class="text-secondary small">Server, porta SQL, utente e driver ODBC</div>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+    <a class="list-group-item list-group-item-action" href="/admin/">
+        <div class="d-flex align-items-center">
+            <i class="ti ti-shield-cog me-2"></i>
+            <div>
+                <div class="fw-semibold">Amministrazione Django</div>
+                <div class="text-secondary small">Utenti, permessi e modelli</div>
+            </div>
+        </div>
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title mb-0">Riepilogo tabelle importate</h3>
+            <div class="text-secondary small">
+                Record presenti in PostgreSQL dopo i sync da 4D
+                · {{ tabelle_totale_records }} totali
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+            <thead>
+                <tr>
+                    <th>Tabella</th>
+                    <th>Sorgente 4D</th>
+                    <th>PostgreSQL</th>
+                    <th class="text-end">Record</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tabelle_importate %}
+                <tr>
+                    <td>
+                        {% if t.list_url %}
+                        <a href="{% url t.list_url %}">{{ t.label }}</a>
+                        {% else %}
+                        {{ t.label }}
+                        {% endif %}
+                    </td>
+                    <td><code>{{ t.source }}</code></td>
+                    <td><code>{{ t.db_table }}</code></td>
+                    <td class="text-end fw-semibold">
+                        {% if t.count is None %}
+                        <span class="text-secondary">n/d</span>
+                        {% else %}
+                        {{ t.count }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-secondary">Nessuna tabella configurata.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

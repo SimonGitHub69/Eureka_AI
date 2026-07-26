@@ -1,0 +1,128 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Clienti · Eureka AI{% endblock %}
+
+{% block page_title %}Clienti{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Clienti</h2>
+            <div class="text-secondary">
+                Anagrafica importata da 4D
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'anagrafiche:clienti_list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-5">
+                    <label class="form-label" for="clientiSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="clientiSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="Codice, ragione sociale, P.IVA, città, email...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="clientiStato">Stato</label>
+                    <select id="clientiStato" name="stato" class="form-select">
+                        <option value="" {% if not stato %}selected{% endif %}>Tutti</option>
+                        <option value="attivi" {% if stato == "attivi" %}selected{% endif %}>Solo attivi</option>
+                        <option value="disattivi" {% if stato == "disattivi" %}selected{% endif %}>Solo disattivati</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'anagrafiche:clienti_list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Ragione sociale</th>
+                    <th>Città</th>
+                    <th>P. IVA</th>
+                    <th>Telefono</th>
+                    <th>Email</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente in clienti %}
+                <tr{% if cliente.fl_disattivato %} class="text-secondary"{% endif %}>
+                    <td>
+                        <a href="{% url 'anagrafiche:cliente_detail' cliente.codice %}" class="fw-semibold text-decoration-none">
+                            {{ cliente.codice }}
+                        </a>
+                        {% if cliente.fl_disattivato %}
+                        <div class="small"><span class="badge bg-secondary-lt">Disattivato</span></div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 260px;" title="{{ cliente.ragione_sociale }}">
+                            {{ cliente.ragione_sociale|default:"—" }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if cliente.localita %}
+                            {{ cliente.localita }}{% if cliente.provincia %} ({{ cliente.provincia }}){% endif %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ cliente.partita_iva|default:"—" }}</td>
+                    <td>{{ cliente.telefono|default:"—" }}</td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 180px;" title="{{ cliente.email }}">
+                            {{ cliente.email|default:"—" }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'anagrafiche:cliente_detail' cliente.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-secondary py-5">
+                        <i class="ti ti-users-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
+                        Nessun cliente trovato
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'anagrafiche:clienti_list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

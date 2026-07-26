@@ -1,0 +1,40 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ provincia.nome }} · Eureka AI{% endblock %}
+{% block page_title %}Provincia{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ provincia.nome }} ({{ provincia.sigla }})</h2>
+            <div class="text-secondary">
+                Regione <a href="{% url 'geografia:regione_detail' provincia.regione.codice %}">{{ provincia.regione.nome }}</a>
+                · ISTAT {{ provincia.codice_istat }}
+            </div>
+        </div>
+        <a href="{% url 'geografia:province_list' %}" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Elenco</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">Città ({{ citta|length }})</h3></div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead><tr><th>Nome</th><th>CAP</th><th>Cod. ISTAT</th><th></th></tr></thead>
+            <tbody>
+                {% for c in citta %}
+                <tr>
+                    <td>{{ c.nome }}</td>
+                    <td>{{ c.cap|default:"—" }}</td>
+                    <td><code>{{ c.codice_istat }}</code></td>
+                    <td class="w-1"><a href="{% url 'geografia:citta_detail' c.codice_istat %}" class="btn btn-ghost-primary btn-icon"><i class="ti ti-chevron-right"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-secondary">Nessuna città.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
