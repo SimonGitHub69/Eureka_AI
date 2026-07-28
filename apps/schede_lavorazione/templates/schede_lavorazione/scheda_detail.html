@@ -1,0 +1,431 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}{{ scheda.operatore_nome }} · {{ scheda.data|date:"d/m/Y" }} · Scheda{% endblock %}
+{% block page_title %}Scheda di lavorazione{% endblock %}
+
+{% block extra_css %}
+<style>
+.eureka-scheda-header {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+.eureka-scheda-box {
+    border: 1px solid var(--tblr-border-color, rgba(98,105,118,.2));
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+    background: var(--tblr-bg-surface);
+}
+.eureka-scheda-box .label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--tblr-secondary);
+    margin-bottom: .25rem;
+}
+.eureka-scheda-box .value {
+    font-size: 1.15rem;
+    font-weight: 650;
+    line-height: 1.25;
+}
+@media (max-width: 992px) {
+    .eureka-scheda-header { grid-template-columns: 1fr; }
+}
+
+.eureka-scheda-table {
+    table-layout: fixed;
+    width: 100%;
+}
+.eureka-scheda-table thead th {
+    white-space: nowrap;
+    vertical-align: middle;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--tblr-secondary, #64748b);
+    padding: 0.75rem 0.65rem;
+}
+.eureka-scheda-table tbody td {
+    vertical-align: middle;
+    padding: 0.45rem 0.65rem;
+}
+.eureka-scheda-table .col-num {
+    width: 3rem;
+    text-align: center;
+}
+.eureka-scheda-table .col-codice {
+    width: 16%;
+}
+.eureka-scheda-table .col-cod-art {
+    width: 14%;
+}
+.eureka-scheda-table .col-descrizione {
+    width: auto;
+}
+.eureka-scheda-table .col-tempo {
+    width: 8rem;
+    text-align: right;
+}
+.eureka-scheda-table .col-actions {
+    width: 3.25rem;
+    text-align: center;
+}
+.eureka-scheda-table .row-num {
+    display: block;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.eureka-scheda-table .form-control {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+.eureka-scheda-table .field-tempo {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.eureka-scheda-table .btn-remove-row {
+    margin: 0 auto;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Scheda di lavorazione</h2>
+            <div class="text-secondary">Inserisci il codice pezzo: Cod. Art. Cliente e Descrizione componente si compilano automaticamente da Articoli (sola lettura).</div>
+        </div>
+        <div class="btn-list">
+            {% if from_agenda %}
+            <a href="{{ agenda_back_url }}" class="btn btn-outline-primary">
+                <i class="ti ti-calendar"></i>
+                Torna all'agenda
+            </a>
+            {% endif %}
+            <a href="{% url 'schede_lavorazione:list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Elenco
+            </a>
+            <a href="{% url 'schede_lavorazione:edit' scheda.pk %}" class="btn btn-outline-secondary">
+                <i class="ti ti-edit"></i>
+                Modifica testata
+            </a>
+            <a href="{% url 'schede_lavorazione:print' scheda.pk %}?autoprint=1"
+               class="btn btn-outline-primary"
+               target="_blank"
+               rel="noopener">
+                <i class="ti ti-printer"></i>
+                Stampa
+            </a>
+            <button type="button" class="btn btn-primary" id="schedaSaveBtn">
+                <i class="ti ti-device-floppy"></i>
+                Salva righe
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="eureka-scheda-header mb-3">
+    <div class="eureka-scheda-box">
+        <div class="label">Data</div>
+        <div class="value">{{ scheda.data|date:"d/m/Y" }}</div>
+    </div>
+    <div class="eureka-scheda-box">
+        <div class="label">Operatore</div>
+        <div class="value">{{ scheda.operatore_nome|default:scheda.operatore_codice }}</div>
+    </div>
+    <div class="eureka-scheda-box">
+        <div class="label">Matricola</div>
+        <div class="value">{{ scheda.matricola|default:"—" }}</div>
+    </div>
+</div>
+
+<div class="card" id="schedaEditor"
+     data-lookup-url="{{ lookup_url }}"
+     data-save-url="{{ save_rows_url }}"
+     data-list-url="{% if from_agenda %}{{ agenda_back_url }}{% else %}{% url 'schede_lavorazione:list' %}{% endif %}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">Righe pezzo</h3>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="schedaAddRowBtn">
+            <i class="ti ti-plus"></i>
+            Aggiungi riga
+        </button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table eureka-scheda-table mb-0">
+            <thead>
+                <tr>
+                    <th class="col-num">#</th>
+                    <th class="col-codice">Codice pezzo</th>
+                    <th class="col-cod-art">Cod. Art. Cliente</th>
+                    <th class="col-descrizione">Descrizione componente</th>
+                    <th class="col-tempo">Tempo distinta</th>
+                    <th class="col-actions"></th>
+                </tr>
+            </thead>
+            <tbody id="schedaRowsBody">
+                {% for riga in righe %}
+                <tr class="scheda-row">
+                    <td class="col-num"><span class="row-num text-secondary">{{ forloop.counter }}</span></td>
+                    <td class="col-codice"><input type="text" class="form-control form-control-sm field-codice" value="{{ riga.codice_pezzo }}" placeholder="es. C11140200977"></td>
+                    <td class="col-cod-art"><input type="text" class="form-control form-control-sm field-cod-art bg-light" value="{{ riga.cod_art_cliente }}" readonly tabindex="-1"></td>
+                    <td class="col-descrizione"><input type="text" class="form-control form-control-sm field-descrizione bg-light" value="{{ riga.descrizione_componente }}" readonly tabindex="-1"></td>
+                    <td class="col-tempo"><input type="number" step="0.01" class="form-control form-control-sm field-tempo" value="{{ riga.tempo_distinta }}"></td>
+                    <td class="col-actions">
+                        <button type="button" class="btn btn-ghost-danger btn-icon btn-remove-row" title="Rimuovi">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <div class="text-secondary small" id="schedaStatus">Pronto.</div>
+        <div class="btn-list">
+            <button type="button" class="btn btn-outline-primary" id="schedaAddRowBtn2">
+                <i class="ti ti-plus"></i>
+                Aggiungi riga
+            </button>
+            <button type="button" class="btn btn-primary" id="schedaSaveBtn2">
+                <i class="ti ti-device-floppy"></i>
+                Salva righe
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3" id="eliminaSchedaWrap">
+    <button type="button"
+            class="btn btn-outline-danger btn-sm"
+            id="btnApriEliminaScheda">
+        <i class="ti ti-trash"></i>
+        Elimina scheda
+    </button>
+
+    <div id="confermaEliminaScheda" class="card border-danger mt-3 d-none" role="region" aria-labelledby="confermaEliminaSchedaTitle">
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                <div class="text-danger" style="font-size:1.75rem;line-height:1;">
+                    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                </div>
+                <div class="flex-fill">
+                    <h3 id="confermaEliminaSchedaTitle" class="mb-1" style="font-size:1.05rem;">Eliminare questa scheda?</h3>
+                    <div class="text-secondary mb-3">
+                        Scheda di {{ scheda.operatore_nome|default:scheda.operatore_codice }}
+                        del {{ scheda.data|date:"d/m/Y" }}.
+                        L'operazione non si può annullare.
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="btnAnnullaEliminaScheda">
+                            Annulla
+                        </button>
+                        <button type="button"
+                                class="btn btn-danger"
+                                id="btnConfirmEliminaScheda"
+                                data-unsaved-ignore="true">
+                            <i class="ti ti-trash"></i>
+                            Elimina
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaScheda"
+      method="post"
+      action="{% url 'schede_lavorazione:delete' scheda.pk %}"
+      data-unsaved-guard="false"
+      class="visually-hidden"
+      aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+<template id="schedaRowTemplate">
+    <tr class="scheda-row">
+        <td class="col-num"><span class="row-num text-secondary">1</span></td>
+        <td class="col-codice"><input type="text" class="form-control form-control-sm field-codice" value="" placeholder="es. C11140200977"></td>
+        <td class="col-cod-art"><input type="text" class="form-control form-control-sm field-cod-art bg-light" value="" readonly tabindex="-1"></td>
+        <td class="col-descrizione"><input type="text" class="form-control form-control-sm field-descrizione bg-light" value="" readonly tabindex="-1"></td>
+        <td class="col-tempo"><input type="number" step="0.01" class="form-control form-control-sm field-tempo" value="0"></td>
+        <td class="col-actions">
+            <button type="button" class="btn btn-ghost-danger btn-icon btn-remove-row" title="Rimuovi">
+                <i class="ti ti-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const deleteForm = document.getElementById("formEliminaScheda");
+    const openDeleteBtn = document.getElementById("btnApriEliminaScheda");
+    const cancelDeleteBtn = document.getElementById("btnAnnullaEliminaScheda");
+    const confirmPanel = document.getElementById("confermaEliminaScheda");
+    const confirmBtn = document.getElementById("btnConfirmEliminaScheda");
+
+    function showConfirm(show) {
+        if (!confirmPanel || !openDeleteBtn) return;
+        confirmPanel.classList.toggle("d-none", !show);
+        openDeleteBtn.classList.toggle("d-none", show);
+        if (show && confirmBtn) confirmBtn.focus();
+    }
+
+    if (openDeleteBtn) {
+        openDeleteBtn.addEventListener("click", function () {
+            showConfirm(true);
+        });
+    }
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener("click", function () {
+            showConfirm(false);
+        });
+    }
+    if (confirmBtn && deleteForm) {
+        confirmBtn.addEventListener("click", function () {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="ti ti-loader-2"></i> Eliminazione...';
+            deleteForm.submit();
+        });
+    }
+
+    const editor = document.getElementById("schedaEditor");
+    if (!editor) return;
+
+    const body = document.getElementById("schedaRowsBody");
+    const template = document.getElementById("schedaRowTemplate");
+    const statusEl = document.getElementById("schedaStatus");
+    const lookupUrl = editor.dataset.lookupUrl;
+    const saveUrl = editor.dataset.saveUrl;
+    const listUrl = editor.dataset.listUrl;
+
+    function csrfToken() {
+        const input = document.querySelector("input[name=csrfmiddlewaretoken]");
+        return input ? input.value : "";
+    }
+
+    function renumber() {
+        Array.from(body.querySelectorAll(".scheda-row")).forEach(function (row, idx) {
+            row.querySelector(".row-num").textContent = String(idx + 1);
+        });
+    }
+
+    function addRow(focus) {
+        const node = template.content.cloneNode(true);
+        body.appendChild(node);
+        renumber();
+        if (focus) {
+            const last = body.querySelector(".scheda-row:last-child .field-codice");
+            if (last) last.focus();
+        }
+    }
+
+    function collectRows() {
+        return Array.from(body.querySelectorAll(".scheda-row")).map(function (row) {
+            return {
+                codice_pezzo: row.querySelector(".field-codice").value.trim(),
+                cod_art_cliente: row.querySelector(".field-cod-art").value.trim(),
+                descrizione_componente: row.querySelector(".field-descrizione").value.trim(),
+                tempo_distinta: row.querySelector(".field-tempo").value || "0",
+            };
+        }).filter(function (r) { return r.codice_pezzo; });
+    }
+
+    function setStatus(text, isError) {
+        statusEl.textContent = text;
+        statusEl.classList.toggle("text-danger", !!isError);
+        statusEl.classList.toggle("text-secondary", !isError);
+    }
+
+    async function lookupPezzo(row, codice) {
+        if (!codice) return;
+        setStatus("Ricerca pezzo " + codice + "...");
+        try {
+            const res = await fetch(lookupUrl + "?codice=" + encodeURIComponent(codice), {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            const data = await res.json();
+            if (data.ok) {
+                row.querySelector(".field-cod-art").value = data.cod_art_cliente || "";
+                row.querySelector(".field-descrizione").value = data.descrizione_componente || "";
+                if (data.tempo_distinta !== undefined && data.tempo_distinta !== null) {
+                    row.querySelector(".field-tempo").value = data.tempo_distinta;
+                }
+                setStatus(data.message || "Pezzo trovato.");
+            } else {
+                setStatus(data.message || "Pezzo non trovato.", true);
+            }
+        } catch (err) {
+            setStatus("Errore lookup pezzo.", true);
+        }
+    }
+
+    async function saveRows() {
+        setStatus("Salvataggio in corso...");
+        try {
+            const res = await fetch(saveUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken(),
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({ righe: collectRows() })
+            });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || "Salvataggio non riuscito.");
+            setStatus(data.message || "Salvato.");
+            window.location.href = listUrl;
+        } catch (err) {
+            setStatus(err.message || "Errore salvataggio.", true);
+        }
+    }
+
+    body.addEventListener("click", function (event) {
+        const btn = event.target.closest(".btn-remove-row");
+        if (!btn) return;
+        const row = btn.closest(".scheda-row");
+        if (row) row.remove();
+        renumber();
+        if (!body.querySelector(".scheda-row")) addRow(false);
+    });
+
+    body.addEventListener("change", function (event) {
+        const input = event.target.closest(".field-codice");
+        if (!input) return;
+        const row = input.closest(".scheda-row");
+        lookupPezzo(row, input.value.trim());
+    });
+
+    body.addEventListener("keydown", function (event) {
+        const input = event.target.closest(".field-codice");
+        if (!input || event.key !== "Enter") return;
+        event.preventDefault();
+        const row = input.closest(".scheda-row");
+        lookupPezzo(row, input.value.trim()).then(function () {
+            addRow(true);
+        });
+    });
+
+    document.getElementById("schedaAddRowBtn").addEventListener("click", function () { addRow(true); });
+    document.getElementById("schedaAddRowBtn2").addEventListener("click", function () { addRow(true); });
+    document.getElementById("schedaSaveBtn").addEventListener("click", saveRows);
+    document.getElementById("schedaSaveBtn2").addEventListener("click", saveRows);
+
+    if (!body.querySelector(".scheda-row")) {
+        addRow(true);
+    }
+});
+</script>
+{% endblock %}

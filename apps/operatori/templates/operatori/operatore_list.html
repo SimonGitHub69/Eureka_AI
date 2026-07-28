@@ -1,0 +1,105 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Operatori · Eureka AI{% endblock %}
+
+{% block page_title %}Operatori{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Operatori</h2>
+            <div class="text-secondary">
+                Operatori importati da 4D (<code>Operatori</code>)
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'operatori:list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-8">
+                    <label class="form-label" for="operatoriSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="operatoriSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="Codice, nome, cognome, email...">
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'operatori:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Nome</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for operatore in operatori %}
+                <tr>
+                    <td>
+                        {% if operatore.codice %}
+                        <a href="{% url 'operatori:detail' operatore.codice %}" class="fw-semibold text-decoration-none">
+                            {{ operatore.codice }}
+                        </a>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 420px;" title="{{ operatore.label }}">
+                            {{ operatore.label|default:"—" }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if operatore.codice %}
+                        <a href="{% url 'operatori:detail' operatore.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center text-secondary py-5">
+                        <i class="ti ti-user-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
+                        Nessun operatore trovato
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'operatori:list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

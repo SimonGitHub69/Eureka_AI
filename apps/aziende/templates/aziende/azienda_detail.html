@@ -1,0 +1,147 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ azienda.ragione_sociale|default:azienda.id }} · Aziende · Eureka AI{% endblock %}
+
+{% block page_title %}Azienda{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ azienda.ragione_sociale|default:azienda.id }}</h2>
+            <div class="text-secondary">ID {{ azienda.id }}</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'aziende:edit' azienda.id %}" class="btn btn-primary">
+                <i class="ti ti-photo"></i>
+                Logo e dati locali
+            </a>
+            <a href="{% url 'aziende:list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Elenco
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if azienda_dati and azienda_dati.logo %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Logo</h3>
+    </div>
+    <div class="card-body">
+        <img
+            src="{{ azienda_dati.logo.url }}"
+            alt="Logo {{ azienda.ragione_sociale|default:azienda.id }}"
+            style="max-width: 280px; max-height: 160px; object-fit: contain;"
+        >
+    </div>
+</div>
+{% endif %}
+
+{% if azienda_dati and azienda_dati.note %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Note locali</h3>
+    </div>
+    <div class="card-body">
+        {{ azienda_dati.note|linebreaksbr }}
+    </div>
+</div>
+{% endif %}
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dati principali</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="datagrid-title">Ragione sociale</div>
+                <div class="datagrid-content">{{ azienda.ragione_sociale|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Partita IVA</div>
+                <div class="datagrid-content">{{ azienda.partita_iva|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Codice fiscale</div>
+                <div class="datagrid-content">{{ azienda.codice_fiscale|default:"—" }}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="datagrid-title">Indirizzo</div>
+                <div class="datagrid-content">{{ azienda.indirizzo|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">CAP / Località</div>
+                <div class="datagrid-content">
+                    {% if azienda.cap or azienda.localita %}
+                        {{ azienda.cap|default:"" }} {{ azienda.localita|default:"" }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Provincia</div>
+                <div class="datagrid-content">{{ azienda.provincia|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Telefono</div>
+                <div class="datagrid-content">{{ azienda.telefono|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Fax</div>
+                <div class="datagrid-content">{{ azienda.fax|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Email</div>
+                <div class="datagrid-content">{{ azienda.email|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">PEC</div>
+                <div class="datagrid-content">{{ azienda.email_pec|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Anno competenza</div>
+                <div class="datagrid-content">{{ azienda.anno_competenza|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Attività</div>
+                <div class="datagrid-content">
+                    {% if azienda.cod_attivita or azienda.desc_attivita %}
+                        {{ azienda.cod_attivita|default:"" }} {{ azienda.desc_attivita|default:"" }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+            </div>
+            {% if azienda.synced_at %}
+            <div class="col-12">
+                <div class="text-secondary small">Ultimo sync: {{ azienda.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if campi %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

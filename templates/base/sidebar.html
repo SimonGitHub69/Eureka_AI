@@ -16,6 +16,11 @@
             <span class="st-nav-label">Dashboard</span>
         </a>
 
+        <a class="st-nav-link {% if request.path|slice:':8' == '/agenda/' %}active{% endif %}" href="{% url 'agenda:calendario' %}">
+            <span class="st-nav-icon"><i class="ti ti-calendar"></i></span>
+            <span class="st-nav-label">Agenda</span>
+        </a>
+
         <div class="st-nav-collapse {% if request.resolver_match.namespace == 'fatture' and request.resolver_match.url_name != 'analisi' and request.resolver_match.url_name != 'sync' or request.path|slice:':9' == '/clienti/' or request.path|slice:':11' == '/fornitori/' or request.path|slice:':8' == '/agenti/' or request.path|slice:':10' == '/articoli/' %}is-open{% endif %}" data-nav-section="gestione">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Gestione</span>
@@ -72,13 +77,36 @@
             </div>
         </div>
 
-        <div class="st-nav-collapse {% if request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
+        <div class="st-nav-collapse {% if request.path|slice:':20' == '/schede-lavorazione/' or request.path|slice:':8' == '/stampi/' %}is-open{% endif %}" data-nav-section="carbon">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">CARBON</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.path|slice:':20' == '/schede-lavorazione/' %}active{% endif %}" href="{% url 'schede_lavorazione:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-clipboard-list"></i></span>
+                    <span class="st-nav-label">Schede di lavorazione</span>
+                </a>
+                <a class="st-nav-link {% if request.path|slice:':8' == '/stampi/' %}active{% endif %}" href="{% url 'stampi:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-box"></i></span>
+                    <span class="st-nav-label">Stampi</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':11' == '/operatori/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Tabelle</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
                 <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
             </button>
             <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.path|slice:':9' == '/aziende/' %}active{% endif %}" href="{% url 'aziende:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-building"></i></span>
+                    <span class="st-nav-label">Azienda</span>
+                </a>
+
                 <a class="st-nav-link {% if request.path|slice:':11' == '/categorie/' %}active{% endif %}" href="{% url 'categorie:list' %}">
                     <span class="st-nav-icon"><i class="ti ti-category"></i></span>
                     <span class="st-nav-label">Categorie</span>
@@ -97,6 +125,11 @@
                 <a class="st-nav-link {% if request.path|slice:':11' == '/magazzini/' %}active{% endif %}" href="{% url 'magazzini:list' %}">
                     <span class="st-nav-icon"><i class="ti ti-building-store"></i></span>
                     <span class="st-nav-label">Magazzini</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':11' == '/operatori/' %}active{% endif %}" href="{% url 'operatori:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-user-cog"></i></span>
+                    <span class="st-nav-label">Operatori</span>
                 </a>
 
                 <a class="st-nav-link {% if request.path|slice:':9' == '/regioni/' %}active{% endif %}" href="{% url 'geografia:regioni_list' %}">

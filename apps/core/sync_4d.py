@@ -36,6 +36,10 @@ TYPE_MAP = {
     "LONGVARCHAR": "text",
     "WLONGVARCHAR": "text",
     "TEXT": "text",
+    "BLOB": "bytea",
+    "BINARY": "bytea",
+    "VARBINARY": "bytea",
+    "LONGVARBINARY": "bytea",
 }
 
 
@@ -66,6 +70,8 @@ def map_pg_type(type_name: str, column_size: int | None = None) -> str:
         return TYPE_MAP[key]
     if "CHAR" in key or "CLOB" in key or "TEXT" in key:
         return "text"
+    if "BLOB" in key or "BINARY" in key:
+        return "bytea"
     if "INT" in key:
         return "integer"
     if "DOUBLE" in key or "FLOAT" in key or "REAL" in key:
@@ -182,6 +188,13 @@ def normalize_value(value: Any, pg_type: str) -> Any:
             return datetime.combine(value, time.min)
         return value
 
+    if pg_type == "bytea":
+        if isinstance(value, memoryview):
+            return bytes(value)
+        if isinstance(value, (bytes, bytearray)):
+            return bytes(value)
+        return None
+
     if isinstance(value, (bytes, bytearray)):
         return value.decode("utf-8", errors="replace").replace("\x00", "")
 
@@ -208,12 +221,25 @@ def sync_table(
     batch_size: int = 2000,
     recreate: bool = True,
     post_create: Callable | None = None,
+    exclude_columns: tuple[str, ...] | None = None,
+    skip_blobs: bool = True,
 ) -> TableSyncResult:
     result = TableSyncResult(source=source, target=target)
     try:
         with open_4d_connection(timeout=30) as odbc_conn:
             odbc_cur = odbc_conn.cursor()
             columns = introspect_columns(odbc_cur, source)
+            excluded = {name for name in (exclude_columns or ()) if name}
+            if skip_blobs:
+                excluded.update(
+                    c["name"]
+                    for c in columns
+                    if c["pg_type"] == "bytea"
+                    or "BLOB" in (c["type_name"] or "").upper()
+                    or "BINARY" in (c["type_name"] or "").upper()
+                )
+            if excluded:
+                columns = [c for c in columns if c["name"] not in excluded]
             result.columns = len(columns)
 
             if recreate:
@@ -246,8 +272,11 @@ def sync_table(
                         pg_cur.executemany(insert_sql, values)
                     total += len(values)
 
+            skipped = f" (escluse {len(excluded)} colonne BLOB)" if excluded else ""
             result.rows = total
-            result.message = f"{source} -> {target}: {total} righe, {len(columns)} colonne."
+            result.message = (
+                f"{source} -> {target}: {total} righe, {len(columns)} colonne{skipped}."
+            )
             return result
     except Exception as exc:
         result.ok = False
@@ -272,6 +301,8 @@ def sync_tables(
             batch_size=batch_size,
             recreate=True,
             post_create=spec.get("post_create"),
+            exclude_columns=spec.get("exclude_columns"),
+            skip_blobs=spec.get("skip_blobs", True),
         )
         summary.tables.append(table_result)
         if not table_result.ok:

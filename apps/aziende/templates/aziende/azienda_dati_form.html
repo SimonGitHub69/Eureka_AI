@@ -1,0 +1,159 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Logo e dati locali · {{ azienda.ragione_sociale|default:azienda.id }} · Eureka AI{% endblock %}
+
+{% block page_title %}Modifica azienda{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Logo e dati locali</h2>
+            <div class="text-secondary">
+                {{ azienda.ragione_sociale|default:azienda.id }}
+                · ID {{ azienda.id }}
+                · anagrafica 4D in sola lettura
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'aziende:detail' azienda.id %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Dettaglio
+            </a>
+            <a href="{% url 'aziende:list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-list"></i>
+                Elenco
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dati anagrafici (4D)</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="datagrid-title">Ragione sociale</div>
+                <div class="datagrid-content">{{ azienda.ragione_sociale|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Partita IVA</div>
+                <div class="datagrid-content">{{ azienda.partita_iva|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Codice fiscale</div>
+                <div class="datagrid-content">{{ azienda.codice_fiscale|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-photo me-1"></i>
+            Logo Eureka
+        </h3>
+    </div>
+    <form method="post" enctype="multipart/form-data" autocomplete="off" data-autocomplete="on">
+        {% csrf_token %}
+
+        <div class="card-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row g-3 align-items-start">
+                <div class="col-md-4">
+                    <div class="datagrid-title mb-2">Anteprima</div>
+                    <div
+                        class="border rounded d-flex align-items-center justify-content-center bg-light"
+                        style="min-height: 160px; padding: 1rem;"
+                        id="logoPreviewBox"
+                    >
+                        {% if azienda_dati.logo %}
+                            <img
+                                src="{{ azienda_dati.logo.url }}"
+                                alt="Logo attuale"
+                                id="logoPreview"
+                                style="max-width: 100%; max-height: 180px; object-fit: contain;"
+                            >
+                        {% else %}
+                            <img
+                                src=""
+                                alt="Anteprima logo"
+                                id="logoPreview"
+                                class="d-none"
+                                style="max-width: 100%; max-height: 180px; object-fit: contain;"
+                            >
+                            <div class="text-secondary text-center" id="logoPreviewPlaceholder">
+                                <i class="ti ti-building" style="font-size: 2rem; opacity: .4; display: block;"></i>
+                                Nessun logo
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.logo.id_for_label }}">
+                            {{ form.logo.label }}
+                        </label>
+                        {{ form.logo }}
+                        <div class="form-hint">
+                            Formati ammessi: PNG, JPG. Puoi sostituire il file o rimuoverlo con la spunta
+                            «Cancella».
+                        </div>
+                        {% if form.logo.errors %}
+                            <div class="invalid-feedback d-block">{{ form.logo.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label" for="{{ form.note.id_for_label }}">
+                            {{ form.note.label }}
+                        </label>
+                        {{ form.note }}
+                        <div class="form-hint">Note locali Eureka (non sincronizzate da 4D).</div>
+                        {% if form.note.errors %}
+                            <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-end gap-2">
+            <a href="{% url 'aziende:detail' azienda.id %}" class="btn btn-outline-secondary">
+                Annulla
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                Salva
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var input = document.getElementById("{{ form.logo.id_for_label }}");
+    var preview = document.getElementById("logoPreview");
+    var placeholder = document.getElementById("logoPreviewPlaceholder");
+    if (!input || !preview) return;
+
+    input.addEventListener("change", function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var url = URL.createObjectURL(file);
+        preview.src = url;
+        preview.classList.remove("d-none");
+        if (placeholder) placeholder.classList.add("d-none");
+    });
+})();
+</script>
+
+{% endblock %}

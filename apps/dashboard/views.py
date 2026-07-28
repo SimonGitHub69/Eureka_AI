@@ -5,11 +5,14 @@ from django.views.generic import TemplateView
 
 from apps.anagrafiche.models import Agente, Cliente, Fornitore
 from apps.articoli.models import Articolo
+from apps.aziende.models import Azienda
 from apps.categorie.models import Categoria
 from apps.fatture.models import Fattura, FatturaDettaglio
 from apps.gruppi_articoli.models import GruppoArticolo
 from apps.gruppi_magazzini.models import GruppoMagazzino
 from apps.magazzini.models import Magazzino
+from apps.operatori.models import Operatore
+from apps.stampi.models import Stampo
 
 # Tabelle mirror importate da 4D (PostgreSQL).
 TABELLE_IMPORTATE = (
@@ -49,6 +52,13 @@ TABELLE_IMPORTATE = (
         "list_url": "anagrafiche:agenti_list",
     },
     {
+        "label": "Azienda",
+        "source": "Azienda",
+        "db_table": "aziende",
+        "model": Azienda,
+        "list_url": "aziende:list",
+    },
+    {
         "label": "Articoli",
         "source": "Articoli",
         "db_table": "articoli",
@@ -82,6 +92,20 @@ TABELLE_IMPORTATE = (
         "db_table": "magazzini",
         "model": Magazzino,
         "list_url": "magazzini:list",
+    },
+    {
+        "label": "Stampi",
+        "source": "TabStampi",
+        "db_table": "stampi",
+        "model": Stampo,
+        "list_url": "stampi:list",
+    },
+    {
+        "label": "Operatori",
+        "source": "Operatori",
+        "db_table": "operatori",
+        "model": Operatore,
+        "list_url": "operatori:list",
     },
 )
 

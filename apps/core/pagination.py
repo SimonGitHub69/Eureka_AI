@@ -41,3 +41,24 @@ class PerPageListMixin:
         context["per_page"] = self.get_paginate_by(None)
         context["per_page_options"] = self.per_page_options
         return context
+
+
+class SafeMirrorListMixin:
+    """
+    ListView su tabelle mirror 4D.
+    Se la tabella non esiste (es. dopo azzeramento), mostra elenco vuoto.
+    Le subclass devono implementare get_mirror_queryset() invece di get_queryset().
+    """
+
+    def get_mirror_queryset(self):
+        return super().get_queryset()
+
+    def get_queryset(self):
+        from django.db.utils import OperationalError, ProgrammingError
+
+        try:
+            qs = self.get_mirror_queryset()
+            qs.exists()
+            return qs
+        except (ProgrammingError, OperationalError):
+            return self.model.objects.none()

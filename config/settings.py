@@ -27,9 +27,14 @@ INSTALLED_APPS = [
     "apps.anagrafiche",
     "apps.articoli",
     "apps.categorie",
+    "apps.aziende",
     "apps.gruppi_articoli",
     "apps.gruppi_magazzini",
     "apps.magazzini",
+    "apps.stampi",
+    "apps.operatori",
+    "apps.schede_lavorazione",
+    "apps.agenda",
     "apps.geografia",
 ]
 
@@ -84,7 +89,6 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
-    BASE_DIR / "node_modules",
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
@@ -95,6 +99,9 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
+# In sviluppo: servi anche da STATICFILES_DIRS (junction static/vendor → node_modules)
+WHITENOISE_USE_FINDERS = DEBUG
+WHITENOISE_AUTOREFRESH = DEBUG
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

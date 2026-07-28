@@ -1,0 +1,129 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Aziende · Eureka AI{% endblock %}
+
+{% block page_title %}Aziende{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Aziende</h2>
+            <div class="text-secondary">
+                Anagrafica azienda importata da 4D (<code>Azienda</code>);
+                logo e note locali gestiti in Eureka
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'aziende:list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-8">
+                    <label class="form-label" for="aziendeSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="aziendeSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="Ragione sociale, P.IVA, CF, località, email...">
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'aziende:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th class="w-1">Logo</th>
+                    <th>Ragione sociale</th>
+                    <th>Località</th>
+                    <th>P. IVA</th>
+                    <th>Telefono</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for azienda in aziende %}
+                <tr>
+                    <td>
+                        <a href="{% url 'aziende:detail' azienda.id %}" class="fw-semibold text-decoration-none">
+                            {{ azienda.id }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if azienda.dati_locali and azienda.dati_locali.logo %}
+                            <img
+                                src="{{ azienda.dati_locali.logo.url }}"
+                                alt=""
+                                style="width: 36px; height: 36px; object-fit: contain;"
+                            >
+                        {% else %}
+                            <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 320px;" title="{{ azienda.ragione_sociale }}">
+                            {{ azienda.ragione_sociale|default:"—" }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if azienda.localita or azienda.provincia %}
+                            {{ azienda.localita|default:"" }}{% if azienda.provincia %} ({{ azienda.provincia }}){% endif %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ azienda.partita_iva|default:"—" }}</td>
+                    <td>{{ azienda.telefono|default:"—" }}</td>
+                    <td>
+                        <div class="btn-list flex-nowrap">
+                            <a href="{% url 'aziende:edit' azienda.id %}" class="btn btn-ghost-primary btn-icon" title="Logo e dati locali">
+                                <i class="ti ti-photo"></i>
+                            </a>
+                            <a href="{% url 'aziende:detail' azienda.id %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                                <i class="ti ti-chevron-right"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-secondary py-5">
+                        <i class="ti ti-building-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
+                        Nessuna azienda trovata
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'aziende:list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

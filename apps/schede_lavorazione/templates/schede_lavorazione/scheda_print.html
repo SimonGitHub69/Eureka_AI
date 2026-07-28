@@ -1,0 +1,232 @@
+{% load static %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scheda {{ scheda.data|date:"d/m/Y" }} · {{ scheda.operatore_nome|default:scheda.operatore_codice }}</title>
+    <style>
+        :root {
+            --ink: #111;
+            --border: #111;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #e8ecf1;
+            color: var(--ink);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: #fff;
+            border-bottom: 1px solid #d0d7de;
+        }
+        .toolbar .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.85rem;
+            border: 1px solid #c9d1d9;
+            border-radius: 0.4rem;
+            background: #fff;
+            color: #1f2937;
+            text-decoration: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .toolbar .btn-primary {
+            background: #206bc4;
+            border-color: #206bc4;
+            color: #fff;
+        }
+        .sheet-wrap {
+            padding: 1.25rem;
+            display: flex;
+            justify-content: center;
+        }
+        .sheet {
+            width: 100%;
+            max-width: 210mm;
+            background: #fff;
+            padding: 10mm 8mm;
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+        }
+        .scheda-print-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 11px;
+        }
+        .scheda-print-table th,
+        .scheda-print-table td {
+            border: 1.5px solid var(--border);
+            padding: 0.4rem 0.35rem;
+            vertical-align: middle;
+            text-align: center;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .scheda-print-table .col-cod-art { width: 18%; }
+        .scheda-print-table .col-codice { width: 18%; }
+        .scheda-print-table .col-descrizione { width: auto; }
+        .scheda-print-table .col-tempo { width: 14%; }
+
+        .header-logo {
+            width: 18%;
+            padding: 0.3rem 0.35rem !important;
+        }
+        .header-logo-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            min-height: 38px;
+        }
+        .header-logo-inner img {
+            max-height: 36px;
+            max-width: 100%;
+            object-fit: contain;
+        }
+        .header-date {
+            width: 18%;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .header-operatore {
+            font-weight: 800;
+            font-size: 1.05rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .header-matricola {
+            width: 20%;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .col-head {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            font-size: 0.72rem;
+            padding-top: 0.45rem !important;
+            padding-bottom: 0.45rem !important;
+        }
+        .cell-desc {
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        .cell-empty {
+            color: transparent;
+            min-height: 1.35rem;
+        }
+        .cell-empty::after {
+            content: "\00a0";
+        }
+
+        @media print {
+            html, body {
+                background: #fff;
+            }
+            .toolbar {
+                display: none !important;
+            }
+            .sheet-wrap {
+                padding: 0;
+            }
+            .sheet {
+                max-width: none;
+                padding: 0;
+                box-shadow: none;
+            }
+            .scheda-print-table {
+                font-size: 10pt;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div>
+            <strong>Anteprima stampa</strong>
+            · Scheda {{ scheda.data|date:"d/m/Y" }}
+            · {{ scheda.operatore_nome|default:scheda.operatore_codice }}
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a class="btn" href="{% url 'schede_lavorazione:detail' scheda.pk %}">Torna alla scheda</a>
+            <button type="button" class="btn btn-primary" onclick="window.print()">Stampa</button>
+        </div>
+    </div>
+
+    <div class="sheet-wrap">
+        <div class="sheet">
+            <table class="scheda-print-table">
+                <thead>
+                    <tr>
+                        <th class="header-logo">
+                            <div class="header-logo-inner">
+                                {% if azienda_logo %}
+                                <img src="{{ azienda_logo.url }}" alt="">
+                                {% endif %}
+                            </div>
+                        </th>
+                        <th class="header-date">{{ scheda.data|date:"d-b-y" }}</th>
+                        <th class="header-operatore">
+                            {{ scheda.operatore_nome|default:scheda.operatore_codice }}
+                        </th>
+                        <th class="header-matricola">
+                            MATRICOLA{% if scheda.matricola %}: {{ scheda.matricola }}{% else %}: —{% endif %}
+                        </th>
+                    </tr>
+                    <tr>
+                        <th class="col-head col-cod-art">Cod. Art. Cliente</th>
+                        <th class="col-head col-codice">Codice pezzo</th>
+                        <th class="col-head col-descrizione">Descrizione componente</th>
+                        <th class="col-head col-tempo">Tempo distinta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for riga in righe %}
+                    <tr>
+                        <td>{{ riga.cod_art_cliente|default:"" }}</td>
+                        <td>{{ riga.codice_pezzo }}</td>
+                        <td class="cell-desc">{{ riga.descrizione_componente|default:"" }}</td>
+                        <td>{{ riga.tempo_distinta }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for _ in blank_rows %}
+                    <tr>
+                        <td class="cell-empty"></td>
+                        <td class="cell-empty"></td>
+                        <td class="cell-empty"></td>
+                        <td class="cell-empty"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if autoprint %}
+    <script>
+        window.addEventListener("load", function () {
+            setTimeout(function () { window.print(); }, 150);
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

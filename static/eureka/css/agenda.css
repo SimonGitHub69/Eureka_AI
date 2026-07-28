@@ -1,0 +1,190 @@
+.agenda-page {
+    --agenda-accent: #1d4ed8;
+    --agenda-today: rgba(29, 78, 216, 0.08);
+    --agenda-grid: rgba(15, 23, 42, 0.08);
+    --agenda-text: inherit;
+}
+
+[data-bs-theme="dark"] .agenda-page {
+    --agenda-today: rgba(96, 165, 250, 0.12);
+    --agenda-grid: rgba(255, 255, 255, 0.08);
+}
+
+.agenda-card {
+    min-height: calc(100vh - 11rem);
+}
+
+.agenda-card .card-body {
+    min-height: inherit;
+}
+
+#agendaCalendar {
+    min-height: calc(100vh - 13rem);
+}
+
+#agendaCalendar .fc {
+    --fc-border-color: var(--agenda-grid);
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: transparent;
+    --fc-today-bg-color: var(--agenda-today);
+    --fc-button-bg-color: transparent;
+    --fc-button-border-color: var(--tblr-border-color, #d9dee8);
+    --fc-button-text-color: var(--tblr-body-color, #1e293b);
+    --fc-button-hover-bg-color: rgba(29, 78, 216, 0.08);
+    --fc-button-hover-border-color: var(--agenda-accent);
+    --fc-button-active-bg-color: var(--agenda-accent);
+    --fc-button-active-border-color: var(--agenda-accent);
+    --fc-button-active-text-color: #fff;
+    --fc-event-border-color: transparent;
+    --fc-now-indicator-color: #ef4444;
+    font-family: inherit;
+}
+
+#agendaCalendar .fc .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+#agendaCalendar .fc .fc-button {
+    border-radius: 0.5rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    box-shadow: none !important;
+    padding: 0.35rem 0.7rem;
+}
+
+#agendaCalendar .fc .fc-button-primary:not(:disabled).fc-button-active,
+#agendaCalendar .fc .fc-button-primary:not(:disabled):active {
+    background: var(--agenda-accent);
+    border-color: var(--agenda-accent);
+    color: #fff;
+}
+
+#agendaCalendar .fc .fc-col-header-cell-cushion,
+#agendaCalendar .fc .fc-daygrid-day-number {
+    color: inherit;
+    text-decoration: none;
+    padding: 0.4rem 0.5rem;
+}
+
+#agendaCalendar .fc .fc-daygrid-day-number {
+    font-weight: 500;
+}
+
+#agendaCalendar .fc .fc-day-today .fc-daygrid-day-number {
+    background: var(--agenda-accent);
+    color: #fff;
+    border-radius: 999px;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+#agendaCalendar .fc .fc-event {
+    border: none;
+    border-radius: 0.35rem;
+    padding: 0.1rem 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+#agendaCalendar .fc .fc-daygrid-event-dot {
+    display: none;
+}
+
+#agendaCalendar .fc .fc-timegrid-event {
+    border-radius: 0.4rem;
+}
+
+#agendaCalendar .fc .fc-timegrid-now-indicator-line {
+    border-width: 2px;
+}
+
+#agendaCalendar .fc .fc-list-event:hover td {
+    background: rgba(29, 78, 216, 0.06);
+}
+
+.agenda-color-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.agenda-color-swatch {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background: var(--swatch);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.agenda-color-swatch:hover {
+    transform: scale(1.08);
+}
+
+.agenda-color-swatch.is-selected {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--swatch);
+}
+
+[data-bs-theme="dark"] .agenda-color-swatch.is-selected {
+    box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px var(--swatch);
+}
+
+.agenda-type-switch .btn.active {
+    background: var(--agenda-accent);
+    border-color: var(--agenda-accent);
+    color: #fff;
+}
+
+.agenda-page.is-schede-mode #agendaCalendar .fc-event {
+    background-color: #0f766e !important;
+    border-color: #0f766e !important;
+    color: #fff !important;
+}
+
+.agenda-page.is-schede-mode #agendaCalendar .fc-event .fc-event-main,
+.agenda-page.is-schede-mode #agendaCalendar .fc-event .fc-event-title,
+.agenda-page.is-schede-mode #agendaCalendar .fc-event .fc-event-time,
+.agenda-page.is-schede-mode #agendaCalendar .fc-list-event-time,
+.agenda-page.is-schede-mode #agendaCalendar .fc-list-event-title,
+.agenda-page.is-schede-mode #agendaCalendar .fc-list-event-title a {
+    color: #fff !important;
+}
+
+.agenda-page.is-schede-mode #agendaCalendar .fc-list-event:hover td {
+    background: rgba(15, 118, 110, 0.18);
+}
+
+@media (max-width: 768px) {
+    .agenda-card,
+    #agendaCalendar {
+        min-height: calc(100vh - 14rem);
+    }
+
+    #agendaCalendar .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+
+    #agendaCalendar .fc .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    #agendaCalendar .fc .fc-toolbar-title {
+        text-align: center;
+        font-size: 1.1rem;
+    }
+}

@@ -6,8 +6,11 @@ venv/
 env/
 .env
 node_modules/
+static/vendor/
 staticfiles/
 media/
+certs/
+*.pem
 *.log
 .DS_Store
 Thumbs.db
