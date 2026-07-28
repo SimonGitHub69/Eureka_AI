@@ -1,0 +1,84 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Lavorazioni extra · CARBON · Eureka AI{% endblock %}
+{% block page_title %}Lavorazioni extra{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Lavorazioni extra</h2>
+            <div class="text-secondary">
+                Importate da 4D (<code>TabLavorazioniExtra</code>)
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+        <a href="{% url 'carbon:hub' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            CARBON
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'lavorazioni_extra:list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-8">
+                    <label class="form-label" for="carbonSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="carbonSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, reparto...">
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                    {% if has_filters %}
+                    <a href="{% url 'lavorazioni_extra:list' %}" class="btn btn-outline-secondary" title="Reset"><i class="ti ti-x"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th class="w-1 text-secondary">#</th>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Reparto</th>
+                    <th>Vincolante</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in lavorazioni %}
+                <tr>
+                    <td class="text-secondary">{% if page_obj %}{{ page_obj.start_index|add:forloop.counter0 }}{% else %}{{ forloop.counter }}{% endif %}</td>
+                    <td>
+                        <a href="{% url 'lavorazioni_extra:detail' r.id %}" class="fw-semibold text-decoration-none">{{ r.cod|default:r.id }}</a>
+                    </td>
+                    <td>{{ r.descrizione|default:"—" }}</td>
+                    <td>{{ r.cod_reparto|default:"—" }}</td>
+                    <td>{% if r.f_vincolante %}Sì{% else %}No{% endif %}</td>
+                    <td>
+                        <a href="{% url 'lavorazioni_extra:detail' r.id %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-secondary py-5">Nessuna lavorazione extra trovata</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

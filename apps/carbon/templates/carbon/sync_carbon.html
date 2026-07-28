@@ -1,0 +1,75 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Sync CARBON 4D · Eureka AI{% endblock %}
+{% block page_title %}Sync CARBON 4D{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Sync CARBON 4D</h2>
+            <div class="text-secondary">
+                Importa Reparti, Lavorazioni_Partite e TabStampi_Seriali_Partite in PostgreSQL
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'carbon:hub' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-layout-grid"></i>
+                CARBON
+            </a>
+            <a href="{% url 'core:parametri_4d' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-settings"></i>
+                Parametri 4D
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Reparti</div>
+                <div class="h1 mb-0">{{ reparti_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Lavorazioni partite</div>
+                <div class="h1 mb-0">{{ lavorazioni_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Stampi seriali</div>
+                <div class="h1 mb-0">{{ stampi_seriali_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <p class="mb-3">
+            Il sync ricrea le tabelle mirror PostgreSQL e importa i dati da 4D.
+            <strong>Lavorazioni_Partite</strong> può contenere centinaia di migliaia di righe: l'operazione può richiedere alcuni minuti.
+        </p>
+        <form method="post" class="d-flex flex-wrap gap-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" name="only" value="">
+                <i class="ti ti-refresh"></i>
+                Sync tutto
+            </button>
+            <button type="submit" class="btn btn-outline-primary" name="only" value="Reparti">Solo Reparti</button>
+            <button type="submit" class="btn btn-outline-primary" name="only" value="Lavorazioni_Partite">Solo Lavorazioni</button>
+            <button type="submit" class="btn btn-outline-primary" name="only" value="TabStampi_Seriali_Partite">Solo Stampi seriali</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ condizione.descrizione|default:condizione.codice }} · Condizioni · Eureka AI{% endblock %}
+{% block page_title %}Condizione{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ condizione.descrizione|default:condizione.codice }}</h2>
+            <div class="text-secondary">Codice {{ condizione.codice }}</div>
+        </div>
+        <a href="{% url 'condizioni:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dati principali</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="datagrid-title">Descrizione</div>
+                <div class="datagrid-content">{{ condizione.descrizione|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Tipo pagamento</div>
+                <div class="datagrid-content">{{ condizione.tipo_pagamento|default:"—" }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">N. rate</div>
+                <div class="datagrid-content">{% if condizione.numero_rate is not None %}{{ condizione.numero_rate }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Prima rata</div>
+                <div class="datagrid-content">{% if condizione.prima_rata is not None %}{{ condizione.prima_rata }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Intervallo</div>
+                <div class="datagrid-content">{% if condizione.intervallo is not None %}{{ condizione.intervallo }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Giorno fisso</div>
+                <div class="datagrid-content">{% if condizione.giorno_fisso is not None %}{{ condizione.giorno_fisso }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="datagrid-title">Codice banca</div>
+                <div class="datagrid-content">{{ condizione.codice_banca|default:"—" }}</div>
+            </div>
+            {% if condizione.synced_at %}
+            <div class="col-12">
+                <div class="text-secondary small">Ultimo sync: {{ condizione.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if campi %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

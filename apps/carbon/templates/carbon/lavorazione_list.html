@@ -1,0 +1,94 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Lavorazioni partite · CARBON · Eureka AI{% endblock %}
+{% block page_title %}Lavorazioni partite{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Lavorazioni partite</h2>
+            <div class="text-secondary">
+                Importate da 4D (<code>Lavorazioni_Partite</code>)
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+        <a href="{% url 'carbon:hub' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            CARBON
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'carbon:lavorazioni_list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-8">
+                    <label class="form-label" for="carbonSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="carbonSearch" name="q" value="{{ q }}" class="form-control" placeholder="Seriale, articolo, stampo, reparto, stato...">
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                    {% if has_filters %}
+                    <a href="{% url 'carbon:lavorazioni_list' %}" class="btn btn-outline-secondary" title="Reset"><i class="ti ti-x"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th class="w-1 text-secondary">#</th>
+                    <th>Data</th>
+                    <th>Seriale</th>
+                    <th>Articolo</th>
+                    <th>Stampo</th>
+                    <th>Reparto</th>
+                    <th>Stato</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in lavorazioni %}
+                <tr>
+                    <td class="text-secondary">{% if page_obj %}{{ page_obj.start_index|add:forloop.counter0 }}{% else %}{{ forloop.counter }}{% endif %}</td>
+                    <td class="text-nowrap">{{ r.data|date:"d/m/Y"|default:"—" }}{% if r.ora %} {{ r.ora|time:"H:i" }}{% endif %}</td>
+                    <td>
+                        <a href="{% url 'carbon:lavorazioni_detail' r.id %}" class="fw-semibold text-decoration-none font-monospace">
+                            {{ r.codart_ser|default:r.id }}
+                        </a>
+                    </td>
+                    <td class="font-monospace">{{ r.codart|default:"—" }}</td>
+                    <td>{{ r.cod_stampo|default:"—" }}</td>
+                    <td>{{ r.cod_reparto|default:"—" }}</td>
+                    <td>
+                        {% if r.stato %}
+                        <span class="badge bg-teal-lt">{{ r.stato }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'carbon:lavorazioni_detail' r.id %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-secondary py-5">Nessuna lavorazione trovata</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ reparto.codice }} · Reparti · CARBON{% endblock %}
+{% block page_title %}Reparto{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ reparto.codice }}</h2>
+            <div class="text-secondary">{{ reparto.descrizione|default:"—" }}</div>
+        </div>
+        <a href="{% url 'carbon:reparti_list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3"><div class="datagrid-title">Codice</div><div class="datagrid-content">{{ reparto.codice }}</div></div>
+            <div class="col-md-5"><div class="datagrid-title">Descrizione</div><div class="datagrid-content">{{ reparto.descrizione|default:"—" }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Priorità</div><div class="datagrid-content">{{ reparto.priorita|default:"—" }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Fase</div><div class="datagrid-content">{{ reparto.numero_fase|default:"—" }}</div></div>
+            <div class="col-md-4"><div class="datagrid-title">Modifica</div><div class="datagrid-content">{{ reparto.data_modifica|date:"d/m/Y H:i"|default:"—" }}</div></div>
+        </div>
+    </div>
+</div>
+{% if campi %}
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">Tutti i campi 4D</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

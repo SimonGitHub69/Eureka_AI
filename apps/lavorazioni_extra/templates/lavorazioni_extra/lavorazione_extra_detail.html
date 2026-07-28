@@ -1,0 +1,62 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ lavorazione.cod|default:lavorazione.id }} · Lavorazioni extra · CARBON{% endblock %}
+{% block page_title %}Lavorazione extra{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ lavorazione.cod|default:lavorazione.id }}</h2>
+            <div class="text-secondary">{{ lavorazione.descrizione|default:"—" }}</div>
+        </div>
+        <a href="{% url 'lavorazioni_extra:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h3 class="card-title mb-0">Dati principali</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2"><div class="datagrid-title">ID</div><div class="datagrid-content">{{ lavorazione.id }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Codice</div><div class="datagrid-content">{{ lavorazione.cod|default:"—" }}</div></div>
+            <div class="col-md-5"><div class="datagrid-title">Descrizione</div><div class="datagrid-content">{{ lavorazione.descrizione|default:"—" }}</div></div>
+            <div class="col-md-3"><div class="datagrid-title">Reparto</div><div class="datagrid-content">{{ lavorazione.cod_reparto|default:"—" }}</div></div>
+            <div class="col-12"><div class="datagrid-title">Flag</div><div class="datagrid-content">
+                {% if lavorazione.f_componente %}<span class="badge bg-secondary-lt me-1">Componente</span>{% endif %}
+                {% if lavorazione.f_codice_fittizio %}<span class="badge bg-secondary-lt me-1">Fittizio</span>{% endif %}
+                {% if lavorazione.f_richiedi_note %}<span class="badge bg-secondary-lt me-1">Richiedi note</span>{% endif %}
+                {% if lavorazione.f_pausa_non_retrib %}<span class="badge bg-secondary-lt me-1">Pausa non retrib.</span>{% endif %}
+                {% if lavorazione.f_note_automatiche %}<span class="badge bg-secondary-lt me-1">Note automatiche</span>{% endif %}
+                {% if lavorazione.f_export_storico %}<span class="badge bg-secondary-lt me-1">Export storico</span>{% endif %}
+                {% if lavorazione.f_vincolante %}<span class="badge bg-teal-lt me-1">Vincolante</span>{% endif %}
+                {% if not lavorazione.f_componente and not lavorazione.f_codice_fittizio and not lavorazione.f_richiedi_note and not lavorazione.f_pausa_non_retrib and not lavorazione.f_note_automatiche and not lavorazione.f_export_storico and not lavorazione.f_vincolante %}—{% endif %}
+            </div></div>
+            <div class="col-md-4"><div class="datagrid-title">Ultima modifica</div><div class="datagrid-content">{{ lavorazione.data_modifica|date:"d/m/Y H:i"|default:"—" }}{% if lavorazione.ora_modifica %} {{ lavorazione.ora_modifica|time:"H:i" }}{% endif %}</div></div>
+            {% if lavorazione.synced_at %}
+            <div class="col-md-4"><div class="datagrid-title">Ultimo sync</div><div class="datagrid-content">{{ lavorazione.synced_at|date:"d/m/Y H:i" }}</div></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if campi %}
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">Tutti i campi 4D</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

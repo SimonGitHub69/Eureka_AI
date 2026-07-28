@@ -1,0 +1,261 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CARBON — Seriali per Reparto · Eureka AI</title>
+    <script>
+        (function () {
+            var t = localStorage.getItem('carbon-theme');
+            if (t === 'light' || t === 'dark') {
+                document.documentElement.setAttribute('data-theme', t);
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'eureka/css/carbon-seriali.css' %}?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body data-api-base="{% url 'carbon:seriali_dashboard' %}">
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <header class="header">
+        <div class="header-brand">
+            <div class="logo-mark"><span class="logo-c">C</span></div>
+            <div>
+                <h1>CARBON</h1>
+                <p class="subtitle">Seriali per Reparto — INIZIO / FINE</p>
+            </div>
+        </div>
+        <div class="header-meta">
+            <a href="{% url 'carbon:hub' %}" class="theme-toggle" title="Torna a CARBON" style="text-decoration:none;display:inline-flex;align-items:center;padding:0 .75rem;font-size:.8rem;">Eureka</a>
+            <button type="button" class="theme-toggle" id="btn-theme" title="Modalità chiaro/scuro" aria-label="Cambia tema">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+            </button>
+            <div class="live-badge"><span class="pulse-dot"></span>Live PostgreSQL</div>
+            <div class="clock" id="clock"></div>
+        </div>
+    </header>
+
+    <section class="filters-bar">
+        <div class="filter-group filter-group-wide">
+            <label for="filter-codartser">CodArtSer</label>
+            <input type="text" id="filter-codartser" list="codartser-suggestions"
+                   placeholder="Articolo con seriale" autocomplete="off">
+            <datalist id="codartser-suggestions"></datalist>
+        </div>
+        <div class="filter-group filter-group-wide">
+            <label for="filter-reparto">Reparto</label>
+            <select id="filter-reparto">
+                <option value="">Tutti</option>
+                {% for r in reparti %}
+                <option value="{{ r.codice }}">{{ r.codice }} — {{ r.descrizione }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group filter-group-wide">
+            <label for="filter-operatore">Operatore</label>
+            <select id="filter-operatore">
+                <option value="">Tutti</option>
+                {% for o in operatori %}
+                <option value="{{ o.codice }}">{{ o.codice }} — {{ o.nome|truncatechars:35 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="filter-stato">Avanzamento</label>
+            <select id="filter-stato">
+                <option value="">Tutti</option>
+                <option value="COMPLETATO">COMPLETATO</option>
+                <option value="DA TERMINARE">DA TERMINARE</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="filter-stampo">Stampo</label>
+            <select id="filter-stampo" title="Imposta Dal/Al e clicca Aggiorna per caricare gli stampi del periodo">
+                <option value="">Tutti</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="filter-da">Dal</label>
+            <div class="date-field">
+                <input type="date" id="filter-da">
+                <svg class="date-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+            </div>
+        </div>
+        <div class="filter-group">
+            <label for="filter-a">Al</label>
+            <div class="date-field">
+                <input type="date" id="filter-a">
+                <svg class="date-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+            </div>
+        </div>
+        <button class="btn-apply" id="btn-apply">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            Aggiorna
+        </button>
+        <button class="btn-reset" id="btn-reset">Reset</button>
+    </section>
+
+    <section class="kpi-grid">
+        <article class="kpi-card kpi-cyan">
+            <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
+            </div>
+            <div class="kpi-body">
+                <span class="kpi-label">Seriali in Lista</span>
+                <span class="kpi-value" id="kpi-totale">—</span>
+            </div>
+        </article>
+        <article class="kpi-card kpi-emerald">
+            <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="kpi-body">
+                <span class="kpi-label">Completati (INIZIO+FINE)</span>
+                <span class="kpi-value" id="kpi-completati">—</span>
+            </div>
+        </article>
+        <article class="kpi-card kpi-amber">
+            <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <div class="kpi-body">
+                <span class="kpi-label">Da Terminare</span>
+                <span class="kpi-value" id="kpi-da-terminare">—</span>
+            </div>
+        </article>
+        <article class="kpi-card kpi-violet">
+            <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-16 0H3m2 0h10"/></svg>
+            </div>
+            <div class="kpi-body">
+                <span class="kpi-label">Reparti Coinvolti</span>
+                <span class="kpi-value" id="kpi-reparti">—</span>
+            </div>
+        </article>
+        <article class="kpi-card kpi-rose">
+            <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </div>
+            <div class="kpi-body">
+                <span class="kpi-label">Rilavorazioni</span>
+                <span class="kpi-value" id="kpi-rilavorazioni">—</span>
+            </div>
+        </article>
+    </section>
+
+    <section class="table-section table-highlight">
+        <div class="table-header">
+            <h2>Lista Seriali per Reparto</h2>
+            <span class="table-hint">Una riga per seriale+reparto — con INIZIO, senza dettaglio stati intermedi</span>
+            <span class="table-count" id="table-count-seriali"></span>
+        </div>
+        <div class="table-wrap table-wrap-scroll">
+            <table class="table-wide">
+                <thead>
+                    <tr>
+                        <th class="col-sticky">CodArtSer</th>
+                        <th>Reparto</th>
+                        <th>Descrizione Reparto</th>
+                        <th>Avanzamento</th>
+                        <th>Data/Ora Inizio</th>
+                        <th>Data/Ora Fine</th>
+                        <th>Articolo</th>
+                        <th>Stampo</th>
+                        <th>Op. 1</th>
+                        <th>Op. 2</th>
+                        <th>Op. 3</th>
+                        <th>Op. 4</th>
+                        <th>Op. 5</th>
+                        <th>Op. 6</th>
+                        <th>Op. 7</th>
+                        <th>Op. 8</th>
+                        <th>Op. 9</th>
+                        <th>Op. 10</th>
+                    </tr>
+                </thead>
+                <tbody id="table-seriali"><tr><td colspan="18" class="loading-row">Caricamento...</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <main class="charts-grid">
+        <article class="chart-card">
+            <div class="chart-header"><h2>Avanzamento Seriali</h2></div>
+            <div class="chart-wrap chart-donut"><canvas id="chart-stato"></canvas></div>
+        </article>
+
+        <article class="chart-card chart-wide">
+            <div class="chart-header">
+                <h2>Seriali per Reparto</h2>
+                <span class="chart-hint">Reparti</span>
+            </div>
+            <div class="chart-wrap chart-wrap-reparto"><canvas id="chart-reparto"></canvas></div>
+        </article>
+
+        <article class="chart-card chart-wide">
+            <div class="chart-header"><h2>Andamento Lavorazioni (dettaglio)</h2></div>
+            <div class="chart-wrap"><canvas id="chart-giorno"></canvas></div>
+        </article>
+
+        <article class="chart-card">
+            <div class="chart-header"><h2>Lavorazioni Extra</h2></div>
+            <div class="chart-wrap"><canvas id="chart-extra"></canvas></div>
+        </article>
+
+        <article class="chart-card">
+            <div class="chart-header">
+                <h2>Stampi Seriali</h2>
+                <span class="chart-hint">Nel periodo e filtri selezionati</span>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-stampi"></canvas></div>
+        </article>
+    </main>
+
+    <section class="table-section">
+        <div class="table-header">
+            <h2>Stampi seriali partite</h2>
+            <span class="table-count" id="table-count-stampi"></span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Stampo</th>
+                        <th>Reparto</th>
+                        <th>Key Lav</th>
+                        <th>N. Seriali</th>
+                        <th>Seriali Articolo</th>
+                        <th>Sacco</th>
+                    </tr>
+                </thead>
+                <tbody id="table-stampi"><tr><td colspan="7" class="loading-row">Caricamento...</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <span>CARBON Dashboard · Eureka AI</span>
+        <span>Lavorazioni_Partite · Reparti · TabStampi_Seriali_Partite</span>
+        <span>Django + Chart.js · sync 4D</span>
+    </footer>
+
+    <script src="{% static 'eureka/js/carbon-seriali.js' %}?v=2"></script>
+</body>
+</html>

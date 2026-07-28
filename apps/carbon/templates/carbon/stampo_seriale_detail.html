@@ -1,0 +1,50 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Stampo seriale {{ riga.id }} · CARBON{% endblock %}
+{% block page_title %}Stampo seriale{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ riga.codice_stampo|default:riga.id }}</h2>
+            <div class="text-secondary">Sacco {{ riga.cod_sacco|default:"—" }}</div>
+        </div>
+        <a href="{% url 'carbon:stampi_seriali_list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2"><div class="datagrid-title">ID</div><div class="datagrid-content">{{ riga.id }}</div></div>
+            <div class="col-md-3"><div class="datagrid-title">Stampo</div><div class="datagrid-content">{{ riga.codice_stampo|default:"—" }}</div></div>
+            <div class="col-md-3"><div class="datagrid-title">Sacco</div><div class="datagrid-content">{{ riga.cod_sacco|default:"—" }}</div></div>
+            <div class="col-md-4"><div class="datagrid-title">Key lav</div><div class="datagrid-content font-monospace small">{{ riga.key_lav_partite|default:"—" }}</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h3 class="card-title mb-0">Seriali (CodArtSer 01–16)</h3></div>
+    <div class="card-body py-2">
+        <div class="row g-2">
+            {% for num, value in seriali %}
+            <div class="col-6 col-md-4 col-xl-3">
+                <div class="d-flex align-items-center gap-2 border rounded px-2 py-1 {% if not value %}bg-light text-secondary{% endif %}">
+                    <span class="badge bg-secondary-lt fw-bold" style="min-width:2rem">{{ num }}</span>
+                    {% if value %}
+                    <span class="font-monospace text-truncate" title="{{ value }}">{{ value }}</span>
+                    {% else %}
+                    <span class="text-secondary">—</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

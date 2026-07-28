@@ -1,0 +1,89 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Condizioni · Eureka AI{% endblock %}
+{% block page_title %}Condizioni{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Condizioni</h2>
+            <div class="text-secondary">
+                Condizioni di pagamento importate da 4D (<code>CondizioniPag</code>)
+                {% if totale %}· {{ totale }} totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'condizioni:list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-8">
+                    <label class="form-label" for="condizioniSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="condizioniSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, tipo pagamento...">
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                    {% if has_filters %}
+                    <a href="{% url 'condizioni:list' %}" class="btn btn-outline-secondary" title="Reset"><i class="ti ti-x"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Tipo pagamento</th>
+                    <th>N. rate</th>
+                    <th>Prima rata</th>
+                    <th>Intervallo</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in condizioni %}
+                <tr>
+                    <td>
+                        <a href="{% url 'condizioni:detail' c.codice %}" class="fw-semibold text-decoration-none">{{ c.codice }}</a>
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 320px;" title="{{ c.descrizione }}">{{ c.descrizione|default:"—" }}</span>
+                    </td>
+                    <td>{{ c.tipo_pagamento|default:"—" }}</td>
+                    <td>{% if c.numero_rate is not None %}{{ c.numero_rate }}{% else %}—{% endif %}</td>
+                    <td>{% if c.prima_rata is not None %}{{ c.prima_rata }}{% else %}—{% endif %}</td>
+                    <td>{% if c.intervallo is not None %}{{ c.intervallo }}{% else %}—{% endif %}</td>
+                    <td>
+                        <a href="{% url 'condizioni:detail' c.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-secondary py-5">
+                        Nessuna condizione trovata
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'condizioni:list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

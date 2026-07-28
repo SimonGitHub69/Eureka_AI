@@ -1,0 +1,64 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Lavorazione {{ lavorazione.id }} · CARBON{% endblock %}
+{% block page_title %}Lavorazione partita{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title font-monospace">{{ lavorazione.codart_ser|default:lavorazione.id }}</h2>
+            <div class="text-secondary">{{ lavorazione.codart|default:"—" }} · {{ lavorazione.stato|default:"—" }}</div>
+        </div>
+        <a href="{% url 'carbon:lavorazioni_list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2"><div class="datagrid-title">ID</div><div class="datagrid-content">{{ lavorazione.id }}</div></div>
+            <div class="col-md-3"><div class="datagrid-title">Data / ora</div><div class="datagrid-content">{{ lavorazione.data|date:"d/m/Y"|default:"—" }}{% if lavorazione.ora %} {{ lavorazione.ora|time:"H:i:s" }}{% endif %}</div></div>
+            <div class="col-md-3"><div class="datagrid-title">Seriale</div><div class="datagrid-content font-monospace">{{ lavorazione.codart_ser|default:"—" }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Articolo</div><div class="datagrid-content font-monospace">{{ lavorazione.codart|default:"—" }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Stato</div><div class="datagrid-content">{{ lavorazione.stato|default:"—" }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Reparto</div><div class="datagrid-content">{{ lavorazione.cod_reparto|default:"—" }}</div></div>
+            <div class="col-md-3"><div class="datagrid-title">Stampo</div><div class="datagrid-content">{{ lavorazione.cod_stampo|default:"—" }}</div></div>
+            <div class="col-md-3"><div class="datagrid-title">Sacco</div><div class="datagrid-content">{{ lavorazione.cod_sacco|default:"—" }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Lav. extra</div><div class="datagrid-content">{{ lavorazione.cod_lav_extra|default:"—" }}</div></div>
+            <div class="col-md-2"><div class="datagrid-title">Rilavorazione</div><div class="datagrid-content">{% if lavorazione.rilavorazione %}Sì{% else %}No{% endif %}</div></div>
+            <div class="col-md-4"><div class="datagrid-title">Key lav</div><div class="datagrid-content font-monospace small">{{ lavorazione.key_lav|default:"—" }}</div></div>
+            <div class="col-md-8"><div class="datagrid-title">Note</div><div class="datagrid-content">{{ lavorazione.note|default:"—" }}</div></div>
+            <div class="col-12"><div class="datagrid-title">Operatori</div><div class="datagrid-content font-monospace">
+                {{ lavorazione.codope1|default:"" }}
+                {{ lavorazione.codope2|default:"" }}
+                {{ lavorazione.codope3|default:"" }}
+                {{ lavorazione.codope4|default:"" }}
+                {{ lavorazione.codope5|default:"" }}
+                {{ lavorazione.codope6|default:"" }}
+                {{ lavorazione.codope7|default:"" }}
+                {{ lavorazione.codope8|default:"" }}
+                {{ lavorazione.codope9|default:"" }}
+                {{ lavorazione.codope10|default:"" }}
+            </div></div>
+        </div>
+    </div>
+</div>
+{% if campi %}
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">Tutti i campi 4D</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
