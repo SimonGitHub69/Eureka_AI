@@ -34,7 +34,8 @@ def health_ok() -> bool:
     try:
         with urllib.request.urlopen(request, timeout=0.5) as response:
             data = json.loads(response.read().decode("utf-8"))
-            return bool(data.get("ok")) and bool(data.get("share"))
+            version = int(data.get("version") or 0)
+            return bool(data.get("ok")) and bool(data.get("share")) and version >= 4
     except Exception:
         return False
 

@@ -330,6 +330,8 @@ document.addEventListener("DOMContentLoaded", function () {
 window.EurekaFileHelper = (function () {
     const OPEN_URL = "/api/helper/open/";
     const SHARE_URL = "/api/helper/share/";
+    const LOCAL_OPEN_URL = "http://127.0.0.1:8765/open";
+    const LOCAL_SHARE_URL = "http://127.0.0.1:8765/share";
 
     function csrfToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
@@ -364,33 +366,64 @@ window.EurekaFileHelper = (function () {
         return btoa(binary);
     }
 
-    async function postToHelper(helperUrl, fileName, blob) {
-        const helperResponse = await fetch(helperUrl, {
+    async function postJson(url, body, withCsrf) {
+        const headers = { "Content-Type": "application/json" };
+        if (withCsrf) {
+            headers["X-CSRFToken"] = csrfToken();
+        }
+        const response = await fetch(url, {
             method: "POST",
-            credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken(),
-            },
-            body: JSON.stringify({
-                filename: fileName,
-                content_b64: await blobToBase64(blob),
-            }),
+            credentials: withCsrf ? "same-origin" : "omit",
+            headers: headers,
+            body: JSON.stringify(body),
         });
-        if (!helperResponse.ok) {
-            const payload = await helperResponse.json().catch(function () { return {}; });
-            const fallback = helperResponse.status === 404
-                ? "Servizio Condividi non trovato. Riavvia Django."
-                : "Helper non disponibile";
-            throw new Error(payload.error || fallback);
+        if (!response.ok) {
+            const payload = await response.json().catch(function () { return {}; });
+            throw new Error(payload.error || ("Errore " + response.status));
+        }
+        return response;
+    }
+
+    async function postToHelper(action, fileName, blob) {
+        const body = {
+            filename: fileName,
+            content_b64: await blobToBase64(blob),
+        };
+        const djangoUrl = action === "share" ? SHARE_URL : OPEN_URL;
+        const localUrl = action === "share" ? LOCAL_SHARE_URL : LOCAL_OPEN_URL;
+
+        // Su Windows preferisci l'helper locale: apre direttamente la maschera di sistema.
+        if (isWindowsDesktop()) {
+            try {
+                await postJson(localUrl, body, false);
+                return;
+            } catch (localErr) {
+                // fallback su proxy Django
+            }
+        }
+
+        try {
+            await postJson(djangoUrl, body, true);
+            return;
+        } catch (djangoErr) {
+            if (!isWindowsDesktop()) {
+                throw djangoErr;
+            }
+            await postJson(localUrl, body, false);
         }
     }
 
     async function openBlob(fileName, blob) {
-        await postToHelper(OPEN_URL, fileName, blob);
+        await postToHelper("open", fileName, blob);
     }
 
     async function shareBlob(fileName, blob, mimeType) {
+        // Su Windows: maschera Condividi di sistema via helper locale.
+        if (isWindowsDesktop()) {
+            await postToHelper("share", fileName, blob);
+            return;
+        }
+
         if (isTouchApple()) {
             const file = new File([blob], fileName, {
                 type: blob.type || mimeType || "application/octet-stream",
@@ -407,7 +440,7 @@ window.EurekaFileHelper = (function () {
             }
         }
 
-        await postToHelper(SHARE_URL, fileName, blob);
+        await postToHelper("share", fileName, blob);
     }
 
     async function shareFromUrl(url, fileName, mimeType) {
