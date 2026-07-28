@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import base64
-import ctypes
 import json
 import os
 import subprocess
 import tempfile
-from ctypes import wintypes
+import time
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -15,28 +14,8 @@ HOST = "127.0.0.1"
 PORT = 8765
 TMP_DIR = Path(tempfile.gettempdir()) / "eureka-open"
 TMP_DIR.mkdir(parents=True, exist_ok=True)
-
-HELPER_VERSION = 4
-
-
-class SHELLEXECUTEINFOW(ctypes.Structure):
-    _fields_ = [
-        ("cbSize", wintypes.DWORD),
-        ("fMask", wintypes.ULONG),
-        ("hwnd", wintypes.HWND),
-        ("lpVerb", wintypes.LPCWSTR),
-        ("lpFile", wintypes.LPCWSTR),
-        ("lpParameters", wintypes.LPCWSTR),
-        ("lpDirectory", wintypes.LPCWSTR),
-        ("nShow", ctypes.c_int),
-        ("hInstApp", wintypes.HINSTANCE),
-        ("lpIDList", ctypes.c_void_p),
-        ("lpClass", wintypes.LPCWSTR),
-        ("hkeyClass", wintypes.HKEY),
-        ("dwHotKey", wintypes.DWORD),
-        ("hIconOrMonitor", wintypes.HANDLE),
-        ("hProcess", wintypes.HANDLE),
-    ]
+SCRIPTS_DIR = Path(__file__).resolve().parent
+HELPER_VERSION = 5
 
 
 def save_export_payload(data: dict) -> Path:
@@ -53,54 +32,57 @@ def open_with_default_app(path: Path) -> None:
     os.startfile(str(path))
 
 
-def _active_hwnd():
-    user32 = ctypes.windll.user32
-    hwnd = user32.GetForegroundWindow()
-    if hwnd:
-        return hwnd
-    return user32.GetDesktopWindow()
+def _eureka_share_exe() -> Path | None:
+    candidates = [
+        SCRIPTS_DIR / "EurekaShare.exe",
+        SCRIPTS_DIR / "share_publish" / "EurekaShare.exe",
+        SCRIPTS_DIR / "eureka_share_net" / "bin" / "Release" / "net8.0-windows10.0.19041.0" / "win-x64" / "EurekaShare.exe",
+        SCRIPTS_DIR / "eureka_share_net" / "bin" / "Release" / "net8.0-windows10.0.19041.0" / "EurekaShare.exe",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
-def _shell_execute_share(path: Path) -> None:
-    info = SHELLEXECUTEINFOW()
-    info.cbSize = ctypes.sizeof(SHELLEXECUTEINFOW)
-    info.fMask = 0
-    info.hwnd = _active_hwnd()
-    info.lpVerb = "share"
-    info.lpFile = str(path)
-    info.lpParameters = None
-    info.lpDirectory = str(path.parent)
-    info.nShow = 1
-    ok = ctypes.windll.shell32.ShellExecuteExW(ctypes.byref(info))
-    if not ok:
-        raise ctypes.WinError()
+def _ensure_eureka_share_built() -> Path:
+    existing = _eureka_share_exe()
+    if existing is not None:
+        return existing
 
+    csproj = SCRIPTS_DIR / "eureka_share_net" / "EurekaShareNet.csproj"
+    out_dir = SCRIPTS_DIR / "share_publish"
+    if not csproj.exists():
+        raise RuntimeError("Progetto EurekaShare non trovato")
 
-def _share_via_powershell(path: Path) -> None:
-    script = Path(__file__).resolve().parent / "windows_share_file.ps1"
-    if not script.exists():
-        raise RuntimeError("Script di condivisione non trovato")
-
-    # Finestra PowerShell (anche nascosta) in STA: serve per il verbo Condividi.
     completed = subprocess.run(
         [
-            "powershell",
-            "-NoProfile",
-            "-Sta",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            str(script),
-            "-Path",
-            str(path),
+            "dotnet",
+            "publish",
+            str(csproj),
+            "-c",
+            "Release",
+            "-r",
+            "win-x64",
+            "--self-contained",
+            "false",
+            "-p:PublishSingleFile=true",
+            "-o",
+            str(out_dir),
         ],
         capture_output=True,
         text=True,
         check=False,
     )
     if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout or "").strip()
-        raise RuntimeError(detail or "Condivisione non riuscita")
+        raise RuntimeError(
+            "Compilazione EurekaShare fallita. "
+            + ((completed.stderr or completed.stdout or "")[-400:])
+        )
+    exe = out_dir / "EurekaShare.exe"
+    if not exe.exists():
+        raise RuntimeError("EurekaShare.exe non generato")
+    return exe
 
 
 def share_with_system(path: Path) -> None:
@@ -108,27 +90,30 @@ def share_with_system(path: Path) -> None:
         open_with_default_app(path)
         return
 
-    # Metodo affidabile: verbo &Condividi via Shell.Application + HWND WinForms.
-    try:
-        _share_via_powershell(path)
-        return
-    except Exception:
-        pass
+    exe = _ensure_eureka_share_built()
 
-    # Fallback ShellExecute "share"
-    try:
-        _shell_execute_share(path)
-        return
-    except OSError:
-        pass
+    creationflags = 0
+    if hasattr(subprocess, "DETACHED_PROCESS"):
+        creationflags |= subprocess.DETACHED_PROCESS
+    if hasattr(subprocess, "CREATE_NEW_PROCESS_GROUP"):
+        creationflags |= subprocess.CREATE_NEW_PROCESS_GROUP
 
-    try:
-        os.startfile(str(path), "share")
-        return
-    except OSError as exc:
-        raise RuntimeError(
-            "Maschera Condividi di Windows non disponibile su questo PC"
-        ) from exc
+    proc = subprocess.Popen(
+        [str(exe), str(path)],
+        cwd=str(exe.parent),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+        creationflags=creationflags,
+    )
+    time.sleep(0.8)
+    code = proc.poll()
+    if code not in (None, 0):
+        log = Path(tempfile.gettempdir()) / "eureka-share-log.txt"
+        detail = ""
+        if log.exists():
+            detail = log.read_text(encoding="utf-8", errors="replace")[-500:]
+        raise RuntimeError(detail or f"EurekaShare.exe terminato con codice {code}")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -155,7 +140,12 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._json_response(
                 200,
-                {"ok": True, "share": True, "version": HELPER_VERSION},
+                {
+                    "ok": True,
+                    "share": True,
+                    "version": HELPER_VERSION,
+                    "eureka_share": bool(_eureka_share_exe()),
+                },
             )
             return
         self.send_error(404)

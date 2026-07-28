@@ -1,0 +1,106 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Distinta {{ riga.codice_db|default:riga.id }} · Eureka AI{% endblock %}
+{% block page_title %}Distinta base{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ riga.descrizione|default:riga.codice_art|default:riga.id }}</h2>
+            <div class="text-secondary">
+                ID {{ riga.id }}
+                {% if riga.codice_db %}· Distinta {{ riga.codice_db }}{% endif %}
+                {% if riga.codice_art %}· Art. {{ riga.codice_art }}{% endif %}
+            </div>
+        </div>
+        <div class="btn-list">
+            {% if list_back_url %}
+            <a href="{{ list_back_url }}" class="btn btn-outline-primary">
+                <i class="ti ti-arrow-left"></i>
+                Torna alla selezione
+            </a>
+            {% endif %}
+            <a href="{{ list_url }}" class="btn btn-outline-secondary">
+                <i class="ti ti-list"></i>
+                Elenco
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Collegamento articoli</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="datagrid-title">CodiceDB (articolo padre)</div>
+                <div class="datagrid-content">
+                    {% if riga.codice_db %}
+                    <a href="{% url 'articoli:detail' riga.codice_db %}?from=distinta{% if request.GET.list_back %}&amp;list_back={{ request.GET.list_back|urlencode }}{% endif %}">{{ riga.codice_db }}</a>
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Codice_Art (componente)</div>
+                <div class="datagrid-content">
+                    {% if riga.codice_art %}
+                    <a href="{% url 'articoli:detail' riga.codice_art %}?from=distinta&amp;distinta_back={{ parent_articolo_url|urlencode }}{% if request.GET.list_back %}&amp;list_back={{ request.GET.list_back|urlencode }}{% endif %}">{{ riga.codice_art }}</a>
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="datagrid-title">Descrizione</div>
+                <div class="datagrid-content">{{ riga.descrizione|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Qta</div>
+                <div class="datagrid-content">{% if riga.qta is not None %}{{ riga.qta }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">UM</div>
+                <div class="datagrid-content">{{ riga.um|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Fase</div>
+                <div class="datagrid-content">{{ riga.fase|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Costo</div>
+                <div class="datagrid-content">{% if riga.costo is not None %}{{ riga.costo|floatformat:4 }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Totale costo</div>
+                <div class="datagrid-content">{% if riga.totale_costo is not None %}{{ riga.totale_costo|floatformat:4 }}{% else %}—{% endif %}</div>
+            </div>
+            {% if riga.synced_at %}
+            <div class="col-12">
+                <div class="text-secondary small">Ultimo sync: {{ riga.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if campi %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for name, value in campi %}
+            <div class="col-md-4">
+                <div class="datagrid-title">{{ name }}</div>
+                <div class="datagrid-content">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

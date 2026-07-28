@@ -42,6 +42,7 @@ from apps.core.sync_4d import quote_ident
 from apps.core.sync_anagrafiche import sync_clienti_fornitori
 from apps.categorie.sync import sync_categorie
 from apps.condizioni.sync import sync_condizioni
+from apps.distinte_base.sync import sync_distinte_base
 from apps.aziende.sync import sync_aziende
 from apps.fatture.sync import sync_fatture
 from apps.gruppi_articoli.sync import sync_gruppi_articoli
@@ -97,6 +98,13 @@ SYNC_4D_STEPS = (
         "description": "Articoli",
         "runner": sync_articoli,
         "tables": ("articoli",),
+    },
+    {
+        "key": "distinte_base",
+        "label": "Distinte base",
+        "description": "Distinte_Base",
+        "runner": sync_distinte_base,
+        "tables": ("distinte_base",),
     },
     {
         "key": "gruppi_magazzini",

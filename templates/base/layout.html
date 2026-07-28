@@ -74,7 +74,7 @@
 <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
 <script src="{% static 'eureka/js/disable-autocomplete.js' %}"></script>
 <script>window.EUREKA_SW_URL = "{% url 'core:service_worker' %}";</script>
-<script src="{% static 'eureka/js/app.js' %}?v=share-helper-5"></script>
+<script src="{% static 'eureka/js/app.js' %}?v=share-helper-6"></script>
 {% if user.is_authenticated and eureka_voice_enabled %}
 <script>
     window.EUREKA_VOICE_ENABLED = true;
@@ -85,6 +85,7 @@
         fornitori: "{% url 'anagrafiche:fornitori_list' %}",
         agenti: "{% url 'anagrafiche:agenti_list' %}",
         articoli: "{% url 'articoli:list' %}",
+        distinte_base: "{% url 'distinte_base:list' %}",
         fatture: "{% url 'fatture:list' %}",
         analisi_fatturato: "{% url 'fatture:analisi' %}",
         fatturato_regioni: "{% url 'fatture:analisi_regioni' %}",
@@ -110,6 +111,7 @@
         sync_aziende: "{% url 'aziende:sync' %}",
         sync_categorie: "{% url 'categorie:sync' %}",
         sync_condizioni: "{% url 'condizioni:sync' %}",
+        sync_distinte_base: "{% url 'distinte_base:sync' %}",
         sync_gruppi_articoli: "{% url 'gruppi_articoli:sync' %}",
         sync_gruppi_magazzini: "{% url 'gruppi_magazzini:sync' %}",
         sync_magazzini: "{% url 'magazzini:sync' %}",

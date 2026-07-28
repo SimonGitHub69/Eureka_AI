@@ -1,0 +1,109 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Distinte base · Eureka AI{% endblock %}
+{% block page_title %}Distinte base{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Distinte base</h2>
+            <div class="text-secondary">
+                Distinte base importate da 4D (<code>Distinte_Base</code>)
+                · collegamento articoli via <code>CodiceDB</code> / <code>Codice_Art</code>
+                {% if totale %}· {{ totale }} righe{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'distinte_base:list' %}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label" for="distinteSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="distinteSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, componente, descrizione...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="distinteCodiceDb">Codice distinta (CodiceDB)</label>
+                    <input type="text" id="distinteCodiceDb" name="codice_db" value="{{ codice_db }}" class="form-control" placeholder="Articolo padre">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="distinteCodiceArt">Codice art. (Codice_Art)</label>
+                    <input type="text" id="distinteCodiceArt" name="codice_art" value="{{ codice_art }}" class="form-control" placeholder="Componente">
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                    {% if has_filters %}
+                    <a href="{% url 'distinte_base:list' %}" class="btn btn-outline-secondary" title="Reset"><i class="ti ti-x"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>CodiceDB</th>
+                    <th>Codice_Art</th>
+                    <th>Descrizione</th>
+                    <th class="text-end">Qta</th>
+                    <th>UM</th>
+                    <th>Fase</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in righe %}
+                <tr>
+                    <td>
+                        {% if r.codice_db %}
+                        <a href="{% url 'articoli:detail' r.codice_db %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}" class="fw-semibold text-decoration-none">{{ r.codice_db }}</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if r.codice_art %}
+                        {% if r.codice_db %}
+                        {% url 'articoli:detail' r.codice_db as parent_articolo_url %}
+                        <a href="{% url 'articoli:detail' r.codice_art %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}&amp;distinta_back={{ parent_articolo_url|urlencode }}" class="text-decoration-none">{{ r.codice_art }}</a>
+                        {% else %}
+                        <a href="{% url 'articoli:detail' r.codice_art %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}" class="text-decoration-none">{{ r.codice_art }}</a>
+                        {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 320px;" title="{{ r.descrizione }}">{{ r.descrizione|default:"—" }}</span>
+                    </td>
+                    <td class="text-end">{% if r.qta is not None %}{{ r.qta }}{% else %}—{% endif %}</td>
+                    <td>{{ r.um|default:"—" }}</td>
+                    <td>{{ r.fase|default:"—" }}</td>
+                    <td>
+                        <a href="{% url 'distinte_base:detail' r.id %}?list_back={{ request.get_full_path|urlencode }}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-secondary py-5">
+                        Nessuna riga distinta trovata
+                        {% if has_filters %}<div class="mt-2"><a href="{% url 'distinte_base:list' %}">Azzera filtri</a></div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

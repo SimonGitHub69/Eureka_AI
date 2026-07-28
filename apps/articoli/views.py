@@ -1,10 +1,41 @@
+from urllib.parse import unquote
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import connection
 from django.db.models import Q
+from django.urls import reverse
 from django.views.generic import DetailView, ListView
 
 from apps.articoli.models import Articolo
 from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
+
+
+def _distinta_list_root() -> str:
+    return reverse("distinte_base:list")
+
+
+def _distinta_selection_back_url(request) -> str | None:
+    raw = unquote((request.GET.get("list_back") or "").strip())
+    if raw and "//" not in raw:
+        root = _distinta_list_root()
+        if raw.startswith(root + "?"):
+            return raw
+
+    if (request.GET.get("from") or "").strip().lower() == "distinta":
+        legacy = unquote((request.GET.get("distinta_back") or "").strip())
+        root = _distinta_list_root()
+        if legacy.startswith(root + "?") and "//" not in legacy:
+            return legacy
+    return None
+
+
+def _distinta_articolo_back_url(request) -> str | None:
+    if (request.GET.get("from") or "").strip().lower() != "distinta":
+        return None
+    raw = unquote((request.GET.get("distinta_back") or "").strip())
+    if raw.startswith("/articoli/") and "//" not in raw:
+        return raw
+    return None
 
 
 def _filter_articoli_queryset(request):
@@ -87,4 +118,20 @@ class ArticoloDetailView(LoginRequiredMixin, DetailView):
             for name, value in row
             if name != "synced_at" and value not in (None, "")
         ]
+        try:
+            from apps.distinte_base.models import DistintaBase
+
+            context["distinta_righe"] = list(
+                DistintaBase.objects.filter(codice_db=self.object.codice).order_by(
+                    "fase", "codice_art", "id"
+                )[:200]
+            )
+            context["distinta_count"] = DistintaBase.objects.filter(
+                codice_db=self.object.codice
+            ).count()
+        except Exception:
+            context["distinta_righe"] = []
+            context["distinta_count"] = 0
+        context["distinta_selection_back_url"] = _distinta_selection_back_url(self.request)
+        context["distinta_articolo_back_url"] = _distinta_articolo_back_url(self.request)
         return context

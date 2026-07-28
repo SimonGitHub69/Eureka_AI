@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "apps.fatture",
     "apps.anagrafiche",
     "apps.articoli",
+    "apps.distinte_base",
     "apps.categorie",
     "apps.condizioni",
     "apps.aziende",

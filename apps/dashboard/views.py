@@ -8,6 +8,7 @@ from apps.articoli.models import Articolo
 from apps.aziende.models import Azienda
 from apps.categorie.models import Categoria
 from apps.condizioni.models import Condizione
+from apps.distinte_base.models import DistintaBase
 from apps.fatture.models import Fattura, FatturaDettaglio
 from apps.gruppi_articoli.models import GruppoArticolo
 from apps.gruppi_magazzini.models import GruppoMagazzino
@@ -68,6 +69,13 @@ TABELLE_IMPORTATE = (
         "db_table": "articoli",
         "model": Articolo,
         "list_url": "articoli:list",
+    },
+    {
+        "label": "Distinte base",
+        "source": "Distinte_Base",
+        "db_table": "distinte_base",
+        "model": DistintaBase,
+        "list_url": "distinte_base:list",
     },
     {
         "label": "Categorie",
