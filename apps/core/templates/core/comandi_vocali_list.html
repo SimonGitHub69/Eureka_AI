@@ -15,9 +15,9 @@
             </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'core:parametri_4d' %}" class="btn btn-outline-secondary">
+            <a href="{% url 'core:parametri_programma' %}" class="btn btn-outline-secondary">
                 <i class="ti ti-arrow-left"></i>
-                Parametri 4D
+                Parametri programma
             </a>
             <a href="{% url 'core:comando_vocale_create' %}" class="btn btn-primary">
                 <i class="ti ti-plus"></i>
@@ -32,6 +32,8 @@
         <div class="text-secondary">
             <p class="mb-2">
                 L'assistente vocale (icona microfono) usa prima i comandi configurati qui, poi i comportamenti predefiniti.
+                Puoi abilitarlo o disabilitarlo globalmente in
+                <a href="{% url 'core:parametri_programma' %}">Parametri programma</a>.
             </p>
             <ul class="mb-0">
                 <li><strong>Apri pagina</strong> — naviga alla sezione scelta (es. frase <code>apri clienti</code>)</li>

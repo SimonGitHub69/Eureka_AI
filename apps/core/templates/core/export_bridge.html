@@ -1,0 +1,17 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ export_title }} · Eureka AI{% endblock %}
+
+{% block page_title %}{{ export_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: min(70vh, 520px);">
+    <div class="text-center px-3" style="max-width: 26rem;">
+        <h2 class="mb-3">{{ export_title }}</h2>
+        <a class="btn btn-outline-secondary btn-lg" href="{{ back_url }}">
+            <i class="ti ti-arrow-left me-1"></i>
+            Torna indietro
+        </a>
+    </div>
+</div>
+{% endblock %}

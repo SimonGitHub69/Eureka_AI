@@ -1,0 +1,192 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Presenze · Eureka AI{% endblock %}
+
+{% block page_title %}Presenze{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Presenze operatori</h2>
+            <div class="text-secondary">
+                Ingressi e uscite dallo stabilimento · dati da 4D <code>Timbrature</code>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Giornate</div>
+                <div class="h2 mb-0">{{ kpi.giornate }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Operatori</div>
+                <div class="h2 mb-0">{{ kpi.operatori }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Ore lavorate</div>
+                <div class="h2 mb-0">{{ kpi.ore_totali }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Da validare</div>
+                <div class="h2 mb-0 {% if kpi.da_validare %}text-warning{% endif %}">{{ kpi.da_validare }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="{% url 'timbrature:list' %}">
+            <div class="row g-2 align-items-end mb-2">
+                <div class="col-12">
+                    <div class="text-secondary small mb-1">Periodo rapido</div>
+                    <div class="btn-list">
+                        <button type="submit" name="preset" value="oggi" class="btn btn-sm btn-outline-secondary">Oggi</button>
+                        <button type="submit" name="preset" value="settimana" class="btn btn-sm btn-outline-secondary">Settimana</button>
+                        <button type="submit" name="preset" value="mese" class="btn btn-sm btn-outline-secondary">Mese corrente</button>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4 col-xl-3">
+                    <label class="form-label">Periodo</label>
+                    <div class="input-group">
+                        <input type="date" name="data_da" value="{{ data_da_str }}" class="form-control" required>
+                        <span class="input-group-text">→</span>
+                        <input type="date" name="data_a" value="{{ data_a_str }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <label class="form-label" for="filtroOperatore">Operatore</label>
+                    <select id="filtroOperatore" name="operatore" class="form-select">
+                        <option value="">Tutti</option>
+                        {% for op in operatori_options %}
+                        <option value="{{ op.codice }}" {% if operatore == op.codice %}selected{% endif %}>
+                            {{ op.nome }} ({{ op.codice }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 col-xl-2">
+                    <label class="form-label" for="filtroStato">Stato scheda</label>
+                    <select id="filtroStato" name="stato" class="form-select">
+                        <option value="" {% if not stato %}selected{% endif %}>Tutte</option>
+                        <option value="validate" {% if stato == 'validate' %}selected{% endif %}>Validate</option>
+                        <option value="non_validate" {% if stato == 'non_validate' %}selected{% endif %}>Da validare</option>
+                    </select>
+                </div>
+                <div class="col-md-4 col-xl-3">
+                    <label class="form-label" for="presenzeSearch">Ricerca</label>
+                    <input type="text" id="presenzeSearch" name="q" value="{{ q }}" class="form-control"
+                           placeholder="Nome, codice, reparto...">
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters or q %}
+                    <a href="{% url 'timbrature:list' %}?data_da={{ data_da_str }}&data_a={{ data_a_str }}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Operatore</th>
+                    <th>Mattina</th>
+                    <th>Pomeriggio</th>
+                    <th>Serale</th>
+                    <th class="text-end">Ore</th>
+                    <th>Stato</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for presenza in presenze %}
+                <tr>
+                    <td class="text-nowrap">
+                        <a href="{% url 'timbrature:detail' presenza.id %}?{{ filter_query }}" class="fw-semibold text-decoration-none">
+                            {{ presenza.data|date:"d/m/Y" }}
+                        </a>
+                        <div class="text-secondary small">{{ presenza.data|date:"l"|capfirst }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-semibold">{{ presenza.operatore_nome }}</div>
+                        <div class="text-secondary small">
+                            Cod. {{ presenza.cod_operatore }}
+                            {% if presenza.reparto %}· {{ presenza.reparto }}{% endif %}
+                        </div>
+                    </td>
+                    <td class="text-nowrap">
+                        <span class="eureka-presenza-intervallo">{{ presenza.movimenti.0.intervallo_label }}</span>
+                    </td>
+                    <td class="text-nowrap">
+                        <span class="eureka-presenza-intervallo">{{ presenza.movimenti.1.intervallo_label }}</span>
+                    </td>
+                    <td class="text-nowrap">
+                        {% if presenza.movimenti.2.attivo %}
+                        <span class="eureka-presenza-intervallo">{{ presenza.movimenti.2.intervallo_label }}</span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <span class="fw-semibold">{{ presenza.ore_totali_label }}</span>
+                    </td>
+                    <td>
+                        {% if presenza.scheda_validata %}
+                        <span class="badge bg-success-lt">Validata</span>
+                        {% else %}
+                        <span class="badge bg-warning-lt">Da validare</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'timbrature:detail' presenza.id %}?{{ filter_query }}" class="btn btn-ghost-primary btn-icon" title="Dettaglio giornata">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-secondary py-5">
+                        <i class="ti ti-clock-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
+                        Nessuna presenza nel periodo selezionato
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

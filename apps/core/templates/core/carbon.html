@@ -1,0 +1,65 @@
+{% extends "base/layout.html" %}
+
+{% block title %}CARBON · Eureka AI{% endblock %}
+{% block page_title %}CARBON{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">CARBON</h2>
+            <div class="text-secondary">
+                Seriali per reparto — avanzamento produzione INIZIO / FINE
+            </div>
+        </div>
+        {% if carbon_url %}
+        <div class="btn-list">
+            <a href="{{ carbon_url }}" target="_blank" rel="noopener" class="btn btn-primary">
+                <i class="ti ti-external-link"></i>
+                Apri dashboard CARBON
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if carbon_url %}
+<div class="card">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <p class="mb-2">
+                    La dashboard CARBON è un’applicazione dedicata collegata al database produzione
+                    (<code>GS_*</code> su SQL Server).
+                </p>
+                <ul class="text-secondary mb-0">
+                    <li>KPI seriali (totali, completati, da terminare, rilavorazioni)</li>
+                    <li>Lista seriali filtrabile per reparto, operatore, stampo e date</li>
+                    <li>Grafici avanzamento e lavorazioni per giorno</li>
+                    <li>Dettaglio stampi / seriali partite</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <div class="text-secondary small mb-1">Indirizzo configurato</div>
+                <code class="d-block text-break">{{ carbon_url }}</code>
+                <div class="text-secondary small mt-2">
+                    Modifica <code>CARBON_URL</code> nel file <code>.env</code> se serve un altro host o porta.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body">
+        <div class="alert alert-warning mb-0">
+            <strong>CARBON non configurato.</strong>
+            Imposta <code>CARBON_URL</code> nel file <code>.env</code>
+            (es. <code>CARBON_URL=http://192.168.69.12:8001/</code>) e riavvia Eureka.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

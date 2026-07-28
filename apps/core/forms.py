@@ -1,6 +1,12 @@
 from django import forms
 
-from apps.core.models import AzioneComandoVocale, ComandoVocale, Configurazione4D
+from apps.core.models import (
+    AzioneComandoVocale,
+    ComandoVocale,
+    Configurazione4D,
+    ConfigurazionePC,
+    ConfigurazioneProgramma,
+)
 
 
 class Configurazione4DForm(forms.ModelForm):
@@ -106,6 +112,86 @@ class Configurazione4DForm(forms.ModelForm):
         return obj
 
 
+class ConfigurazioneProgrammaForm(forms.ModelForm):
+    class Meta:
+        model = ConfigurazioneProgramma
+        fields = ["assistente_vocale_attivo", "navbar_fissa", "note"]
+        widgets = {
+            "assistente_vocale_attivo": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+            "navbar_fissa": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "note": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "autocomplete": "off"}
+            ),
+        }
+
+
+class ConfigurazionePCForm(forms.ModelForm):
+    class Meta:
+        model = ConfigurazionePC
+        fields = [
+            "nome_pc",
+            "descrizione",
+            "assistente_vocale_attivo",
+            "navbar_fissa",
+            "note",
+        ]
+        widgets = {
+            "nome_pc": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "autocomplete": "off",
+                    "placeholder": "Es. iPad-Magazzino o DESKTOP-UFFICIO01",
+                }
+            ),
+            "descrizione": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "autocomplete": "off",
+                    "placeholder": "Es. Tablet magazzino",
+                }
+            ),
+            "assistente_vocale_attivo": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+            "navbar_fissa": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "note": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "autocomplete": "off"}
+            ),
+        }
+
+    def __init__(self, *args, nome_pc_readonly=False, forced_nome_pc="", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.nome_pc_readonly = bool(nome_pc_readonly)
+        self.forced_nome_pc = (forced_nome_pc or "").strip()
+        if self.nome_pc_readonly:
+            self.fields["nome_pc"].widget.attrs.update(
+                {
+                    "readonly": True,
+                    "class": "form-control-plaintext border rounded px-2 bg-secondary-lt",
+                }
+            )
+            if self.forced_nome_pc:
+                self.fields["nome_pc"].initial = self.forced_nome_pc
+
+    def clean_nome_pc(self):
+        if self.nome_pc_readonly and self.forced_nome_pc:
+            nome = self.forced_nome_pc
+        elif self.nome_pc_readonly and self.instance and self.instance.pk:
+            nome = (self.instance.nome_pc or "").strip()
+        else:
+            nome = (self.cleaned_data.get("nome_pc") or "").strip()
+        if not nome:
+            raise forms.ValidationError("Indicare il nome fisico del PC.")
+        qs = ConfigurazionePC.objects.filter(is_active=True, nome_pc__iexact=nome)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Esiste già una postazione con questo nome PC.")
+        return nome
+
+
 class ComandoVocaleForm(forms.ModelForm):
     class Meta:
         model = ComandoVocale
@@ -155,16 +241,18 @@ class ComandoVocaleForm(forms.ModelForm):
 
         if azione == AzioneComandoVocale.SEARCH and destinazione in {
             "dashboard",
+            "agenda",
             "parametri_4d",
             "sistema",
             "sync_fatture",
             "sync_anagrafiche",
+            "sync_aziende",
             "sync_categorie",
             "sync_gruppi_articoli",
         }:
             self.add_error(
                 "destinazione",
-                "Per la ricerca scegli clienti, fornitori, agenti, articoli, fatture, categorie o gruppi articoli.",
+                "Per la ricerca scegli clienti, fornitori, agenti, articoli, fatture, categorie, aziende o gruppi articoli.",
             )
 
         return cleaned_data

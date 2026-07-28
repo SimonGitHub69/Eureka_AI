@@ -55,6 +55,7 @@
         <table class="table table-vcenter card-table table-hover">
             <thead>
                 <tr>
+                    <th class="w-1 text-secondary">#</th>
                     <th>Codice</th>
                     <th>Descrizione</th>
                     <th>Tipo</th>
@@ -67,6 +68,9 @@
             <tbody>
                 {% for stampo in stampi %}
                 <tr>
+                    <td class="text-secondary">
+                        {% if page_obj %}{{ page_obj.start_index|add:forloop.counter0 }}{% else %}{{ forloop.counter }}{% endif %}
+                    </td>
                     <td>
                         <a href="{% url 'stampi:detail' stampo.id %}" class="fw-semibold text-decoration-none">
                             {{ stampo.cod_stampo|default:stampo.id }}
@@ -92,7 +96,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-secondary py-5">
+                    <td colspan="8" class="text-center text-secondary py-5">
                         <i class="ti ti-box-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
                         Nessuno stampo trovato
                         {% if has_filters %}<div class="mt-2"><a href="{% url 'stampi:list' %}">Azzera filtri</a></div>{% endif %}

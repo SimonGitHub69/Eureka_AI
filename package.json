@@ -10,6 +10,7 @@
     "@tabler/icons-webfont": "^3.44.0",
     "alpinejs": "^3.15.12",
     "fullcalendar": "^6.1.21",
-    "htmx.org": "^2.0.10"
+    "htmx.org": "^2.0.10",
+    "sql.js": "^1.14.1"
   }
 }

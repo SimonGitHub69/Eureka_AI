@@ -103,7 +103,14 @@
     }
 
     function obfuscateFieldName(field) {
-        if (!isAutofillSensitiveField(field) || field.dataset.originalName) {
+        if (field.dataset.originalName) {
+            return;
+        }
+
+        // Tutti i campi testo/password: Chrome associa i suggerimenti al name
+        // (es. iso, fat_val in Analisi fatturato).
+        const type = (field.getAttribute("type") || "").toLowerCase();
+        if (!isTextLikeField(field) && type !== "password") {
             return;
         }
 
@@ -150,17 +157,16 @@
         neutralizeAutofillType(field);
         obfuscateFieldName(field);
 
-        if (isTextLikeField(field) || (field.getAttribute("type") || "").toLowerCase() === "password") {
-            field.setAttribute("autocomplete", "new-password");
-        } else {
-            field.setAttribute("autocomplete", "off");
-        }
-
+        const antiSuggest =
+            "nope-" + Math.random().toString(36).slice(2, 10);
+        field.setAttribute("autocomplete", antiSuggest);
         field.setAttribute("autocorrect", "off");
         field.setAttribute("autocapitalize", "off");
         field.setAttribute("spellcheck", "false");
         field.setAttribute("data-lpignore", "true");
         field.setAttribute("data-1p-ignore", "true");
+        field.setAttribute("data-form-type", "other");
+        field.removeAttribute("list");
 
         if (!shouldApplyReadonlyGuard(field) || field.dataset.autocompleteGuard === "true") {
             return;

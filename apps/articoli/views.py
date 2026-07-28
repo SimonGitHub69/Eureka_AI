@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.views.generic import DetailView, ListView
 
 from apps.articoli.models import Articolo
-from apps.core.pagination import PerPageListMixin
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
 
 
 def _filter_articoli_queryset(request):
@@ -59,13 +59,13 @@ def fetch_articolo_row(codice: str) -> list[tuple[str, object]] | None:
     return list(zip(columns, row))
 
 
-class ArticoloListView(LoginRequiredMixin, PerPageListMixin, ListView):
+class ArticoloListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
     model = Articolo
     template_name = "articoli/articolo_list.html"
     context_object_name = "articoli"
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_mirror_queryset(self):
         return _filter_articoli_queryset(self.request)
 
     def get_context_data(self, **kwargs):

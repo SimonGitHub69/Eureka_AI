@@ -1,0 +1,158 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Parametri PC · Eureka AI{% endblock %}
+
+{% block page_title %}Parametri PC{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Parametri PC</h2>
+            <div class="text-secondary">
+                Opzioni del programma per ogni postazione (sovrascrivono i parametri globali)
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'core:parametri_programma' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-adjustments"></i>
+                Parametri programma
+            </a>
+            <a href="{% url 'core:configurazione_pc_create' %}" class="btn btn-primary">
+                <i class="ti ti-plus"></i>
+                Nuova postazione
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if current_pc_name %}
+<div class="alert {% if current_pc_config %}alert-success{% else %}alert-warning{% endif %} mb-3">
+    <div class="fw-semibold mb-1">
+        Dispositivo corrente: <code>{{ current_pc_name }}</code>
+    </div>
+    {% if current_pc_config %}
+    <div>
+        Parametri programma attivi da postazione
+        <strong>{{ current_pc_config.nome_pc }}</strong>
+        {% if current_pc_config.descrizione %}({{ current_pc_config.descrizione }}){% endif %}:
+        assistente vocale
+        {% if current_pc_config.assistente_vocale_attivo %}Sì{% else %}No{% endif %},
+        barra fissa
+        {% if current_pc_config.navbar_fissa %}Sì{% else %}No{% endif %}.
+    </div>
+    {% else %}
+    <div>
+        Nessuna postazione con questo nome.
+        Tocca <strong>Nuova postazione</strong> per crearla in automatico
+        (il nome sarà <code>{{ current_pc_name }}</code>).
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="alert alert-secondary mb-3">
+    Dispositivo non ancora identificato. Ricarica la pagina, poi usa
+    <strong>Nuova postazione</strong>.
+</div>
+{% endif %}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">Ricerca</label>
+                    <input type="text"
+                           name="q"
+                           value="{{ request.GET.q }}"
+                           class="form-control"
+                           placeholder="Nome PC o descrizione">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-secondary">Cerca</button>
+                </div>
+                <div class="col-auto">
+                    <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-outline-secondary">Pulisci</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead>
+                <tr>
+                    <th>Nome PC</th>
+                    <th>Descrizione</th>
+                    <th>Assistente vocale</th>
+                    <th>Barra fissa</th>
+                    <th class="text-end">Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pc in postazioni %}
+                    <tr>
+                        <td class="fw-bold">
+                            {{ pc.nome_pc }}
+                            {% if current_pc_name and current_pc_name|lower == pc.nome_pc|lower %}
+                            <span class="badge bg-success-lt ms-1">Questo dispositivo</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ pc.descrizione|default:"—" }}</td>
+                        <td>
+                            {% if pc.assistente_vocale_attivo %}
+                            <span class="badge bg-success-lt">Sì</span>
+                            {% else %}
+                            <span class="badge bg-secondary-lt">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pc.navbar_fissa %}
+                            <span class="badge bg-success-lt">Sì</span>
+                            {% else %}
+                            <span class="badge bg-secondary-lt">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-list flex-nowrap justify-content-end">
+                                <form method="post"
+                                      action="{% url 'core:configurazione_pc_bind' pc.pk %}"
+                                      class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn btn-sm {% if current_pc_config and current_pc_config.pk == pc.pk %}btn-success{% else %}btn-outline-success{% endif %}"
+                                            {% if current_pc_config and current_pc_config.pk == pc.pk %}disabled{% endif %}>
+                                        {% if current_pc_config and current_pc_config.pk == pc.pk %}In uso{% else %}Usa qui{% endif %}
+                                    </button>
+                                </form>
+                                <a href="{% url 'core:configurazione_pc_update' pc.pk %}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Modifica
+                                </a>
+                                <form method="post"
+                                      action="{% url 'core:configurazione_pc_delete' pc.pk %}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Eliminare la postazione &quot;{{ pc.nome_pc|escapejs }}&quot;?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Elimina</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-secondary py-4">
+                            Nessuna postazione configurata
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+{% endblock %}

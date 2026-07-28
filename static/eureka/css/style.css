@@ -1,13 +1,157 @@
+html {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
 body {
+    min-height: 100%;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
     background-color: #f5f7fb;
+    /* non nascondere l’overflow: tagliava le schermate su iPad */
+    overflow-x: visible;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 [data-bs-theme="dark"] body {
     background-color: #111827;
 }
 
+.page {
+    min-height: 100%;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: visible;
+    box-sizing: border-box;
+}
+
+/* Desktop: larghezza = viewport meno sidebar (evita taglio a destra) */
 .page-wrapper {
     margin-left: 260px;
+    width: calc(100% - 260px);
+    max-width: calc(100% - 260px);
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+    background-color: inherit;
+    box-sizing: border-box;
+    overflow-x: visible;
+}
+
+.page-body {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: visible;
+}
+
+.page-body > .container-xl {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.st-sidebar-backdrop {
+    display: none;
+}
+
+/* Evita che card/tabelle larghe taglino il viewport */
+.page-wrapper .card,
+.page-wrapper .table-responsive,
+.page-wrapper .row {
+    max-width: 100%;
+}
+
+.page-wrapper img,
+.page-wrapper svg,
+.page-wrapper canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+/* iPad / tablet fino a < xxl: sidebar a scomparsa, contenuto full-width */
+@media (max-width: 1399.98px) {
+    .page-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+    }
+
+    /* !important: sidebar.css altrimenti rimette left:0 e il contenuto finisce sotto */
+    aside.st-sidebar,
+    .st-sidebar {
+        left: -280px !important;
+        right: auto !important;
+        width: 260px !important;
+        transition: left .2s ease;
+        transform: none !important;
+        -webkit-transform: none !important;
+        box-shadow: none !important;
+    }
+
+    body.st-sidebar-open aside.st-sidebar,
+    body.st-sidebar-open .st-sidebar {
+        left: 0 !important;
+        box-shadow: 8px 0 24px rgba(15, 23, 42, .28) !important;
+    }
+
+    .st-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: rgba(15, 23, 42, .45);
+        border: 0;
+        padding: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .2s ease;
+    }
+
+    body.st-sidebar-open .st-sidebar-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .navbar .ms-2.text-start {
+        display: none;
+    }
+
+    .navbar [data-sidebar-toggle] {
+        display: inline-flex !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .container-xl {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .page-header .d-flex {
+        flex-wrap: wrap;
+    }
+
+    .btn-list {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .container-xl {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .navbar {
+        height: auto;
+        min-height: 64px;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
 }
 
 .table.table-vcenter:not(.st-no-zebra) > tbody > tr:nth-of-type(even) > * {
@@ -50,3 +194,170 @@ body {
     min-width: 2.25rem;
     text-align: center;
 }
+
+/* Banner / nav offline */
+.eureka-offline-banner {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+    background: #9a3412;
+    color: #fff7ed;
+    padding: 0.65rem 1rem;
+    font-size: 0.875rem;
+}
+
+.eureka-offline-banner a {
+    color: #fff;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.eureka-offline-banner__inner {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+html.eureka-is-offline .eureka-nav-disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+#offline-tabs .nav-link {
+    cursor: pointer;
+}
+
+/* Export: foglio Scarica / Apri in Numbers */
+.eureka-export-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    background: rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+
+.eureka-export-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.eureka-export-sheet {
+    width: min(420px, 100%);
+    margin: 0;
+    padding: 0.75rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 1rem 1rem 0 0;
+    background: var(--tblr-bg-surface, #fff);
+    color: var(--tblr-body-color, #1e293b);
+    box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+    transform: translateY(100%);
+    transition: transform 0.22s ease;
+}
+
+.eureka-export-overlay.is-open .eureka-export-sheet {
+    transform: translateY(0);
+}
+
+.eureka-export-sheet__handle {
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0.15rem auto 0.85rem;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.35);
+}
+
+.eureka-export-sheet__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.eureka-export-sheet__hint {
+    margin: 0 0 1rem;
+    font-size: 0.875rem;
+    color: var(--tblr-secondary, #64748b);
+}
+
+.eureka-export-sheet__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.eureka-export-sheet__status {
+    margin: 0.75rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--tblr-secondary, #64748b);
+    text-align: center;
+}
+
+@media (min-width: 576px) {
+    .eureka-export-overlay {
+        align-items: center;
+        padding: 1.5rem;
+    }
+
+    .eureka-export-sheet {
+        border-radius: 0.75rem;
+        transform: translateY(0.75rem) scale(0.98);
+        opacity: 0.96;
+    }
+
+    .eureka-export-overlay.is-open .eureka-export-sheet {
+        transform: none;
+        opacity: 1;
+    }
+
+    .eureka-export-sheet__handle {
+        display: none;
+    }
+}
+
+.eureka-presenza-intervallo {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.eureka-presenza-movimento {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.eureka-presenza-punto {
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--tblr-border-color, rgba(98, 105, 118, 0.16));
+    background: var(--tblr-bg-surface-secondary, rgba(0, 0, 0, 0.02));
+}
+
+.eureka-presenza-punto--ingresso {
+    border-left: 3px solid var(--tblr-success, #2fb344);
+}
+
+.eureka-presenza-punto--uscita {
+    border-left: 3px solid var(--tblr-danger, #d63939);
+}
+
+.eureka-presenza-punto-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tblr-secondary, #64748b);
+}
+
+.eureka-presenza-punto-orario {
+    font-size: 1.35rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.eureka-presenza-frecce {
+    text-align: center;
+    color: var(--tblr-secondary, #64748b);
+}
+

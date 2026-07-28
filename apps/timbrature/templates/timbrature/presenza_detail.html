@@ -1,0 +1,143 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ presenza.operatore_nome }} · {{ presenza.data|date:"d/m/Y" }} · Presenze{% endblock %}
+
+{% block page_title %}Presenza giornaliera{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ presenza.operatore_nome }}</h2>
+            <div class="text-secondary">
+                {{ presenza.data|date:"l d F Y"|capfirst }}
+                · Cod. {{ presenza.cod_operatore }}
+                {% if presenza.reparto %}· {{ presenza.reparto }}{% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            {% if presenza.scheda_validata %}
+            <span class="badge bg-success-lt">Scheda validata</span>
+            {% else %}
+            <span class="badge bg-warning-lt">Da validare</span>
+            {% endif %}
+            <a href="{% url 'timbrature:list' %}{% if back_query %}?{{ back_query }}{% endif %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Elenco
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Ore totali</div>
+                <div class="h1 mb-0">{{ presenza.ore_totali_label }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader mb-2">Legenda</div>
+                <div class="d-flex flex-wrap gap-3 text-secondary small">
+                    <span><i class="ti ti-login text-success"></i> Ingresso (E)</span>
+                    <span><i class="ti ti-logout text-danger"></i> Uscita (U)</span>
+                    <span><i class="ti ti-edit text-warning"></i> Orario rettificato</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    {% for movimento in presenza.movimenti %}
+    <div class="col-md-4">
+        <div class="card h-100 {% if not movimento.attivo %}opacity-50{% endif %}">
+            <div class="card-header">
+                <h3 class="card-title mb-0">{{ movimento.label }}</h3>
+                {% if movimento.rettificato %}
+                <span class="badge bg-warning-lt ms-auto">Rettificato</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if movimento.attivo %}
+                <div class="eureka-presenza-movimento mb-3">
+                    <div class="eureka-presenza-punto eureka-presenza-punto--ingresso">
+                        <div class="eureka-presenza-punto-label">Ingresso</div>
+                        <div class="eureka-presenza-punto-orario">{{ movimento.ingresso_label }}</div>
+                        {% if movimento.rettificato and movimento.ingresso_originale and movimento.ingresso_originale != movimento.ingresso %}
+                        <div class="text-secondary small">Orig. {{ movimento.ingresso_originale|time:"H:i" }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="eureka-presenza-frecce" aria-hidden="true">
+                        <i class="ti ti-arrow-down"></i>
+                    </div>
+                    <div class="eureka-presenza-punto eureka-presenza-punto--uscita">
+                        <div class="eureka-presenza-punto-label">Uscita</div>
+                        <div class="eureka-presenza-punto-orario">{{ movimento.uscita_label }}</div>
+                        {% if movimento.rettificato and movimento.uscita_originale and movimento.uscita_originale != movimento.uscita %}
+                        <div class="text-secondary small">Orig. {{ movimento.uscita_originale|time:"H:i" }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="text-secondary small">
+                    Durata turno: <strong>{{ movimento.minuti }} min</strong>
+                    {% if movimento.minuti %}({{ movimento.ore_decimali }} h){% endif %}
+                </div>
+                {% else %}
+                <div class="text-secondary">Nessuna timbratura per questo turno.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if presenza.note %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Note</h3>
+    </div>
+    <div class="card-body">
+        {{ presenza.note|linebreaksbr }}
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Riepilogo movimenti</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+            <thead>
+                <tr>
+                    <th>Turno</th>
+                    <th>Ingresso</th>
+                    <th>Uscita</th>
+                    <th class="text-end">Minuti</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movimento in presenza.movimenti %}
+                <tr>
+                    <td>{{ movimento.label }}</td>
+                    <td>{{ movimento.ingresso_label }}</td>
+                    <td>{{ movimento.uscita_label }}</td>
+                    <td class="text-end">{% if movimento.attivo %}{{ movimento.minuti }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+                <tr class="fw-semibold">
+                    <td colspan="3">Totale giornata</td>
+                    <td class="text-end">{{ presenza.minuti_totali }} min ({{ presenza.ore_totali_label }})</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

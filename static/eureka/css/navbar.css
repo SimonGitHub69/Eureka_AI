@@ -1,6 +1,6 @@
-.navbar{
-    height:72px;
-    background:#fff;
+.navbar {
+    height: 72px;
+    background: #fff;
 }
 
 [data-bs-theme="dark"] .navbar {
@@ -8,16 +8,46 @@
     border-color: #243041 !important;
 }
 
-.navbar .form-control{
-    border-radius:12px;
+.navbar .form-control {
+    border-radius: 12px;
 }
 
-.avatar{
-    width:40px;
-    height:40px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:700;
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+/* Barra superiore fissa (Parametri programma) */
+body.st-navbar-fixed .page-wrapper > .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: #fff;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08);
+    /* iOS Safari / Chrome: evita “salto” durante lo scroll */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+[data-bs-theme="dark"] body.st-navbar-fixed .page-wrapper > .navbar {
+    background: #111827 !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.st-navbar-fixed .page-wrapper > .navbar .navbar-brand,
+body.st-navbar-fixed .page-wrapper > .navbar h3 a {
+    color: inherit;
+    text-decoration: none;
+}
+
+@media (max-width: 575.98px) {
+    body.st-navbar-fixed .page-wrapper > .navbar {
+        height: auto;
+        min-height: 64px;
+    }
 }

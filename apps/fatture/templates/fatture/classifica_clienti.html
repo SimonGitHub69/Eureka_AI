@@ -23,12 +23,12 @@
             </a>
             <a class="btn btn-outline-secondary"
                href="{% url 'fatture:classifica' %}?data_da={{ data_da_str }}&data_a={{ data_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ top_qs }}&export=csv">
-                <i class="ti ti-file-spreadsheet"></i>
+                <i class="ti ti-download"></i>
                 CSV
             </a>
             <a class="btn btn-outline-secondary"
                href="{% url 'fatture:classifica' %}?data_da={{ data_da_str }}&data_a={{ data_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ top_qs }}&export=xlsx">
-                <i class="ti ti-file-type-xls"></i>
+                <i class="ti ti-download"></i>
                 XLSX
             </a>
         </div>
@@ -263,7 +263,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static '@tabler/core/dist/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script src="{% static 'vendor/tabler/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
 <script>
 (function () {
   const data = {{ chart_json|safe }};

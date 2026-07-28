@@ -118,12 +118,12 @@
                 </a>
                 <a class="st-nav-link {% if request.path|slice:':12' == '/timbrature/' %}active{% endif %}" href="{% url 'timbrature:list' %}">
                     <span class="st-nav-icon"><i class="ti ti-clock"></i></span>
-                    <span class="st-nav-label">Timbrature / Presenze</span>
+                    <span class="st-nav-label">Presenze</span>
                 </a>
             </div>
         </div>
 
-        <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':11' == '/categorie/' or request.path|slice:':12' == '/condizioni/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':11' == '/operatori/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
+        <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':11' == '/operatori/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Tabelle</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
@@ -138,11 +138,6 @@
                 <a class="st-nav-link {% if request.path|slice:':11' == '/categorie/' %}active{% endif %}" href="{% url 'categorie:list' %}">
                     <span class="st-nav-icon"><i class="ti ti-category"></i></span>
                     <span class="st-nav-label">Categorie</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':12' == '/condizioni/' %}active{% endif %}" href="{% url 'condizioni:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-credit-card"></i></span>
-                    <span class="st-nav-label">Condizioni</span>
                 </a>
 
                 <a class="st-nav-link {% if request.path|slice:':17' == '/gruppi-articoli/' %}active{% endif %}" href="{% url 'gruppi_articoli:list' %}">
@@ -190,27 +185,23 @@
                 <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
             </button>
             <div class="st-nav-collapse-body" data-nav-body>
-                <a class="st-nav-link {% if request.path == '/parametri/programma/' %}active{% endif %}" href="{% url 'core:parametri_programma' %}">
-                    <span class="st-nav-icon"><i class="ti ti-adjustments"></i></span>
-                    <span class="st-nav-label">Parametri programma</span>
-                </a>
-                <a class="st-nav-link {% if '/parametri/pc/' in request.path %}active{% endif %}" href="{% url 'core:configurazione_pc_list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-device-desktop"></i></span>
-                    <span class="st-nav-label">Parametri PC</span>
-                </a>
                 <a class="st-nav-link {% if request.path == '/parametri/4d/' %}active{% endif %}" href="{% url 'core:parametri_4d' %}">
                     <span class="st-nav-icon"><i class="ti ti-database-cog"></i></span>
-                    <span class="st-nav-label">Parametri 4D / Sync</span>
+                    <span class="st-nav-label">Parametri 4D</span>
                 </a>
                 <a class="st-nav-link {% if '/parametri/comandi-vocali/' in request.path %}active{% endif %}" href="{% url 'core:comandi_vocali_list' %}">
                     <span class="st-nav-icon"><i class="ti ti-microphone"></i></span>
                     <span class="st-nav-label">Comandi vocali</span>
                 </a>
+                <a class="st-nav-link {% if request.path == '/parametri/4d/' %}active{% endif %}" href="{% url 'core:parametri_4d' %}">
+                    <span class="st-nav-icon"><i class="ti ti-refresh"></i></span>
+                    <span class="st-nav-label">Sync 4D</span>
+                </a>
             </div>
         </div>
         {% endif %}
 
-        <div class="st-nav-collapse {% if request.path == '/sistema/' or request.resolver_match.url_name == 'offline' %}is-open{% endif %}" data-nav-section="sistema">
+        <div class="st-nav-collapse {% if request.path == '/sistema/' %}is-open{% endif %}" data-nav-section="sistema">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Sistema</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
@@ -220,10 +211,6 @@
                 <a class="st-nav-link {% if request.path == '/sistema/' %}active{% endif %}" href="{% url 'dashboard:sistema' %}">
                     <span class="st-nav-icon"><i class="ti ti-settings"></i></span>
                     <span class="st-nav-label">Sistema</span>
-                </a>
-                <a class="st-nav-link {% if request.resolver_match.url_name == 'offline' %}active{% endif %}" href="{% url 'core:offline' %}">
-                    <span class="st-nav-icon"><i class="ti ti-database-off"></i></span>
-                    <span class="st-nav-label">Dati offline</span>
                 </a>
             </div>
         </div>

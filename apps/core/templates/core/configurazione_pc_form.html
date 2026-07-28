@@ -1,0 +1,163 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{% if object %}Modifica postazione PC{% else %}Nuova postazione PC{% endif %} · Eureka AI{% endblock %}
+
+{% block page_title %}{% if object %}Modifica postazione PC{% else %}Nuova postazione PC{% endif %}{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">
+                {% if object %}Modifica postazione PC{% else %}Nuova postazione PC{% endif %}
+            </h2>
+            <div class="text-secondary">
+                Nome postazione e parametri programma per questo dispositivo
+            </div>
+        </div>
+        <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left"></i>
+            Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    {% if awaiting_device_id %}
+    <div class="card-body">
+        <div class="alert alert-info mb-0">
+            Identificazione dispositivo in corso…
+            Tra un attimo la postazione verrà creata in automatico.
+        </div>
+    </div>
+    {% else %}
+    {# data-autocomplete=on: su iPad il guard readonly rompeva digitazione/salvataggio #}
+    <form method="post" autocomplete="off" data-autocomplete="on" id="eurekaPcForm">
+        {% csrf_token %}
+
+        <div class="card-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.nome_pc.id_for_label }}">
+                            Nome postazione<span class="text-danger"> *</span>
+                        </label>
+                        {{ form.nome_pc }}
+                        {% if nome_pc_auto %}
+                            {% if nome_pc_rilevato %}
+                                <div class="form-hint">
+                                    Suggerito dal sistema: <strong>{{ nome_pc_rilevato }}</strong>
+                                    (puoi modificarlo, es. <code>iPad-1</code>).
+                                </div>
+                            {% else %}
+                                <div class="form-hint">
+                                    Su iPad/tablet scegli un nome libero, es.
+                                    <code>iPad-Magazzino</code>.
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="form-hint">Nome postazione: non modificabile.</div>
+                        {% endif %}
+                        {% if form.nome_pc.errors %}
+                            <div class="invalid-feedback d-block">{{ form.nome_pc.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.descrizione.id_for_label }}">
+                            {{ form.descrizione.label }}
+                        </label>
+                        {{ form.descrizione }}
+                        {% if form.descrizione.help_text %}
+                            <div class="form-hint">{{ form.descrizione.help_text }}</div>
+                        {% endif %}
+                        {% if form.descrizione.errors %}
+                            <div class="invalid-feedback d-block">{{ form.descrizione.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="mb-3">
+                        <label class="form-check form-switch">
+                            {{ form.assistente_vocale_attivo }}
+                            <span class="form-check-label">
+                                <span class="fw-semibold">{{ form.assistente_vocale_attivo.label }}</span>
+                                <span class="d-block text-secondary small">
+                                    {{ form.assistente_vocale_attivo.help_text }}
+                                </span>
+                            </span>
+                        </label>
+                        {% if form.assistente_vocale_attivo.errors %}
+                            <div class="invalid-feedback d-block">{{ form.assistente_vocale_attivo.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="mb-3">
+                        <label class="form-check form-switch">
+                            {{ form.navbar_fissa }}
+                            <span class="form-check-label">
+                                <span class="fw-semibold">{{ form.navbar_fissa.label }}</span>
+                                <span class="d-block text-secondary small">
+                                    {{ form.navbar_fissa.help_text }}
+                                </span>
+                            </span>
+                        </label>
+                        {% if form.navbar_fissa.errors %}
+                            <div class="invalid-feedback d-block">{{ form.navbar_fissa.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if bind_this_device %}
+                <div class="col-12">
+                    <div class="mb-3">
+                        <label class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="bind_this_device" value="1" checked>
+                            <span class="form-check-label">
+                                <span class="fw-semibold">Usa su questo dispositivo</span>
+                                <span class="d-block text-secondary small">
+                                    Collega iPad/PC corrente a questa postazione (cookie).
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="col-12">
+                    <div class="mb-0">
+                        <label class="form-label" for="{{ form.note.id_for_label }}">
+                            {{ form.note.label }}
+                        </label>
+                        {{ form.note }}
+                        {% if form.note.errors %}
+                            <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-footer d-flex flex-wrap gap-2 justify-content-end">
+            <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-secondary">
+                Annulla
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                Salva
+            </button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.views import View
 from django.views.generic import DetailView, ListView
 
-from apps.core.pagination import PerPageListMixin
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
 from apps.gruppi_magazzini.models import GruppoMagazzino
 from apps.gruppi_magazzini.sync import sync_gruppi_magazzini
 
@@ -50,13 +50,13 @@ def fetch_gruppo_magazzino_row(cod: str) -> list[tuple[str, object]] | None:
     return list(zip(columns, row))
 
 
-class GruppoMagazzinoListView(LoginRequiredMixin, PerPageListMixin, ListView):
+class GruppoMagazzinoListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
     model = GruppoMagazzino
     template_name = "gruppi_magazzini/gruppo_magazzino_list.html"
     context_object_name = "gruppi_magazzini"
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_mirror_queryset(self):
         return _filter_gruppi_magazzini_queryset(self.request)
 
     def get_context_data(self, **kwargs):

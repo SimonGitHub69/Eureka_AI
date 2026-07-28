@@ -1,0 +1,139 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Parametri programma · Eureka AI{% endblock %}
+
+{% block page_title %}Parametri programma{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Parametri programma</h2>
+            <div class="text-secondary">
+                Opzioni generali dell’applicazione
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-device-desktop"></i>
+                Parametri PC
+            </a>
+            <a href="{% url 'dashboard:sistema' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Sistema
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-settings me-1"></i>
+            Opzioni
+        </h3>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-check form-switch">
+                    {{ form.assistente_vocale_attivo }}
+                    <span class="form-check-label">
+                        <span class="fw-semibold">{{ form.assistente_vocale_attivo.label }}</span>
+                        <span class="d-block text-secondary small">
+                            {{ form.assistente_vocale_attivo.help_text }}
+                        </span>
+                    </span>
+                </label>
+                {% if form.assistente_vocale_attivo.errors %}
+                    <div class="invalid-feedback d-block">{{ form.assistente_vocale_attivo.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-check form-switch">
+                    {{ form.navbar_fissa }}
+                    <span class="form-check-label">
+                        <span class="fw-semibold">{{ form.navbar_fissa.label }}</span>
+                        <span class="d-block text-secondary small">
+                            {{ form.navbar_fissa.help_text }}
+                        </span>
+                    </span>
+                </label>
+                {% if form.navbar_fissa.errors %}
+                    <div class="invalid-feedback d-block">{{ form.navbar_fissa.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-0">
+                <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+                {{ form.note }}
+                {% if form.note.errors %}
+                    <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                Salva parametri
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <div class="fw-semibold">Elenco comandi vocali</div>
+            <div class="text-secondary small">
+                Frasi riconosciute e destinazioni (attive solo se l’assistente è abilitato)
+            </div>
+        </div>
+        <a href="{% url 'core:comandi_vocali_list' %}" class="btn btn-outline-primary">
+            <i class="ti ti-microphone"></i>
+            Gestisci comandi
+        </a>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="fw-semibold mb-1">
+            <i class="ti ti-device-tablet me-1"></i>
+            Usa Eureka come app su iPad
+        </div>
+        <div class="text-secondary small mb-2">
+            In una scheda normale la barra indirizzi non si può nascondere.
+            Per aprirla a schermo intero (come un’app):
+        </div>
+        <ol class="text-secondary small mb-2 ps-3">
+            <li class="mb-1">
+                <strong>Chrome (iPad)</strong>: tocca <strong>Condividi</strong>
+                <i class="ti ti-share"></i> nella barra in alto
+                (oppure ⋮ → Condividi) → <strong>Aggiungi a Home</strong> → conferma.
+            </li>
+            <li class="mb-1">
+                Se non vedi “Aggiungi a Home”, apri lo stesso indirizzo in
+                <strong>Safari</strong> → Condividi → Aggiungi a Home
+                (su iOS a volte Chrome non mostra l’opzione).
+            </li>
+            <li>
+                Dalla Home tocca l’icona <strong>Eureka AI</strong>: si apre senza barra indirizzi.
+            </li>
+        </ol>
+        <div class="text-secondary small mb-0">
+            Indirizzo attuale da usare: <code id="eurekaPwaUrl">{{ request.scheme }}://{{ request.get_host }}/</code>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

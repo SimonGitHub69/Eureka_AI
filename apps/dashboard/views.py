@@ -7,12 +7,16 @@ from apps.anagrafiche.models import Agente, Cliente, Fornitore
 from apps.articoli.models import Articolo
 from apps.aziende.models import Azienda
 from apps.categorie.models import Categoria
+from apps.condizioni.models import Condizione
 from apps.fatture.models import Fattura, FatturaDettaglio
 from apps.gruppi_articoli.models import GruppoArticolo
 from apps.gruppi_magazzini.models import GruppoMagazzino
 from apps.magazzini.models import Magazzino
-from apps.operatori.models import Operatore
 from apps.stampi.models import Stampo
+from apps.lavorazioni_extra.models import LavorazioneExtra
+from apps.carbon.models import LavorazionePartita, Reparto, StampoSerialePartita
+from apps.operatori.models import Operatore
+from apps.timbrature.models import Timbratura
 
 # Tabelle mirror importate da 4D (PostgreSQL).
 TABELLE_IMPORTATE = (
@@ -73,6 +77,13 @@ TABELLE_IMPORTATE = (
         "list_url": "categorie:list",
     },
     {
+        "label": "Condizioni",
+        "source": "CondizioniPag",
+        "db_table": "condizioni",
+        "model": Condizione,
+        "list_url": "condizioni:list",
+    },
+    {
         "label": "Gruppi articoli",
         "source": "GruppoArt",
         "db_table": "gruppi_articoli",
@@ -101,11 +112,46 @@ TABELLE_IMPORTATE = (
         "list_url": "stampi:list",
     },
     {
+        "label": "Lavorazioni extra",
+        "source": "TabLavorazioniExtra",
+        "db_table": "lavorazioni_extra",
+        "model": LavorazioneExtra,
+        "list_url": "lavorazioni_extra:list",
+    },
+    {
+        "label": "Reparti",
+        "source": "Reparti",
+        "db_table": "reparti",
+        "model": Reparto,
+        "list_url": "carbon:reparti_list",
+    },
+    {
+        "label": "Lavorazioni partite",
+        "source": "Lavorazioni_Partite",
+        "db_table": "lavorazioni_partite",
+        "model": LavorazionePartita,
+        "list_url": "carbon:lavorazioni_list",
+    },
+    {
+        "label": "Stampi seriali",
+        "source": "TabStampi_Seriali_Partite",
+        "db_table": "stampi_seriali_partite",
+        "model": StampoSerialePartita,
+        "list_url": "carbon:stampi_seriali_list",
+    },
+    {
         "label": "Operatori",
         "source": "Operatori",
         "db_table": "operatori",
         "model": Operatore,
         "list_url": "operatori:list",
+    },
+    {
+        "label": "Presenze",
+        "source": "Timbrature",
+        "db_table": "timbrature",
+        "model": Timbratura,
+        "list_url": "timbrature:list",
     },
 )
 

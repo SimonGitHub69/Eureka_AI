@@ -6,13 +6,17 @@
 
     const NAV_KEYWORDS = {
         dashboard: ["dashboard", "home", "inizio", "principale"],
+        agenda: ["agenda", "calendario", "appuntamenti", "impegni"],
         clienti: ["clienti", "cliente", "anagrafica clienti"],
         fornitori: ["fornitori", "fornitore", "fornitura"],
         agenti: ["agenti", "agente"],
         articoli: ["articoli", "articolo", "magazzino"],
         fatture: ["fatture", "fattura", "documenti"],
         categorie: ["categorie", "categoria"],
+        aziende: ["azienda", "aziende", "ditta", "societa", "società"],
         gruppi_articoli: ["gruppi articoli", "gruppo articoli", "gruppi articolo"],
+        operatori: ["operatori", "operatore"],
+        timbrature: ["timbrature", "timbratura", "presenze", "presenza"],
         parametri_4d: ["parametri 4d", "parametri quattro d", "parametri", "configurazione 4d"],
         parametri4d: ["parametri 4d", "parametri quattro d", "parametri", "configurazione 4d"],
         sistema: ["sistema", "impostazioni", "settings"],
@@ -47,6 +51,7 @@
         articoli: ["articolo", "articoli"],
         fatture: ["fattura", "fatture"],
         categorie: ["categoria", "categorie"],
+        aziende: ["azienda", "aziende", "ditta", "societa", "società"],
         gruppi_articoli: ["gruppo articoli", "gruppi articoli", "gruppo articolo", "gruppi articolo"],
     };
 
@@ -359,18 +364,15 @@
     function setListeningState(active) {
         isListening = active;
 
-        document.querySelectorAll("[data-voice-toggle], .eureka-voice-fab").forEach(function (button) {
+        document.querySelectorAll("[data-voice-toggle]").forEach(function (button) {
             button.classList.toggle("is-listening", active);
             button.setAttribute("aria-pressed", active ? "true" : "false");
-        });
-
-        if (toggleBtn) {
-            toggleBtn.setAttribute(
+            button.setAttribute(
                 "aria-label",
                 active ? "Interrompi ascolto vocale" : "Avvia comando vocale"
             );
-            toggleBtn.title = active ? "Interrompi ascolto" : "Comando vocale";
-        }
+            button.title = active ? "Interrompi ascolto" : "Comando vocale";
+        });
     }
 
     function handleTranscript(transcript, isFinal) {
@@ -518,10 +520,7 @@
             '<div class="eureka-voice-panel-title">Assistente vocale</div>' +
             '<div class="eureka-voice-status">Pronto</div>' +
             '<div class="eureka-voice-transcript"></div>' +
-            "</div>" +
-            '<button type="button" class="eureka-voice-fab btn btn-primary btn-icon" aria-label="Avvia comando vocale" title="Comando vocale">' +
-            '<i class="ti ti-microphone"></i>' +
-            "</button>";
+            "</div>";
 
         document.body.appendChild(root);
 
@@ -529,13 +528,10 @@
         panelEl = root.querySelector(".eureka-voice-panel");
         statusEl = root.querySelector(".eureka-voice-status");
         transcriptEl = root.querySelector(".eureka-voice-transcript");
-        toggleBtn = root.querySelector(".eureka-voice-fab");
+        toggleBtn = document.querySelector("[data-voice-toggle]");
 
-        toggleBtn.addEventListener("click", toggleListening);
-
-        const navbarToggle = document.querySelector("[data-voice-toggle]");
-        if (navbarToggle) {
-            navbarToggle.addEventListener("click", toggleListening);
+        if (toggleBtn) {
+            toggleBtn.addEventListener("click", toggleListening);
         }
 
         document.addEventListener("keydown", function (event) {
@@ -572,7 +568,7 @@
 
         if (!SpeechRecognition) {
             showUnsupportedMessage();
-            document.querySelectorAll("[data-voice-toggle], .eureka-voice-fab").forEach(function (button) {
+            document.querySelectorAll("[data-voice-toggle]").forEach(function (button) {
                 button.disabled = true;
                 button.classList.add("is-disabled");
             });

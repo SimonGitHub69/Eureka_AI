@@ -26,18 +26,18 @@
 
 <div class="card mb-3">
     <div class="card-body">
-        <form method="get" action="{% url 'fatture:analisi' %}" id="analisiForm">
+        <form method="get" action="{% url 'fatture:analisi' %}" id="analisiForm" autocomplete="off" data-lpignore="true">
             <div class="row g-2 align-items-end mb-2">
                 <div class="col-12">
                     <div class="text-secondary small mb-1">Scorciatoie</div>
                     <div class="btn-list">
                         <a class="btn btn-sm {% if preset == 'ytd' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
-                           href="{% url 'fatture:analisi' %}?preset=ytd{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&metrica={{ metrica }}">
+                           href="{% url 'fatture:analisi' %}?preset=ytd{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&metrica={{ metrica }}">
                             Anno corrente vs stesso periodo anno scorso
                         </a>
                         {% for p in anni_preset %}
                         <a class="btn btn-sm {% if preset == p.preset %}btn-primary{% else %}btn-outline-secondary{% endif %}"
-                           href="{% url 'fatture:analisi' %}?preset={{ p.preset }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&metrica={{ metrica }}">
+                           href="{% url 'fatture:analisi' %}?preset={{ p.preset }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&metrica={{ metrica }}">
                             {{ p.label }}
                         </a>
                         {% endfor %}
@@ -78,11 +78,15 @@
                 </div>
                 <div class="col-md-4 col-xl-1">
                     <label class="form-label" for="analisiAlfa">Serie</label>
-                    <input type="text" id="analisiAlfa" name="alfa" value="{{ alfa }}" class="form-control" placeholder="Es. A">
+                    <input type="text" id="analisiAlfa" name="alfa" value="{{ alfa }}" class="form-control" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                 </div>
                 <div class="col-md-4 col-xl-1">
                     <label class="form-label" for="analisiIso">ISO</label>
-                    <input type="text" id="analisiIso" name="iso" value="{{ iso }}" class="form-control text-uppercase" placeholder="IT" maxlength="2">
+                    <input type="text" id="analisiIso" name="iso" value="{{ iso }}" class="form-control text-uppercase" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
+                </div>
+                <div class="col-md-8 col-xl-3">
+                    <label class="form-label" for="analisiRagioneSociale">Ragione sociale</label>
+                    <input type="text" id="analisiRagioneSociale" name="ragione_sociale" value="{{ ragione_sociale }}" class="form-control" placeholder="Cerca cliente..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                 </div>
                 <div class="col-md-6 col-xl-1 d-flex gap-2">
                     <button type="submit" class="btn btn-primary w-100">
@@ -102,11 +106,11 @@
                 </div>
                 <div class="col-md-4 col-xl-2" id="analisiFatValWrap">
                     <label class="form-label" for="analisiFatVal" id="analisiFatValLabel">Importo €</label>
-                    <input type="text" id="analisiFatVal" name="fat_val" value="{{ fat_val_str }}" class="form-control" placeholder="Es. 1000" inputmode="decimal">
+                    <input type="text" id="analisiFatVal" name="fat_val" value="{{ fat_val_str }}" class="form-control" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                 </div>
                 <div class="col-md-4 col-xl-2 {% if fat_op != 'between' %}d-none{% endif %}" id="analisiFatVal2Wrap">
                     <label class="form-label" for="analisiFatVal2">e €</label>
-                    <input type="text" id="analisiFatVal2" name="fat_val2" value="{{ fat_val2_str }}" class="form-control" placeholder="Es. 5000" inputmode="decimal">
+                    <input type="text" id="analisiFatVal2" name="fat_val2" value="{{ fat_val2_str }}" class="form-control" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                 </div>
             </div>
             <div class="form-hint mt-2 mb-0">
@@ -187,7 +191,7 @@
 
 <div class="row row-cards mb-3">
     <div class="col-sm-6 col-xl-3">
-        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=periodo"
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=periodo"
            class="card card-link {% if tab == 'periodo' %}border-primary{% endif %}"
            title="Mostra clienti del periodo">
             <div class="card-body text-center">
@@ -198,7 +202,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=persi"
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=persi"
            class="card card-link {% if tab == 'persi' %}border-danger{% endif %}"
            title="Mostra clienti persi">
             <div class="card-body text-center">
@@ -209,7 +213,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=nuovi"
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=nuovi"
            class="card card-link {% if tab == 'nuovi' %}border-info{% endif %}"
            title="Mostra clienti nuovi">
             <div class="card-body text-center">
@@ -220,7 +224,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=entrambi"
+        <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=entrambi"
            class="card card-link {% if tab == 'entrambi' %}border-secondary{% endif %}"
            title="Mostra clienti in entrambi i periodi">
             <div class="card-body text-center">
@@ -259,28 +263,28 @@
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs">
             <li class="nav-item">
-                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=periodo{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=periodo{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
                    class="nav-link {% if tab == 'periodo' %}active{% endif %}">
                     Clienti del periodo
                     <span class="badge bg-primary-lt ms-1">{{ n_periodo|intit }}</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=persi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=persi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
                    class="nav-link {% if tab == 'persi' %}active{% endif %}">
                     Non hanno più comprato
                     <span class="badge bg-red-lt ms-1">{{ n_persi|intit }}</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=nuovi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=nuovi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
                    class="nav-link {% if tab == 'nuovi' %}active{% endif %}">
                     Nuovi nel riferimento
                     <span class="badge bg-azure-lt ms-1">{{ n_nuovi|intit }}</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=entrambi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
+                <a href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ ragione_qs }}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}{% if per_page != 50 %}&per_page={{ per_page }}{% endif %}&tab=entrambi{% if sort %}&sort={{ sort }}{% endif %}{% if dir %}&dir={{ dir }}{% endif %}"
                    class="nav-link {% if tab == 'entrambi' %}active{% endif %}">
                     In entrambi i periodi
                     <span class="badge bg-secondary-lt ms-1">{{ n_entrambi|intit }}</span>
@@ -307,39 +311,20 @@
                         <i class="ti ti-download"></i> Esporta
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
-                        <div class="dropdown-header">CSV</div>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=periodo&fmt=csv">
+                        <a class="dropdown-item" href="#"
+                           data-export-kind="periodo" data-export-label="Periodo">
                             Periodo
                         </a>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=persi&fmt=csv">
+                        <a class="dropdown-item" href="#"
+                           data-export-kind="persi" data-export-label="Persi">
                             Persi
                         </a>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=nuovi&fmt=csv">
+                        <a class="dropdown-item" href="#"
+                           data-export-kind="nuovi" data-export-label="Nuovi">
                             Nuovi
                         </a>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=entrambi&fmt=csv">
-                            Entrambi
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <div class="dropdown-header">Excel (XLSX)</div>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=periodo&fmt=xlsx">
-                            Periodo
-                        </a>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=persi&fmt=xlsx">
-                            Persi
-                        </a>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=nuovi&fmt=xlsx">
-                            Nuovi
-                        </a>
-                        <a class="dropdown-item"
-                           href="{% url 'fatture:analisi' %}?rif_da={{ rif_da_str }}&rif_a={{ rif_a_str }}&con_da={{ con_da_str }}&con_a={{ con_a_str }}&metrica={{ metrica }}{% if alfa %}&alfa={{ alfa|urlencode }}{% endif %}{{ nc_qs }}{{ iso_qs }}{{ fat_qs }}&export=entrambi&fmt=xlsx">
+                        <a class="dropdown-item" href="#"
+                           data-export-kind="entrambi" data-export-label="Entrambi">
                             Entrambi
                         </a>
                     </div>
@@ -445,10 +430,53 @@
     {% include "partials/pagination.html" %}
 </div>
 
+<div class="modal fade" id="analisiExportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title mb-0" id="analisiExportTitle">Esporta</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary mb-0" id="analisiExportText">
+                    Scegli il formato del file da esportare.
+                </p>
+                <div class="form-hint mt-2 mb-0">
+                    `Apri` e `Condividi` usano l'helper locale Eureka su Windows.
+                </div>
+            </div>
+            <div class="modal-footer d-flex flex-column gap-2">
+                <a class="btn btn-outline-primary w-100" id="analisiExportCsv" href="#">
+                    <i class="ti ti-download me-1"></i> Scarica CSV
+                </a>
+                <a class="btn btn-outline-primary w-100" id="analisiExportXlsx" href="#">
+                    <i class="ti ti-file-type-xls me-1"></i> Scarica XLSX
+                </a>
+                <div class="d-flex gap-2 w-100">
+                    <a class="btn btn-outline-secondary flex-fill" id="analisiOpenCsv" href="#">
+                        <i class="ti ti-file me-1"></i> Apri CSV
+                    </a>
+                    <a class="btn btn-outline-secondary flex-fill" id="analisiOpenXlsx" href="#">
+                        <i class="ti ti-file me-1"></i> Apri XLSX
+                    </a>
+                </div>
+                <div class="d-flex gap-2 w-100">
+                    <a class="btn btn-outline-secondary flex-fill" id="analisiShareCsv" href="#">
+                        <i class="ti ti-share me-1"></i> Condividi CSV
+                    </a>
+                    <a class="btn btn-outline-secondary flex-fill" id="analisiShareXlsx" href="#">
+                        <i class="ti ti-share me-1"></i> Condividi XLSX
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static '@tabler/core/dist/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script src="{% static 'vendor/tabler/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
 <script>
 (function () {
   const yoy = {{ chart_yoy|safe }};
@@ -505,6 +533,144 @@
   if (fatOp) {
     fatOp.addEventListener("change", syncFatOp);
     syncFatOp();
+  }
+
+  const exportModalEl = document.getElementById("analisiExportModal");
+  const ModalCtor =
+    (window.bootstrap && window.bootstrap.Modal) ||
+    (window.tabler && window.tabler.Modal) ||
+    null;
+  if (exportModalEl && exportModalEl.parentElement !== document.body) {
+    document.body.appendChild(exportModalEl);
+  }
+  if (exportModalEl && ModalCtor) {
+    const exportModal = ModalCtor.getOrCreateInstance
+      ? ModalCtor.getOrCreateInstance(exportModalEl)
+      : new ModalCtor(exportModalEl);
+    const exportTitle = document.getElementById("analisiExportTitle");
+    const exportText = document.getElementById("analisiExportText");
+    const exportCsv = document.getElementById("analisiExportCsv");
+    const exportXlsx = document.getElementById("analisiExportXlsx");
+    const openCsv = document.getElementById("analisiOpenCsv");
+    const openXlsx = document.getElementById("analisiOpenXlsx");
+    const shareCsv = document.getElementById("analisiShareCsv");
+    const shareXlsx = document.getElementById("analisiShareXlsx");
+    let currentKind = "periodo";
+    let currentLabel = "Periodo";
+    const helper = window.EurekaFileHelper;
+
+    function buildExportUrl(kind, fmt) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("export", kind);
+      url.searchParams.set("fmt", fmt);
+      url.searchParams.delete("open");
+      url.searchParams.delete("page");
+      return url.toString();
+    }
+
+    async function fetchExportBlob(fmt) {
+      const url = buildExportUrl(currentKind, fmt);
+      const response = await fetch(url, { credentials: "same-origin" });
+      if (!response.ok) {
+        throw new Error("Export non riuscito");
+      }
+      const blob = await response.blob();
+      return { blob: blob, fileName: currentKind + "." + fmt };
+    }
+
+    async function downloadExport(fmt) {
+      try {
+        const url = buildExportUrl(currentKind, fmt);
+        const response = await fetch(url, { credentials: "same-origin" });
+        if (!response.ok) {
+          throw new Error("Export non riuscito");
+        }
+        const blob = await response.blob();
+        const fileName = currentKind + "." + fmt;
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = objectUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 1000);
+      } catch (error) {
+        window.location.href = buildExportUrl(currentKind, fmt);
+      }
+    }
+
+    async function openWithDefault(fmt) {
+      if (!helper) return;
+      try {
+        const payload = await fetchExportBlob(fmt);
+        await helper.openBlob(payload.fileName, payload.blob);
+      } catch (error) {
+        window.alert(
+          "Per usare Apri col programma predefinito devi avviare l'helper locale:\n\n" +
+          "powershell -ExecutionPolicy Bypass -File scripts\\start_eureka_open_helper.ps1"
+        );
+      }
+    }
+
+    async function shareExport(fmt) {
+      if (!helper) return;
+      const mimeType = fmt === "xlsx"
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
+      try {
+        const payload = await fetchExportBlob(fmt);
+        await helper.shareBlob(payload.fileName, payload.blob, mimeType);
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          return;
+        }
+        const message = String((error && error.message) || "");
+        if (message.indexOf("Helper non disponibile") >= 0) {
+          window.alert(helper.helperUnavailableMessage());
+          return;
+        }
+        window.alert(message || "Condivisione non riuscita.");
+      }
+    }
+
+    document.querySelectorAll("[data-export-kind]").forEach(function (item) {
+      item.addEventListener("click", function (event) {
+        event.preventDefault();
+        currentKind = item.getAttribute("data-export-kind");
+        currentLabel = item.getAttribute("data-export-label") || currentKind;
+        exportTitle.textContent = "Esporta " + currentLabel;
+        exportText.textContent = "Scegli come esportare " + currentLabel.toLowerCase() + ".";
+        exportCsv.href = "#";
+        exportXlsx.href = "#";
+        exportModal.show();
+      });
+    });
+
+    exportCsv.addEventListener("click", function (event) {
+      event.preventDefault();
+      downloadExport("csv");
+    });
+    exportXlsx.addEventListener("click", function (event) {
+      event.preventDefault();
+      downloadExport("xlsx");
+    });
+    openCsv.addEventListener("click", function (event) {
+      event.preventDefault();
+      openWithDefault("csv");
+    });
+    openXlsx.addEventListener("click", function (event) {
+      event.preventDefault();
+      openWithDefault("xlsx");
+    });
+    shareCsv.addEventListener("click", function (event) {
+      event.preventDefault();
+      shareExport("csv");
+    });
+    shareXlsx.addEventListener("click", function (event) {
+      event.preventDefault();
+      shareExport("xlsx");
+    });
   }
 })();
 </script>

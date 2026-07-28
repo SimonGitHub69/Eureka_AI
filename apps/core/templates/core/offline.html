@@ -1,0 +1,309 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}Dati offline · Eureka AI{% endblock %}
+{% block page_title %}Dati offline{% endblock %}
+
+{% block content %}
+<div id="offline-app"
+     data-api-url="{% url 'core:offline_sync' %}"
+     data-wasm-url="{% static 'vendor/sqljs/sql-wasm.wasm' %}"
+     data-sql-script-url="{% static 'vendor/sqljs/sql-wasm.js' %}"
+     data-sw-url="{% url 'core:service_worker' %}"
+     data-from-date="{{ from_date }}">
+
+    <div class="page-header d-print-none mb-3">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div>
+                <h2 class="page-title">Dati offline</h2>
+                <div class="text-secondary">
+                    Clienti, fatture e statistiche sul dispositivo (SQLite). Funziona anche senza Wi‑Fi dopo il sync.
+                </div>
+            </div>
+            <div class="btn-list align-items-center">
+                <span id="offline-network" class="badge bg-green-lt">Online</span>
+                <button type="button" class="btn btn-primary" id="offline-sync-btn">
+                    <i class="ti ti-cloud-download"></i>
+                    Scarica dati
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div id="offline-status"></div>
+            <div id="offline-progress" class="mt-2" hidden>
+                <div class="d-flex justify-content-between small text-secondary mb-1">
+                    <span id="offline-progress-label">…</span>
+                </div>
+                <div class="progress">
+                    <div id="offline-progress-bar" class="progress-bar" role="progressbar"
+                         style="width:0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="offline-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" type="button" data-offline-tab="clienti">Clienti</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" type="button" data-offline-tab="fatture">Fatture</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" type="button" data-offline-tab="classifica">Classifica</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" type="button" data-offline-tab="analisi">Analisi fatturato</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" type="button" data-offline-tab="geo">Fatturato geografico</button>
+        </li>
+    </ul>
+
+    <!-- Clienti -->
+    <div class="card offline-panel" data-panel="clienti">
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-8">
+                    <label class="form-label" for="cli-q">Cerca</label>
+                    <input type="search" class="form-control" id="cli-q" placeholder="Codice, ragione sociale, località, P.IVA">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="cli-per">Per pagina</label>
+                    <select class="form-select" id="cli-per">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-primary w-100" id="cli-run">Cerca</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter table-sm">
+                    <thead>
+                        <tr>
+                            <th>Codice</th>
+                            <th>Ragione sociale</th>
+                            <th>Località</th>
+                            <th>Prov.</th>
+                            <th>Nazione</th>
+                            <th>Telefono</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cli-body"></tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center" id="cli-pager"></div>
+        </div>
+    </div>
+
+    <!-- Fatture -->
+    <div class="card offline-panel d-none" data-panel="fatture">
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="fat-da">Dal</label>
+                    <input type="date" class="form-control" id="fat-da">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="fat-a">Al</label>
+                    <input type="date" class="form-control" id="fat-a">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="fat-q">Cerca</label>
+                    <input type="search" class="form-control" id="fat-q" placeholder="Cliente, numero, serie">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="fat-per">Per pagina</label>
+                    <select class="form-select" id="fat-per">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <button type="button" class="btn btn-outline-primary w-100" id="fat-run">Cerca</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter table-sm">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>N°</th>
+                            <th>Cliente</th>
+                            <th class="text-end">Imponibile</th>
+                            <th class="text-end">Netto</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="fat-body"></tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center" id="fat-pager"></div>
+        </div>
+    </div>
+
+    <!-- Classifica -->
+    <div class="card offline-panel d-none" data-panel="classifica">
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="cls-da">Dal</label>
+                    <input type="date" class="form-control" id="cls-da">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="cls-a">Al</label>
+                    <input type="date" class="form-control" id="cls-a">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="cls-metrica">Metrica</label>
+                    <select class="form-select" id="cls-metrica">
+                        <option value="imponibile">Imponibile senza spese</option>
+                        <option value="totale">Totale senza spese</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="cls-top">Top</label>
+                    <select class="form-select" id="cls-top">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="0">Tutti</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="cls-nc">Note credito</label>
+                    <select class="form-select" id="cls-nc">
+                        <option value="">Tutti</option>
+                        <option value="escludi">Escludi NC</option>
+                        <option value="solo">Solo NC</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <button type="button" class="btn btn-outline-primary w-100" id="cls-run">Calcola</button>
+                </div>
+            </div>
+            <div id="cls-kpi" class="mb-3"></div>
+            <div class="table-responsive">
+                <table class="table table-vcenter table-sm">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Cliente</th>
+                            <th>Località</th>
+                            <th class="text-end">Fatturato</th>
+                            <th class="text-end">%</th>
+                            <th class="text-end">Doc.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cls-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analisi -->
+    <div class="card offline-panel d-none" data-panel="analisi">
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="an-rif-da">Rif. dal</label>
+                    <input type="date" class="form-control" id="an-rif-da">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="an-rif-a">Rif. al</label>
+                    <input type="date" class="form-control" id="an-rif-a">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="an-con-da">Confr. dal</label>
+                    <input type="date" class="form-control" id="an-con-da">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="an-con-a">Confr. al</label>
+                    <input type="date" class="form-control" id="an-con-a">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label" for="an-metrica">Metrica</label>
+                    <select class="form-select" id="an-metrica">
+                        <option value="imponibile">Imponibile senza spese</option>
+                        <option value="totale">Totale senza spese</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <button type="button" class="btn btn-outline-primary w-100" id="an-run">Calcola</button>
+                </div>
+            </div>
+            <div id="an-kpi" class="mb-3"></div>
+            <div class="mb-2">
+                <div class="btn-list" id="an-list-tabs">
+                    <button type="button" class="btn btn-sm btn-primary" data-an-list="periodo">Periodo</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-an-list="nuovi">Nuovi</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-an-list="persi">Persi</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-an-list="entrambi">Entrambi</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter table-sm">
+                    <thead id="an-head"></thead>
+                    <tbody id="an-body"></tbody>
+                </table>
+            </div>
+            <div class="mt-3">
+                <div class="fw-semibold mb-2">Serie mensile (riferimento)</div>
+                <div id="an-serie" class="text-secondary small"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geo -->
+    <div class="card offline-panel d-none" data-panel="geo">
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-6 col-md-3">
+                    <label class="form-label" for="geo-da">Dal</label>
+                    <input type="date" class="form-control" id="geo-da">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label" for="geo-a">Al</label>
+                    <input type="date" class="form-control" id="geo-a">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label" for="geo-metrica">Metrica</label>
+                    <select class="form-select" id="geo-metrica">
+                        <option value="imponibile">Imponibile senza spese</option>
+                        <option value="totale">Totale senza spese</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <button type="button" class="btn btn-outline-primary w-100" id="geo-run">Calcola</button>
+                </div>
+            </div>
+            <div class="mb-3 btn-list" id="geo-view-tabs">
+                <button type="button" class="btn btn-sm btn-primary" data-geo-view="regioni">Regioni</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-geo-view="province">Province</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-geo-view="nazioni">Nazioni</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-geo-view="estero">Solo estero</button>
+            </div>
+            <div id="geo-kpi" class="mb-3"></div>
+            <div class="table-responsive">
+                <table class="table table-vcenter table-sm">
+                    <thead id="geo-head"></thead>
+                    <tbody id="geo-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/offline-db.js' %}?v=3"></script>
+<script src="{% static 'eureka/js/offline-app.js' %}?v=3"></script>
+{% endblock %}

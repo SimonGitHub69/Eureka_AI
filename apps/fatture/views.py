@@ -12,13 +12,19 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 
 from apps.anagrafiche.models import Cliente
-from apps.core.export import export_table, normalize_export_fmt
+from apps.core.export import (
+    export_bridge_response,
+    export_table,
+    normalize_export_fmt,
+    wants_export_bridge,
+    wants_open_inline,
+)
 from apps.core.pagination import (
     PER_PAGE_OPTIONS,
     filter_query_from_request,
     resolve_per_page,
 )
-from apps.core.pagination import PerPageListMixin
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
 from apps.fatture import analisi as analisi_fatturato
 from apps.fatture.models import (
     Fattura,
@@ -29,13 +35,13 @@ from apps.fatture.models import (
 from apps.fatture.sync import sync_fatture
 
 
-class FatturaListView(LoginRequiredMixin, PerPageListMixin, ListView):
+class FatturaListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
     model = Fattura
     template_name = "fatture/fattura_list.html"
     context_object_name = "fatture"
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_mirror_queryset(self):
         qs = Fattura.objects.all()
 
         q = (self.request.GET.get("q") or "").strip()
@@ -54,10 +60,13 @@ class FatturaListView(LoginRequiredMixin, PerPageListMixin, ListView):
             )
             if q.isdigit():
                 filters |= Q(numero_fatt=int(q)) | Q(id_testa=int(q))
-            cliente_codes = Cliente.objects.filter(
-                Q(ragione_sociale1__icontains=q) | Q(ragione_sociale2__icontains=q)
-            ).values("codice")
-            filters |= Q(cliente__in=cliente_codes)
+            try:
+                cliente_codes = Cliente.objects.filter(
+                    Q(ragione_sociale1__icontains=q) | Q(ragione_sociale2__icontains=q)
+                ).values("codice")
+                filters |= Q(cliente__in=cliente_codes)
+            except Exception:
+                pass
             qs = qs.filter(filters)
 
         if alfa:
@@ -171,6 +180,8 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         export = (request.GET.get("export") or "").strip().lower()
         if export in {"periodo", "persi", "nuovi", "entrambi"}:
+            if wants_export_bridge(request):
+                return export_bridge_response(request, title="Esporta analisi")
             fmt = normalize_export_fmt(request.GET.get("fmt"))
             return self._export_table(export, fmt)
         return super().get(request, *args, **kwargs)
@@ -179,6 +190,7 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
         get = self.request.GET
         alfa = (get.get("alfa") or "").strip()
         iso = analisi_fatturato.iso_canonico(get.get("iso"))
+        ragione_sociale = (get.get("ragione_sociale") or "").strip()
         note_credito = (get.get("nc") or "").strip().lower()
         if note_credito not in analisi_fatturato.NOTE_CREDITO_MODES:
             note_credito = ""
@@ -226,6 +238,7 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
         return {
             "alfa": alfa,
             "iso": iso,
+            "ragione_sociale": ragione_sociale,
             "note_credito": note_credito,
             "metrica": metrica,
             "metrica_field": metrica_field,
@@ -242,12 +255,26 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
             "fat_val2_str": (get.get("fat_val2") or "").strip(),
         }
 
+    def _filter_base_by_ragione_sociale(self, queryset, ragione_sociale: str):
+        if not ragione_sociale:
+            return queryset
+        cliente_codes = list(
+            Cliente.objects.filter(
+                Q(ragione_sociale1__icontains=ragione_sociale)
+                | Q(ragione_sociale2__icontains=ragione_sociale)
+            ).values_list("codice", flat=True)
+        )
+        if not cliente_codes:
+            return queryset.none()
+        return queryset.filter(cliente__in=cliente_codes)
+
     def _build_dataset(self, params):
         base = analisi_fatturato.base_queryset(
             alfa=params["alfa"],
             iso=params["iso"],
             note_credito=params["note_credito"],
         )
+        base = self._filter_base_by_ragione_sociale(base, params["ragione_sociale"])
         field = params["metrica_field"]
         qs_rif = analisi_fatturato.filtro_periodo(base, params["rif_da"], params["rif_a"])
         qs_con = analisi_fatturato.filtro_periodo(base, params["con_da"], params["con_a"])
@@ -421,8 +448,29 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
             f"&nc={params['note_credito']}" if params["note_credito"] else ""
         )
         context["iso_qs"] = f"&iso={params['iso']}" if params["iso"] else ""
+        context["ragione_qs"] = (
+            f"&ragione_sociale={params['ragione_sociale']}"
+            if params["ragione_sociale"]
+            else ""
+        )
         context["fat_qs"] = fat_qs
         return context
+
+    def _cliente_export_meta(self, rows_src):
+        codes = sorted({r.get("codice") for r in rows_src if r.get("codice")})
+        if not codes:
+            return {}
+        clienti = Cliente.objects.filter(codice__in=codes).values(
+            "codice",
+            "email",
+            "telefono",
+            "cellulare",
+            "indirizzo",
+            "cap",
+            "provincia",
+            "localita",
+        )
+        return {c["codice"]: c for c in clienti}
 
     def _export_table(self, kind: str, fmt: str = "csv"):
         params = self._parse_params()
@@ -441,6 +489,7 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
             val2=params["fat_val2"],
             field=field,
         )
+        cliente_meta = self._cliente_export_meta(rows_src)
 
         if kind == "periodo":
             filename = f"clienti_periodo_{params['rif_da']}_{params['rif_a']}"
@@ -454,6 +503,13 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
             headers = [
                 "Codice",
                 "Ragione sociale",
+                "Email",
+                "Telefono",
+                "Cellulare",
+                "Indirizzo",
+                "CAP",
+                "Provincia",
+                "Località",
                 "Fatturato riferimento",
                 "Fatturato confronto",
                 "Delta",
@@ -464,6 +520,13 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
                 [
                     r["codice"],
                     r.get("ragione_sociale") or "",
+                    (cliente_meta.get(r["codice"]) or {}).get("email") or "",
+                    (cliente_meta.get(r["codice"]) or {}).get("telefono") or "",
+                    (cliente_meta.get(r["codice"]) or {}).get("cellulare") or "",
+                    (cliente_meta.get(r["codice"]) or {}).get("indirizzo") or "",
+                    (cliente_meta.get(r["codice"]) or {}).get("cap") or "",
+                    (cliente_meta.get(r["codice"]) or {}).get("provincia") or "",
+                    (cliente_meta.get(r["codice"]) or {}).get("localita") or "",
                     round(float(r["fatturato_rif"]), 2),
                     round(float(r["fatturato_con"]), 2),
                     round(float(r["delta"]), 2),
@@ -481,6 +544,13 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
             headers = [
                 "Codice",
                 "Ragione sociale",
+                "Email",
+                "Telefono",
+                "Cellulare",
+                "Indirizzo",
+                "CAP",
+                "Provincia",
+                "Località",
                 f"Fatturato {periodo_label}",
                 "N. fatture",
                 "Ultima fattura",
@@ -492,6 +562,13 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
                     [
                         r["codice"],
                         r.get("ragione_sociale") or "",
+                        (cliente_meta.get(r["codice"]) or {}).get("email") or "",
+                        (cliente_meta.get(r["codice"]) or {}).get("telefono") or "",
+                        (cliente_meta.get(r["codice"]) or {}).get("cellulare") or "",
+                        (cliente_meta.get(r["codice"]) or {}).get("indirizzo") or "",
+                        (cliente_meta.get(r["codice"]) or {}).get("cap") or "",
+                        (cliente_meta.get(r["codice"]) or {}).get("provincia") or "",
+                        (cliente_meta.get(r["codice"]) or {}).get("localita") or "",
                         round(float(r["fatturato"]), 2),
                         r["n_fatture"],
                         ultima.strftime("%d/%m/%Y") if ultima else "",
@@ -504,6 +581,7 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
             rows=rows,
             fmt=fmt,
             sheet_title=kind[:31],
+            as_attachment=not wants_open_inline(self.request),
         )
 
 class FatturatoRegioniView(LoginRequiredMixin, TemplateView):
@@ -515,8 +593,12 @@ class FatturatoRegioniView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         export = (request.GET.get("export") or "").strip().lower()
         if export in {"csv", "xlsx"}:
+            if wants_export_bridge(request):
+                return export_bridge_response(request, title="Esporta geografia")
             return self._export_table(normalize_export_fmt(export))
         if export in {"periodo", "persi", "nuovi", "entrambi"}:
+            if wants_export_bridge(request):
+                return export_bridge_response(request, title="Esporta clienti")
             return self._export_clienti(
                 export, normalize_export_fmt(request.GET.get("fmt") or "csv")
             )
@@ -1102,6 +1184,7 @@ class FatturatoRegioniView(LoginRequiredMixin, TemplateView):
             rows=rows,
             fmt=fmt,
             sheet_title=sheet,
+            as_attachment=not wants_open_inline(self.request),
         )
 
     def _export_clienti(self, kind: str, fmt: str = "csv"):
@@ -1196,6 +1279,7 @@ class FatturatoRegioniView(LoginRequiredMixin, TemplateView):
             rows=rows,
             fmt=fmt,
             sheet_title=kind[:31],
+            as_attachment=not wants_open_inline(self.request),
         )
 
 
@@ -1210,6 +1294,8 @@ class ClassificaClientiView(LoginRequiredMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         if (request.GET.get("export") or "").strip().lower() in {"csv", "xlsx"}:
+            if wants_export_bridge(request):
+                return export_bridge_response(request, title="Esporta classifica")
             return self._export_table(
                 normalize_export_fmt(request.GET.get("export"))
             )
@@ -1398,4 +1484,5 @@ class ClassificaClientiView(LoginRequiredMixin, TemplateView):
             rows=rows,
             fmt=fmt,
             sheet_title="Classifica",
+            as_attachment=not wants_open_inline(self.request),
         )

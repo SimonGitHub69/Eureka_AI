@@ -17,14 +17,18 @@ urlpatterns = [
     path("", include("apps.anagrafiche.urls")),
     path("", include("apps.articoli.urls")),
     path("", include("apps.categorie.urls")),
+    path("", include("apps.condizioni.urls")),
     path("", include("apps.aziende.urls")),
     path("", include("apps.gruppi_articoli.urls")),
     path("", include("apps.gruppi_magazzini.urls")),
     path("", include("apps.magazzini.urls")),
     path("", include("apps.stampi.urls")),
     path("", include("apps.operatori.urls")),
+    path("", include("apps.timbrature.urls")),
     path("", include("apps.schede_lavorazione.urls")),
     path("", include("apps.agenda.urls")),
+    path("", include("apps.carbon.urls")),
+    path("", include("apps.lavorazioni_extra.urls")),
     path("", include("apps.geografia.urls")),
 ]
 

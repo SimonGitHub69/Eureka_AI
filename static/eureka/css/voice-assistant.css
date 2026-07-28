@@ -1,11 +1,7 @@
-.page-body {
-    padding-bottom: 5.5rem;
-}
-
 .eureka-voice {
     position: fixed;
     right: 1.25rem;
-    bottom: 1.25rem;
+    top: 4.5rem;
     z-index: 1080;
     display: flex;
     flex-direction: column;
@@ -63,21 +59,11 @@
     word-break: break-word;
 }
 
-.eureka-voice-fab {
-    width: 3.25rem;
-    height: 3.25rem;
-    border-radius: 999px;
-    box-shadow: 0 8px 24px rgba(32, 107, 196, 0.35);
-    pointer-events: auto;
-}
-
-.eureka-voice-fab.is-listening,
 [data-voice-toggle].is-listening {
     animation: eureka-voice-pulse 1.2s ease-in-out infinite;
     box-shadow: 0 0 0 0 rgba(32, 107, 196, 0.55);
 }
 
-.eureka-voice-fab.is-disabled,
 [data-voice-toggle].is-disabled {
     opacity: 0.55;
     cursor: not-allowed;
@@ -98,7 +84,7 @@
 .eureka-voice-toast {
     position: fixed;
     right: 1.25rem;
-    bottom: 6.5rem;
+    top: 4.5rem;
     z-index: 1085;
     max-width: min(360px, calc(100vw - 2rem));
     margin: 0;
@@ -115,7 +101,7 @@
 .eureka-voice-unsupported {
     position: fixed;
     right: 1.25rem;
-    bottom: 6.5rem;
+    top: 4.5rem;
     z-index: 1085;
     max-width: min(360px, calc(100vw - 2rem));
     margin: 0;
@@ -123,12 +109,10 @@
 }
 
 @media (max-width: 768px) {
-    .page-body {
-        padding-bottom: 4.75rem;
-    }
-
-    .eureka-voice {
+    .eureka-voice,
+    .eureka-voice-toast,
+    .eureka-voice-unsupported {
         right: 0.85rem;
-        bottom: 0.85rem;
+        top: 4rem;
     }
 }

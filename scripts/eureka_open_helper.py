@@ -1,0 +1,116 @@
+from __future__ import annotations
+
+import base64
+import json
+import os
+import subprocess
+import tempfile
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+HOST = '127.0.0.1'
+PORT = 8765
+TMP_DIR = Path(tempfile.gettempdir()) / 'eureka-open'
+TMP_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def save_export_payload(data: dict) -> Path:
+    filename = os.path.basename((data.get('filename') or 'export.bin').strip())
+    content_b64 = data.get('content_b64') or ''
+    payload = base64.b64decode(content_b64)
+    stamp = datetime.now().strftime('%Y%m%d-%H%M%S-%f')
+    target = TMP_DIR / f'{stamp}-{filename}'
+    target.write_bytes(payload)
+    return target
+
+
+def open_with_default_app(path: Path) -> None:
+    os.startfile(str(path))
+
+
+def share_with_system(path: Path) -> None:
+    if os.name != 'nt':
+        open_with_default_app(path)
+        return
+
+    script = Path(__file__).resolve().parent / 'windows_share_file.ps1'
+    if not script.exists():
+        raise RuntimeError('Script di condivisione non trovato')
+
+    completed = subprocess.run(
+        [
+            'powershell',
+            '-NoProfile',
+            '-Sta',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            str(script),
+            '-Path',
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or '').strip()
+        raise RuntimeError(detail or 'Condivisione non riuscita')
+
+
+class Handler(BaseHTTPRequestHandler):
+    def _cors(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+    def _json_response(self, status: int, payload: dict) -> None:
+        body = json.dumps(payload).encode('utf-8')
+        self.send_response(status)
+        self._cors()
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self._cors()
+        self.end_headers()
+
+    def do_GET(self):
+        if self.path == '/health':
+            self._json_response(200, {'ok': True, 'share': True, 'version': 2})
+            return
+        self.send_error(404)
+
+    def do_POST(self):
+        if self.path not in {'/open', '/share'}:
+            self.send_error(404)
+            return
+        length = int(self.headers.get('Content-Length', '0') or '0')
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode('utf-8'))
+            target = save_export_payload(data)
+            if self.path == '/open':
+                open_with_default_app(target)
+            else:
+                share_with_system(target)
+            self._json_response(200, {'ok': True, 'path': str(target)})
+        except Exception as exc:
+            self._json_response(500, {'ok': False, 'error': str(exc)})
+
+    def log_message(self, fmt, *args):
+        return
+
+if __name__ == '__main__':
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f'Eureka open helper listening on http://{HOST}:{PORT}')
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()

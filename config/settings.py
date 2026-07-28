@@ -27,14 +27,18 @@ INSTALLED_APPS = [
     "apps.anagrafiche",
     "apps.articoli",
     "apps.categorie",
+    "apps.condizioni",
     "apps.aziende",
     "apps.gruppi_articoli",
     "apps.gruppi_magazzini",
     "apps.magazzini",
     "apps.stampi",
     "apps.operatori",
+    "apps.timbrature",
     "apps.schede_lavorazione",
     "apps.agenda",
+    "apps.carbon",
+    "apps.lavorazioni_extra",
     "apps.geografia",
 ]
 
@@ -47,6 +51,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.core.middleware.BindClientPcMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -62,6 +67,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.voice_commands",
+                "apps.core.context_processors.integrations",
             ],
         },
     },
@@ -106,6 +112,9 @@ WHITENOISE_AUTOREFRESH = DEBUG
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 SERVE_MEDIA = env.bool("SERVE_MEDIA", default=True)
+
+# Dashboard produzione CARBON (app separata)
+CARBON_URL = env("CARBON_URL", default="http://127.0.0.1:8001/").strip()
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

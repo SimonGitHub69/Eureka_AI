@@ -157,19 +157,238 @@
     e che il SQL Server di 4D sia avviato sulla porta configurata.
 </div>
 
-<div class="card mt-3">
-    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-            <div class="fw-semibold">Import tabelle Fatture</div>
-            <div class="text-secondary small">
-                Porta <code>Fatture</code> e <code>Fatture_Dettaglio</code> da 4D a PostgreSQL
+<div class="card mt-3" id="sync4dApp"
+     data-start-url="{% url 'core:sync_4d_start' %}"
+     data-clear-url="{% url 'core:sync_4d_clear' %}"
+     data-status-base="{% url 'core:sync_4d_status' 'TASK_ID' %}">
+    <div class="card-header">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-refresh-dot me-1"></i>
+            Sync 4D completo
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="row row-cards mb-3">
+            {% for step in sync_steps %}
+            <div class="col-sm-6 col-lg-4 col-xl-3">
+                <div class="card">
+                    <div class="card-body py-3">
+                        <div class="subheader">{{ step.label }}</div>
+                        <div class="text-secondary small mb-1">{{ step.description }}</div>
+                        <div class="small">
+                            {% for table in step.tables %}
+                            <div class="d-flex justify-content-between gap-2">
+                                <code>{{ table.name }}</code>
+                                <span class="fw-semibold">{{ table.count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <p class="mb-3">
+            Un solo bottone avvia in sequenza tutti gli step sotto
+            (anagrafiche, tabelle, <strong>CARBON</strong>, lavorazioni extra, operatori, timbrature, fatture, …).
+            Usa <strong>Azzera tabelle</strong> per eliminare i dati mirror su PostgreSQL prima di un nuovo import da 4D.
+        </p>
+
+        <div class="progress mb-2" style="height: 1.2rem;">
+            <div id="sync4dProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                 role="progressbar" style="width: 0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                0%
             </div>
         </div>
-        <a href="{% url 'fatture:sync' %}" class="btn btn-outline-primary">
-            <i class="ti ti-file-invoice"></i>
-            Sync Fatture 4D
-        </a>
+        <div id="sync4dStatusText" class="text-secondary small mb-3">Pronto.</div>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-vcenter">
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>Descrizione</th>
+                        <th>Stato</th>
+                        <th>Dettaglio</th>
+                    </tr>
+                </thead>
+                <tbody id="sync4dStepsBody">
+                    {% for step in sync_steps %}
+                    <tr data-step-key="{{ step.key }}">
+                        <td class="fw-semibold">{{ step.label }}</td>
+                        <td class="text-secondary">{{ step.description }}</td>
+                        <td><span class="badge bg-secondary-lt">In attesa</span></td>
+                        <td class="text-secondary small">-</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer d-flex flex-wrap justify-content-between gap-2">
+        <div class="text-secondary small">
+            Per tabelle grandi il termometro avanza per step completati.
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-danger" id="sync4dClearBtn">
+                <i class="ti ti-trash"></i>
+                Azzera tabelle
+            </button>
+            <button type="button" class="btn btn-primary" id="sync4dStartBtn">
+                <i class="ti ti-player-play"></i>
+                Avvia sincronizzazione completa
+            </button>
+        </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const app = document.getElementById("sync4dApp");
+    if (!app) return;
+
+    const startBtn = document.getElementById("sync4dStartBtn");
+    const clearBtn = document.getElementById("sync4dClearBtn");
+    const progressBar = document.getElementById("sync4dProgressBar");
+    const statusText = document.getElementById("sync4dStatusText");
+    const stepsBody = document.getElementById("sync4dStepsBody");
+    let timer = null;
+
+    function csrfToken() {
+        const input = document.querySelector("input[name=csrfmiddlewaretoken]");
+        return input ? input.value : "";
+    }
+
+    function setProgress(pct) {
+        const value = Math.max(0, Math.min(100, Number(pct) || 0));
+        progressBar.style.width = value + "%";
+        progressBar.setAttribute("aria-valuenow", String(value));
+        progressBar.textContent = value + "%";
+    }
+
+    function badge(status) {
+        if (status === "done") return '<span class="badge bg-green-lt">OK</span>';
+        if (status === "running") return '<span class="badge bg-blue-lt">In corso</span>';
+        if (status === "error") return '<span class="badge bg-red-lt">Errore</span>';
+        return '<span class="badge bg-secondary-lt">In attesa</span>';
+    }
+
+    function renderTask(task) {
+        setProgress(task.progress_pct);
+        statusText.textContent = task.message || "Pronto.";
+        (task.steps || []).forEach(function (step) {
+            const row = stepsBody.querySelector('[data-step-key="' + step.key + '"]');
+            if (!row) return;
+            row.children[2].innerHTML = badge(step.status);
+            row.children[3].textContent = step.message || "-";
+        });
+        const running = task.status === "running" || task.status === "pending";
+        startBtn.disabled = running;
+        if (clearBtn) clearBtn.disabled = running;
+        if (task.status === "done") {
+            progressBar.classList.remove("bg-danger");
+            progressBar.classList.add("bg-success");
+        } else if (task.status === "error") {
+            progressBar.classList.remove("bg-success");
+            progressBar.classList.add("bg-danger");
+        }
+    }
+
+    function stopPolling() {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    }
+
+    function poll(taskId) {
+        const url = app.dataset.statusBase.replace("TASK_ID", taskId);
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data.ok) {
+                    throw new Error(data.error || "Errore stato sync");
+                }
+                renderTask(data.task);
+                if (data.task.status === "running" || data.task.status === "pending") {
+                    timer = setTimeout(function () { poll(taskId); }, 1500);
+                } else {
+                    stopPolling();
+                }
+            })
+            .catch(function (err) {
+                statusText.textContent = err.message || "Errore durante il polling.";
+                startBtn.disabled = false;
+                if (clearBtn) clearBtn.disabled = false;
+                stopPolling();
+            });
+    }
+
+    startBtn.addEventListener("click", function () {
+        startBtn.disabled = true;
+        if (clearBtn) clearBtn.disabled = true;
+        progressBar.classList.remove("bg-success", "bg-danger");
+        statusText.textContent = "Avvio sync...";
+        fetch(app.dataset.startUrl, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrfToken(),
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data.ok) {
+                    throw new Error(data.error || "Impossibile avviare il sync.");
+                }
+                stopPolling();
+                poll(data.task_id);
+            })
+            .catch(function (err) {
+                statusText.textContent = err.message || "Errore di avvio.";
+                startBtn.disabled = false;
+                if (clearBtn) clearBtn.disabled = false;
+            });
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener("click", function () {
+            const confirmed = window.confirm(
+                "Azzerare tutte le tabelle mirror su PostgreSQL?\n\n" +
+                "Verranno eliminate le tabelle importate da 4D (clienti, fornitori, agenti, aziende, articoli, categorie, magazzini, stampi, operatori, timbrature, fatture, ...).\n" +
+                "I dati in 4D non vengono modificati. Poi potrai rilanciare il sync completo."
+            );
+            if (!confirmed) return;
+
+            clearBtn.disabled = true;
+            startBtn.disabled = true;
+            statusText.textContent = "Azzeramento tabelle in corso...";
+            fetch(app.dataset.clearUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken(),
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+                .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+                .then(function (result) {
+                    if (!result.data.ok) {
+                        throw new Error(result.data.error || "Azzeramento non riuscito.");
+                    }
+                    statusText.textContent = result.data.message || "Tabelle azzerate.";
+                    window.location.reload();
+                })
+                .catch(function (err) {
+                    statusText.textContent = err.message || "Errore durante l'azzeramento.";
+                    clearBtn.disabled = false;
+                    startBtn.disabled = false;
+                });
+        });
+    }
+});
+</script>
 {% endblock %}

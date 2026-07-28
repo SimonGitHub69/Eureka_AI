@@ -4,8 +4,18 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <meta name="theme-color" content="#1f2937">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Eureka AI">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <link rel="manifest" href="{% static 'eureka/manifest.webmanifest' %}">
+    <link rel="apple-touch-icon" href="{% static 'eureka/icons/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'eureka/icons/icon-192.png' %}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{% static 'eureka/icons/icon-512.png' %}">
 
     <title>{% block title %}Eureka AI{% endblock %}</title>
 
@@ -22,23 +32,24 @@
         })();
     </script>
 
-    <link rel="stylesheet" href="{% static '@tabler/core/dist/css/tabler.min.css' %}">
-    <link rel="stylesheet" href="{% static '@tabler/icons-webfont/dist/tabler-icons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/tabler/css/tabler.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/variables.css' %}">
-    <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}">
-    {% if user.is_authenticated %}
+    <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-1">
+    {% if user.is_authenticated and eureka_voice_enabled %}
     <link rel="stylesheet" href="{% static 'eureka/css/voice-assistant.css' %}">
     {% endif %}
 
     {% block extra_css %}{% endblock %}
 </head>
 
-<body>
+<body{% if eureka_navbar_fissa %} class="st-navbar-fixed"{% endif %}>
 
 <div class="page">
 
+    <div class="st-sidebar-backdrop" data-sidebar-backdrop hidden></div>
     {% include "base/sidebar.html" %}
 
     <div class="page-wrapper">
@@ -58,16 +69,18 @@
 
 </div>
 
-<script src="{% static '@tabler/core/dist/js/tabler.min.js' %}"></script>
-<script defer src="{% static 'alpinejs/dist/cdn.min.js' %}"></script>
-<script src="{% static 'htmx.org/dist/htmx.min.js' %}"></script>
+<script src="{% static 'vendor/tabler/js/tabler.min.js' %}"></script>
+<script defer src="{% static 'vendor/alpinejs/cdn.min.js' %}"></script>
+<script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
 <script src="{% static 'eureka/js/disable-autocomplete.js' %}"></script>
-<script src="{% static 'eureka/js/app.js' %}"></script>
-{% if user.is_authenticated %}
+<script>window.EUREKA_SW_URL = "{% url 'core:service_worker' %}";</script>
+<script src="{% static 'eureka/js/app.js' %}?v=share-helper-4"></script>
+{% if user.is_authenticated and eureka_voice_enabled %}
 <script>
     window.EUREKA_VOICE_ENABLED = true;
     window.EUREKA_VOICE_ROUTES = {
         dashboard: "{% url 'dashboard:index' %}",
+        agenda: "{% url 'agenda:calendario' %}",
         clienti: "{% url 'anagrafiche:clienti_list' %}",
         fornitori: "{% url 'anagrafiche:fornitori_list' %}",
         agenti: "{% url 'anagrafiche:agenti_list' %}",
@@ -77,21 +90,34 @@
         fatturato_regioni: "{% url 'fatture:analisi_regioni' %}",
         classifica_clienti: "{% url 'fatture:classifica' %}",
         categorie: "{% url 'categorie:list' %}",
+        condizioni: "{% url 'condizioni:list' %}",
+        aziende: "{% url 'aziende:list' %}",
         gruppi_articoli: "{% url 'gruppi_articoli:list' %}",
         gruppi_magazzini: "{% url 'gruppi_magazzini:list' %}",
         magazzini: "{% url 'magazzini:list' %}",
+        stampi: "{% url 'stampi:list' %}",
+        operatori: "{% url 'operatori:list' %}",
+        timbrature: "{% url 'timbrature:list' %}",
         regioni: "{% url 'geografia:regioni_list' %}",
         province: "{% url 'geografia:province_list' %}",
         citta: "{% url 'geografia:citta_list' %}",
+        parametri_programma: "{% url 'core:parametri_programma' %}",
         parametri_4d: "{% url 'core:parametri_4d' %}",
         parametri4d: "{% url 'core:parametri_4d' %}",
         sistema: "{% url 'dashboard:sistema' %}",
         sync_fatture: "{% url 'fatture:sync' %}",
         sync_anagrafiche: "{% url 'core:sync_anagrafiche' %}",
+        sync_aziende: "{% url 'aziende:sync' %}",
         sync_categorie: "{% url 'categorie:sync' %}",
+        sync_condizioni: "{% url 'condizioni:sync' %}",
         sync_gruppi_articoli: "{% url 'gruppi_articoli:sync' %}",
         sync_gruppi_magazzini: "{% url 'gruppi_magazzini:sync' %}",
-        sync_magazzini: "{% url 'magazzini:sync' %}"
+        sync_magazzini: "{% url 'magazzini:sync' %}",
+        sync_stampi: "{% url 'stampi:sync' %}",
+        sync_carbon: "{% url 'carbon:sync' %}",
+        sync_lavorazioni_extra: "{% url 'lavorazioni_extra:sync' %}",
+        sync_operatori: "{% url 'operatori:sync' %}",
+        sync_timbrature: "{% url 'timbrature:sync' %}"
     };
     window.EUREKA_VOICE_COMMANDS = {{ eureka_voice_commands_json|safe }};
 </script>

@@ -11,17 +11,20 @@ class AzioneComandoVocale(models.TextChoices):
 
 class DestinazioneComandoVocale(models.TextChoices):
     DASHBOARD = "dashboard", "Dashboard"
+    AGENDA = "agenda", "Agenda"
     CLIENTI = "clienti", "Clienti"
     FORNITORI = "fornitori", "Fornitori"
     AGENTI = "agenti", "Agenti"
     ARTICOLI = "articoli", "Articoli"
     FATTURE = "fatture", "Fatture"
     CATEGORIE = "categorie", "Categorie"
+    AZIENDE = "aziende", "Azienda"
     GRUPPI_ARTICOLI = "gruppi_articoli", "Gruppi articoli"
     PARAMETRI_4D = "parametri_4d", "Parametri 4D"
     SISTEMA = "sistema", "Sistema"
     SYNC_FATTURE = "sync_fatture", "Sync fatture 4D"
     SYNC_ANAGRAFICHE = "sync_anagrafiche", "Sync anagrafiche 4D"
+    SYNC_AZIENDE = "sync_aziende", "Sync azienda 4D"
     SYNC_CATEGORIE = "sync_categorie", "Sync categorie 4D"
     SYNC_GRUPPI_ARTICOLI = "sync_gruppi_articoli", "Sync gruppi articoli 4D"
 

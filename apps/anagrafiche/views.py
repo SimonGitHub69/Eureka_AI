@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.views.generic import DetailView, ListView
 
 from apps.anagrafiche.models import Agente, Cliente, Fornitore
-from apps.core.pagination import PerPageListMixin
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
 
 
 def _filter_anagrafica_queryset(model, request):
@@ -47,13 +47,13 @@ def _anagrafica_list_context(view, model, context):
     return context
 
 
-class ClienteListView(LoginRequiredMixin, PerPageListMixin, ListView):
+class ClienteListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
     model = Cliente
     template_name = "anagrafiche/cliente_list.html"
     context_object_name = "clienti"
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_mirror_queryset(self):
         return _filter_anagrafica_queryset(Cliente, self.request)
 
     def get_context_data(self, **kwargs):
@@ -68,13 +68,13 @@ class ClienteDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = "codice"
 
 
-class FornitoreListView(LoginRequiredMixin, PerPageListMixin, ListView):
+class FornitoreListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
     model = Fornitore
     template_name = "anagrafiche/fornitore_list.html"
     context_object_name = "fornitori"
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_mirror_queryset(self):
         return _filter_anagrafica_queryset(Fornitore, self.request)
 
     def get_context_data(self, **kwargs):
@@ -116,13 +116,13 @@ def _agente_list_context(view, context):
     return context
 
 
-class AgenteListView(LoginRequiredMixin, PerPageListMixin, ListView):
+class AgenteListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
     model = Agente
     template_name = "anagrafiche/agente_list.html"
     context_object_name = "agenti"
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_mirror_queryset(self):
         return _filter_agente_queryset(self.request)
 
     def get_context_data(self, **kwargs):
