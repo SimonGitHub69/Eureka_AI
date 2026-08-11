@@ -31,6 +31,13 @@ class Cliente(models.Model):
     note = models.TextField(null=True, blank=True, db_column="Note")
     fl_disattivato = models.BooleanField(null=True, blank=True, db_column="Fl_Disattivato")
     cliente_fittizio = models.BooleanField(null=True, blank=True, db_column="Cliente_Fittizio")
+    # Campi fattura elettronica
+    codice_ufficio = models.TextField(null=True, blank=True, db_column="CodiceUfficio")
+    flag_pa = models.BooleanField(null=True, blank=True, db_column="Flag_PA")
+    persona_fisica = models.BooleanField(null=True, blank=True, db_column="PersonaFisica")
+    cognome = models.TextField(null=True, blank=True, db_column="Cognome")
+    nome = models.TextField(null=True, blank=True, db_column="Nome")
+    cod_esenz_iva = models.TextField(null=True, blank=True, db_column="CodEsenzIva")
     synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

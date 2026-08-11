@@ -19,10 +19,16 @@
                 {% if fattura.is_nota_credito %}<span class="badge bg-orange-lt ms-1">Nota di credito</span>{% endif %}
             </div>
         </div>
-        <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Elenco
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'fatture:xml_sdi' fattura.id_testa %}" class="btn btn-primary">
+                <i class="ti ti-file-type-xml"></i>
+                XML SDI
+            </a>
+            <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Elenco
+            </a>
+        </div>
     </div>
 </div>
 
@@ -70,6 +76,14 @@
                 <div class="datagrid-content fw-bold">
                     {% if fattura.totale_fattura != None %}€ {{ fattura.totale_fattura|euro }}{% else %}—{% endif %}
                 </div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">Tipo doc. FE</div>
+                <div class="datagrid-content">{{ fattura.tipo_doc_fe|default:"—" }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="datagrid-title">File XML</div>
+                <div class="datagrid-content small text-break">{{ fattura.file_name|default:"—" }}</div>
             </div>
         </div>
     </div>

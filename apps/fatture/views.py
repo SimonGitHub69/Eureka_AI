@@ -5,7 +5,8 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.shortcuts import redirect, render
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views import View
@@ -26,6 +27,7 @@ from apps.core.pagination import (
 )
 from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
 from apps.fatture import analisi as analisi_fatturato
+from apps.fatture.fatturapa import FatturaPAError, build_fatturapa
 from apps.fatture.models import (
     Fattura,
     FatturaDettaglio,
@@ -127,6 +129,25 @@ class FatturaDetailView(LoginRequiredMixin, DetailView):
             id_testa=self.object.id_testa
         ).order_by("numero_riga", "id")
         return context
+
+
+class FatturaElettronicaXmlView(LoginRequiredMixin, View):
+    """Genera e scarica l'XML FatturaPA per lo SDI."""
+
+    def get(self, request, id_testa: int):
+        fattura = get_object_or_404(Fattura, pk=id_testa)
+        try:
+            result = build_fatturapa(fattura)
+        except FatturaPAError as exc:
+            messages.error(request, f"XML SDI non generabile: {exc}")
+            return redirect("fatture:detail", id_testa=id_testa)
+
+        response = HttpResponse(result.xml_bytes, content_type="application/xml")
+        response["Content-Disposition"] = f'attachment; filename="{result.filename}"'
+        response["X-FatturaPA-Formato"] = result.formato
+        if result.warnings:
+            response["X-FatturaPA-Warnings"] = " | ".join(result.warnings)[:500]
+        return response
 
 
 class SyncFattureView(LoginRequiredMixin, PermissionRequiredMixin, View):

@@ -4,6 +4,7 @@ from apps.fatture.views import (
     AnalisiFatturatoView,
     ClassificaClientiView,
     FatturaDetailView,
+    FatturaElettronicaXmlView,
     FatturaListView,
     FatturatoRegioniView,
     SyncFattureView,
@@ -25,5 +26,10 @@ urlpatterns = [
         name="classifica",
     ),
     path("fatture/<int:id_testa>/", FatturaDetailView.as_view(), name="detail"),
+    path(
+        "fatture/<int:id_testa>/xml-sdi/",
+        FatturaElettronicaXmlView.as_view(),
+        name="xml_sdi",
+    ),
     path("parametri/4d/sync-fatture/", SyncFattureView.as_view(), name="sync"),
 ]

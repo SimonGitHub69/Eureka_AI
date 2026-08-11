@@ -36,6 +36,12 @@ class Fattura(models.Model):
     data_fattura = models.DateTimeField(null=True, blank=True, db_column="DataFattura")
     cliente = models.TextField(null=True, blank=True, db_column="Cliente")
     destinatario = models.TextField(null=True, blank=True, db_column="Destinatario")
+    indirizzo = models.TextField(null=True, blank=True, db_column="Indirizzo")
+    localita = models.TextField(null=True, blank=True, db_column="Localita")
+    cap = models.TextField(null=True, blank=True, db_column="Cap")
+    provincia = models.TextField(null=True, blank=True, db_column="Prov")
+    nazione = models.TextField(null=True, blank=True, db_column="Nazione")
+    cod_iso_dest = models.TextField(null=True, blank=True, db_column="CodISO_Dest")
     totale_fattura = models.FloatField(null=True, blank=True, db_column="TotaleFattura")
     imponibile = models.FloatField(null=True, blank=True, db_column="Imponibile")
     alfa = models.TextField(null=True, blank=True, db_column="Alfa")
@@ -51,6 +57,17 @@ class Fattura(models.Model):
     imp_spese_bollo_virtuale = models.FloatField(
         null=True, blank=True, db_column="ImpSpeseBolloVirtuale"
     )
+    # Campi fattura elettronica SDI
+    cod_sdi = models.TextField(null=True, blank=True, db_column="CodSDI")
+    progressivo_invio = models.IntegerField(null=True, blank=True, db_column="ProgressivoInvio")
+    email_pec = models.TextField(null=True, blank=True, db_column="Email_PEC")
+    file_name = models.TextField(null=True, blank=True, db_column="FileName")
+    iban = models.TextField(null=True, blank=True, db_column="IBAN")
+    cod_pagamento = models.TextField(null=True, blank=True, db_column="CodPagamento")
+    cig = models.TextField(null=True, blank=True, db_column="FattPA_CIG")
+    cup = models.TextField(null=True, blank=True, db_column="CUP")
+    num_ordine_acq = models.TextField(null=True, blank=True, db_column="NumOrdineAcq")
+    data_ordine_acq = models.DateTimeField(null=True, blank=True, db_column="DataOrdineAcq")
     synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -156,6 +173,8 @@ class FatturaDettaglio(models.Model):
     quantita = models.FloatField(null=True, blank=True, db_column="Quantita")
     prezzo_unitario = models.FloatField(null=True, blank=True, db_column="PrezzoUnitario")
     iva = models.TextField(null=True, blank=True, db_column="Iva")
+    unita_misura = models.TextField(null=True, blank=True, db_column="UnitaMisura")
+    sconto = models.TextField(null=True, blank=True, db_column="Sconto")
     numero_riga = models.IntegerField(null=True, blank=True, db_column="NumeroRiga")
     synced_at = models.DateTimeField(null=True, blank=True)
 
