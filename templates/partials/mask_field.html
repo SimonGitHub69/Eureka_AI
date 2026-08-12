@@ -1,0 +1,27 @@
+{% comment %}
+Render a single form field compactly.
+Usage: {% include "partials/mask_field.html" with field=form.codice col="col-md-4" %}
+Optional: col (default col-12), check=1 for Si/No toggle
+{% endcomment %}
+<div class="{{ col|default:'col-12' }}">
+    {% if check %}
+    {% if not hide_label %}<div class="form-label mb-1">{{ field.label }}</div>{% endif %}
+    <label class="eureka-si-no-toggle" for="{{ field.id_for_label }}">
+        {{ field }}
+        <span class="eureka-si-no-toggle__track" aria-hidden="true">
+            <span class="eureka-si-no-toggle__knob"></span>
+            <span class="eureka-si-no-toggle__text eureka-si-no-toggle__text--no">No</span>
+            <span class="eureka-si-no-toggle__text eureka-si-no-toggle__text--si">Si</span>
+        </span>
+        <span class="visually-hidden">
+            <span class="eureka-si-no-toggle__sr-off">No</span>
+            <span class="eureka-si-no-toggle__sr-on">Si</span>
+        </span>
+    </label>
+    {% else %}
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% endif %}
+    {% if field.help_text %}<div class="form-hint">{{ field.help_text }}</div>{% endif %}
+    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+</div>

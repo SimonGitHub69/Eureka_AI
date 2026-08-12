@@ -19,6 +19,8 @@ urlpatterns = [
     path("", include("apps.distinte_base.urls")),
     path("", include("apps.categorie.urls")),
     path("", include("apps.condizioni.urls")),
+    path("", include("apps.aliquote.urls")),
+    path("", include("apps.banche.urls")),
     path("", include("apps.aziende.urls")),
     path("", include("apps.gruppi_articoli.urls")),
     path("", include("apps.gruppi_magazzini.urls")),
@@ -31,6 +33,10 @@ urlpatterns = [
     path("", include("apps.carbon.urls")),
     path("", include("apps.lavorazioni_extra.urls")),
     path("", include("apps.geografia.urls")),
+    path("", include("apps.pdc.urls")),
+    path("", include("apps.causali_contabili.urls")),
+    path("", include("apps.raggruppamento_conti.urls")),
+    path("", include("apps.raggruppamento_clifor.urls")),
 ]
 
 if settings.SERVE_MEDIA:

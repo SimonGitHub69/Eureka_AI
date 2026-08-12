@@ -42,6 +42,8 @@ from apps.core.sync_4d import quote_ident
 from apps.core.sync_anagrafiche import sync_clienti_fornitori
 from apps.categorie.sync import sync_categorie
 from apps.condizioni.sync import sync_condizioni
+from apps.aliquote.sync import sync_aliquote
+from apps.banche.sync import sync_banche
 from apps.distinte_base.sync import sync_distinte_base
 from apps.aziende.sync import sync_aziende
 from apps.fatture.sync import sync_fatture
@@ -54,6 +56,10 @@ from apps.stampi.sync import sync_stampi
 from apps.articoli.sync import sync_articoli
 from apps.operatori.sync import sync_operatori
 from apps.timbrature.sync import sync_timbrature
+from apps.pdc.sync import sync_pdc
+from apps.causali_contabili.sync import sync_causali_contabili
+from apps.raggruppamento_conti.sync import sync_raggruppamento_conti
+from apps.raggruppamento_clifor.sync import sync_raggruppamento_clifor
 
 
 SYNC_4D_STEPS = (
@@ -63,6 +69,13 @@ SYNC_4D_STEPS = (
         "description": "Clienti, Fornitori, Agenti",
         "runner": sync_clienti_fornitori,
         "tables": ("clienti", "fornitori", "agenti"),
+    },
+    {
+        "key": "raggruppamento_clifor",
+        "label": "Raggruppamento Clienti-Fornitori",
+        "description": "Gruppo_Cli_For (Tab_CliFor)",
+        "runner": sync_raggruppamento_clifor,
+        "tables": ("raggruppamento_clifor",),
     },
     {
         "key": "aziende",
@@ -84,6 +97,20 @@ SYNC_4D_STEPS = (
         "description": "CondizioniPag",
         "runner": sync_condizioni,
         "tables": ("condizioni",),
+    },
+    {
+        "key": "aliquote",
+        "label": "Aliquote IVA",
+        "description": "AliquoteIva",
+        "runner": sync_aliquote,
+        "tables": ("aliquote",),
+    },
+    {
+        "key": "banche",
+        "label": "Banche",
+        "description": "Banche",
+        "runner": sync_banche,
+        "tables": ("banche",),
     },
     {
         "key": "gruppi_articoli",
@@ -156,6 +183,27 @@ SYNC_4D_STEPS = (
         "tables": ("timbrature",),
     },
     {
+        "key": "pdc",
+        "label": "Piano dei Conti",
+        "description": "PDC",
+        "runner": sync_pdc,
+        "tables": ("pdc",),
+    },
+    {
+        "key": "causali_contabili",
+        "label": "Causali Contabili",
+        "description": "CausaliC",
+        "runner": sync_causali_contabili,
+        "tables": ("causali_contabili",),
+    },
+    {
+        "key": "raggruppamento_conti",
+        "label": "Raggruppamento Conti",
+        "description": "Raggruppamento",
+        "runner": sync_raggruppamento_conti,
+        "tables": ("raggruppamento_conti",),
+    },
+    {
         "key": "fatture",
         "label": "Fatture",
         "description": "Fatture e Fatture_Dettaglio",
@@ -193,7 +241,7 @@ class ParametriProgrammaView(LoginRequiredMixin, ParametriPermissionMixin, View)
 
     def post(self, request):
         instance = ConfigurazioneProgramma.get_solo()
-        form = ConfigurazioneProgrammaForm(request.POST, instance=instance)
+        form = ConfigurazioneProgrammaForm(request.POST, request.FILES, instance=instance)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.updated_by = request.user
@@ -645,6 +693,7 @@ class ConfigurazionePCCreateView(LoginRequiredMixin, ParametriPermissionMixin, C
         programma = ConfigurazioneProgramma.get_solo()
         initial.setdefault("assistente_vocale_attivo", programma.assistente_vocale_attivo)
         initial.setdefault("navbar_fissa", programma.navbar_fissa)
+        initial.setdefault("liste_fisse", programma.liste_fisse)
         return initial
 
     def get_context_data(self, **kwargs):

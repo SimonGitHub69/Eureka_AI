@@ -7,6 +7,15 @@
             <i class="ti ti-bulb" style="font-size:1.6rem;"></i>
         </div>
         <div class="st-brand-subtitle">Eureka AI</div>
+        <button
+            type="button"
+            class="st-sidebar-sections-toggle"
+            data-sidebar-sections-toggle
+            aria-label="Chiudi tutte le sezioni"
+            title="Chiudi tutte le sezioni">
+            <i class="ti ti-fold" data-sidebar-sections-icon></i>
+            <span class="st-sidebar-sections-toggle__label" data-sidebar-sections-label>Chiudi sezioni</span>
+        </button>
     </div>
 
     <nav class="st-sidebar-nav" data-sidebar-nav>
@@ -82,6 +91,35 @@
             </div>
         </div>
 
+        <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' %}is-open{% endif %}" data-nav-section="contabilita">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Contabilità</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.path|slice:':5' == '/pdc/' %}active{% endif %}" href="{% url 'pdc:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-report-money"></i></span>
+                    <span class="st-nav-label">Piano dei Conti</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':19' == '/causali-contabili/' %}active{% endif %}" href="{% url 'causali_contabili:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-file-description"></i></span>
+                    <span class="st-nav-label">Causali Contabili</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':22' == '/raggruppamento-conti/' %}active{% endif %}" href="{% url 'raggruppamento_conti:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-category-2"></i></span>
+                    <span class="st-nav-label">Raggruppamento Conti</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':22' == '/raggruppamento-clifor/' %}active{% endif %}" href="{% url 'raggruppamento_clifor:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-users-group"></i></span>
+                    <span class="st-nav-label">Raggr. Clienti-Fornitori</span>
+                </a>
+            </div>
+        </div>
+
         <div class="st-nav-collapse {% if request.path|slice:':8' == '/carbon/' or request.path|slice:':20' == '/schede-lavorazione/' or request.path|slice:':8' == '/stampi/' or request.path|slice:':12' == '/timbrature/' %}is-open{% endif %}" data-nav-section="carbon">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">CARBON</span>
@@ -128,7 +166,7 @@
             </div>
         </div>
 
-        <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':11' == '/operatori/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
+        <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':12' == '/condizioni/' or request.path|slice:':10' == '/aliquote/' or request.path|slice:':8' == '/banche/' or request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':11' == '/operatori/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Tabelle</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
@@ -138,6 +176,21 @@
                 <a class="st-nav-link {% if request.path|slice:':9' == '/aziende/' %}active{% endif %}" href="{% url 'aziende:list' %}">
                     <span class="st-nav-icon"><i class="ti ti-building"></i></span>
                     <span class="st-nav-label">Azienda</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':12' == '/condizioni/' %}active{% endif %}" href="{% url 'condizioni:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-cash"></i></span>
+                    <span class="st-nav-label">Condizioni di pagamento</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':10' == '/aliquote/' %}active{% endif %}" href="{% url 'aliquote:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-receipt-tax"></i></span>
+                    <span class="st-nav-label">Aliquote IVA</span>
+                </a>
+
+                <a class="st-nav-link {% if request.path|slice:':8' == '/banche/' %}active{% endif %}" href="{% url 'banche:list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-building-bank"></i></span>
+                    <span class="st-nav-label">Banche</span>
                 </a>
 
                 <a class="st-nav-link {% if request.path|slice:':11' == '/categorie/' %}active{% endif %}" href="{% url 'categorie:list' %}">
@@ -182,14 +235,18 @@
             </div>
         </div>
 
-        {% if perms.core.access_parametri_4d or user.is_superuser %}
-        <div class="st-nav-collapse {% if '/parametri/' in request.path %}is-open{% endif %}" data-nav-section="parametri">
+        <div class="st-nav-collapse {% if '/parametri/' in request.path or request.path|slice:':8' == '/offline' %}is-open{% endif %}" data-nav-section="parametri">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Parametri</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
                 <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
             </button>
             <div class="st-nav-collapse-body" data-nav-body>
+                <a class="st-nav-link {% if request.path|slice:':8' == '/offline' %}active{% endif %}" href="{% url 'core:offline' %}">
+                    <span class="st-nav-icon"><i class="ti ti-cloud-download"></i></span>
+                    <span class="st-nav-label">Dati offline</span>
+                </a>
+                {% if perms.core.access_parametri_4d or user.is_superuser %}
                 <a class="st-nav-link {% if request.path == '/parametri/programma/' %}active{% endif %}" href="{% url 'core:parametri_programma' %}">
                     <span class="st-nav-icon"><i class="ti ti-adjustments"></i></span>
                     <span class="st-nav-label">Programma</span>
@@ -210,9 +267,9 @@
                     <span class="st-nav-icon"><i class="ti ti-refresh"></i></span>
                     <span class="st-nav-label">Sync 4D</span>
                 </a>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
 
         <div class="st-nav-collapse {% if request.path == '/sistema/' %}is-open{% endif %}" data-nav-section="sistema">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>

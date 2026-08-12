@@ -1,0 +1,96 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Raggruppamento Clienti-Fornitori · Eureka AI{% endblock %}
+{% block page_title %}Raggruppamento Clienti-Fornitori{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-users-group"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Raggruppamento Clienti-Fornitori</h2>
+            <div class="text-secondary mt-1">
+                Raggruppamenti importati da 4D (<code>Gruppo_Cli_For</code> / Tab_CliFor)
+                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
+            </div>
+        </div>
+    </div>
+    <a href="{% url 'raggruppamento_clifor:create' %}" class="btn btn-primary">
+        <i class="ti ti-plus"></i>
+        Nuovo raggruppamento
+    </a>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        <form method="get" action="{% url 'raggruppamento_clifor:list' %}">
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i> Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'raggruppamento_clifor:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in raggruppamenti %}
+                <tr>
+                    <td>
+                        <a href="{% url 'raggruppamento_clifor:detail' item.codice %}" class="eureka-tlist-name">{{ item.codice }}</a>
+                    </td>
+                    <td>{{ item.descrizione|default:"—" }}</td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'raggruppamento_clifor:edit' item.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-users-off"></i></div>
+                            Nessun raggruppamento trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'raggruppamento_clifor:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

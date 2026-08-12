@@ -29,15 +29,22 @@
             } catch (error) {
                 document.documentElement.setAttribute("data-bs-theme", "light");
             }
+            try {
+                if (localStorage.getItem("eureka-sidebar-compact") === "1") {
+                    document.documentElement.classList.add("st-sidebar-compact");
+                }
+            } catch (error) { /* ignore */ }
         })();
     </script>
 
     <link rel="stylesheet" href="{% static 'vendor/tabler/css/tabler.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/variables.css' %}">
-    <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}">
-    <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}">
-    <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-1">
+    <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}?v=compact-2">
+    <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}?v=bar-2">
+    <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-3">
+    <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-16">
+    <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-17">
     {% if user.is_authenticated and eureka_voice_enabled %}
     <link rel="stylesheet" href="{% static 'eureka/css/voice-assistant.css' %}">
     {% endif %}
@@ -45,7 +52,16 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body{% if eureka_navbar_fissa %} class="st-navbar-fixed"{% endif %}>
+<body class="{% if eureka_navbar_fissa %}st-navbar-fixed{% endif %}{% if eureka_liste_fisse %} st-liste-fisse{% endif %}">
+<script>
+(function () {
+    try {
+        if (document.documentElement.classList.contains("st-sidebar-compact")) {
+            document.body.classList.add("st-sidebar-compact");
+        }
+    } catch (e) { /* ignore */ }
+})();
+</script>
 
 <div class="page">
 
@@ -54,7 +70,108 @@
 
     <div class="page-wrapper">
 
-        {% include "base/navbar.html" %}
+        {% block navbar %}
+        <header class="eureka-navbar">
+            <div class="eureka-navbar__inner">
+
+                <div class="eureka-navbar__left">
+                    <div class="eureka-navbar__tools">
+                        <button
+                            type="button"
+                            class="eureka-navbar__btn d-xxl-none"
+                            data-sidebar-toggle
+                            aria-label="Apri menu"
+                            title="Menu">
+                            <i class="ti ti-menu-2"></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="eureka-navbar__btn d-none d-xxl-inline-flex"
+                            data-sidebar-compact-toggle
+                            aria-label="Compatta menu"
+                            title="Compatta menu laterale">
+                            <i class="ti ti-layout-sidebar-left-collapse" data-sidebar-compact-icon></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="eureka-navbar__btn"
+                            data-sidebar-sections-toggle
+                            aria-label="Chiudi tutte le sezioni"
+                            title="Chiudi tutte le sezioni del menu">
+                            <i class="ti ti-fold" data-sidebar-sections-icon></i>
+                        </button>
+                        <span class="eureka-navbar__divider" aria-hidden="true"></span>
+                        <a href="{% url 'dashboard:index' %}"
+                           class="eureka-navbar__btn"
+                           aria-label="Vai alla Dashboard"
+                           title="Dashboard">
+                            <i class="ti ti-home"></i>
+                        </a>
+                    </div>
+
+                    <div class="eureka-navbar__title-wrap">
+                        <span class="eureka-navbar__eyebrow">Eureka AI</span>
+                        <h1 class="eureka-navbar__title">
+                            {% block page_title %}Dashboard{% endblock %}
+                        </h1>
+                    </div>
+                </div>
+
+                <div class="eureka-navbar__right">
+                    <div class="eureka-navbar__tools">
+                        {% if eureka_voice_enabled %}
+                        <button
+                            type="button"
+                            class="eureka-navbar__btn eureka-navbar__btn--accent"
+                            data-voice-toggle
+                            aria-label="Comando vocale"
+                            title="Comando vocale">
+                            <i class="ti ti-microphone"></i>
+                        </button>
+                        {% endif %}
+
+                        <button
+                            type="button"
+                            class="eureka-navbar__btn"
+                            data-theme-toggle
+                            aria-label="Attiva tema scuro"
+                            title="Attiva tema scuro">
+                            <i class="ti ti-moon" data-theme-toggle-icon></i>
+                        </button>
+                    </div>
+
+                    <div class="dropdown">
+                        <a href="#"
+                           class="eureka-navbar__user"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false"
+                           aria-label="Menu utente">
+                            <span class="eureka-navbar__avatar">
+                                {{ request.user.first_name|default:request.user.username|first|upper }}
+                            </span>
+                            <span class="eureka-navbar__user-meta">
+                                <span class="eureka-navbar__user-name">
+                                    {{ request.user.get_full_name|default:request.user.username }}
+                                </span>
+                                <span class="eureka-navbar__user-role">Utente</span>
+                            </span>
+                            <i class="ti ti-chevron-down eureka-navbar__user-caret" aria-hidden="true"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end eureka-navbar__menu">
+                            <a class="dropdown-item" href="{% url 'dashboard:sistema' %}">
+                                <i class="ti ti-settings me-2"></i> Impostazioni
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                <i class="ti ti-logout me-2"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </header>
+        {% endblock %}
 
         <div class="page-body">
             <div class="container-xl">
@@ -74,7 +191,12 @@
 <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
 <script src="{% static 'eureka/js/disable-autocomplete.js' %}"></script>
 <script>window.EUREKA_SW_URL = "{% url 'core:service_worker' %}";</script>
-<script src="{% static 'eureka/js/app.js' %}?v=share-helper-6"></script>
+<script src="{% static 'eureka/js/app.js' %}?v=share-helper-10"></script>
+<script>
+    window.EUREKA_ERROR_SOUND_ENABLED = {% if eureka_error_sound_enabled %}true{% else %}false{% endif %};
+    window.EUREKA_ERROR_SOUND_URL = "{{ eureka_error_sound_url|default:''|escapejs }}";
+</script>
+<script src="{% static 'eureka/js/error-feedback.js' %}?v=3"></script>
 {% if user.is_authenticated and eureka_voice_enabled %}
 <script>
     window.EUREKA_VOICE_ENABLED = true;
@@ -92,6 +214,14 @@
         classifica_clienti: "{% url 'fatture:classifica' %}",
         categorie: "{% url 'categorie:list' %}",
         condizioni: "{% url 'condizioni:list' %}",
+        aliquote: "{% url 'aliquote:list' %}",
+        banche: "{% url 'banche:list' %}",
+        pdc: "{% url 'pdc:list' %}",
+        piano_conti: "{% url 'pdc:list' %}",
+        causali_contabili: "{% url 'causali_contabili:list' %}",
+        causali: "{% url 'causali_contabili:list' %}",
+        raggruppamento_conti: "{% url 'raggruppamento_conti:list' %}",
+        raggruppamento_clifor: "{% url 'raggruppamento_clifor:list' %}",
         aziende: "{% url 'aziende:list' %}",
         gruppi_articoli: "{% url 'gruppi_articoli:list' %}",
         gruppi_magazzini: "{% url 'gruppi_magazzini:list' %}",
@@ -111,6 +241,12 @@
         sync_aziende: "{% url 'aziende:sync' %}",
         sync_categorie: "{% url 'categorie:sync' %}",
         sync_condizioni: "{% url 'condizioni:sync' %}",
+        sync_aliquote: "{% url 'aliquote:sync' %}",
+        sync_banche: "{% url 'banche:sync' %}",
+        sync_pdc: "{% url 'pdc:sync' %}",
+        sync_causali_contabili: "{% url 'causali_contabili:sync' %}",
+        sync_raggruppamento_conti: "{% url 'raggruppamento_conti:sync' %}",
+        sync_raggruppamento_clifor: "{% url 'raggruppamento_clifor:sync' %}",
         sync_distinte_base: "{% url 'distinte_base:sync' %}",
         sync_gruppi_articoli: "{% url 'gruppi_articoli:sync' %}",
         sync_gruppi_magazzini: "{% url 'gruppi_magazzini:sync' %}",

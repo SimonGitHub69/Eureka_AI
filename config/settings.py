@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     "apps.distinte_base",
     "apps.categorie",
     "apps.condizioni",
+    "apps.aliquote",
+    "apps.banche",
     "apps.aziende",
     "apps.gruppi_articoli",
     "apps.gruppi_magazzini",
@@ -41,6 +43,10 @@ INSTALLED_APPS = [
     "apps.carbon",
     "apps.lavorazioni_extra",
     "apps.geografia",
+    "apps.pdc",
+    "apps.causali_contabili",
+    "apps.raggruppamento_conti",
+    "apps.raggruppamento_clifor",
 ]
 
 MIDDLEWARE = [
