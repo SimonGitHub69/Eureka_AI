@@ -196,7 +196,7 @@
     window.EUREKA_ERROR_SOUND_ENABLED = {% if eureka_error_sound_enabled %}true{% else %}false{% endif %};
     window.EUREKA_ERROR_SOUND_URL = "{{ eureka_error_sound_url|default:''|escapejs }}";
 </script>
-<script src="{% static 'eureka/js/error-feedback.js' %}?v=3"></script>
+<script src="{% static 'eureka/js/error-feedback.js' %}?v=4"></script>
 {% if user.is_authenticated and eureka_voice_enabled %}
 <script>
     window.EUREKA_VOICE_ENABLED = true;
