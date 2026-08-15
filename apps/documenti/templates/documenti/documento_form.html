@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'eureka/css/long-text-editor.css' %}?v=2">
-<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=22">
+<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=27">
 {% endblock %}
 
 {% block content %}
@@ -40,6 +40,11 @@
     <div class="eureka-mask-hero__actions">
         {% if not is_create %}
         <a href="{% url 'documenti:detail' tipo_doc=tipo.codice pk=documento.pk %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Dettaglio</a>
+        {% endif %}
+        {% if tipo.codice == "PRV" %}
+        <a href="{% url 'documenti:parametri_spese' tipo_doc=tipo.codice %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline-secondary btn-sm" title="Aliquota IVA spese">
+            <i class="ti ti-settings"></i> Parametri
+        </a>
         {% endif %}
         <a href="{% url 'documenti:list' tipo_doc=tipo.codice %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list"></i> Elenco</a>
     </div>
@@ -139,6 +144,8 @@
                     <div class="row g-compact">
                         {% include "partials/mask_field.html" with field=form.valuta col="col-sm-2 eureka-doc-field--key" %}
                         {% include "partials/mask_field.html" with field=form.cambio col="col-sm-2 eureka-doc-field--key" %}
+                        {% include "partials/mask_linked_code.html" with field=form.codice_sconto label=sconto_label tipo="sconto" col="col-sm-2 eureka-doc-field--key" %}
+                        {% include "partials/mask_field.html" with field=form.sconto col="col-sm-2 eureka-doc-field--key" %}
                     </div>
                     <div class="row g-compact">
                         {% include "partials/mask_linked_code.html" with field=form.cod_cau_trasp label=cau_trasp_label tipo="causale_trasp" col="col-sm-7" %}
@@ -158,7 +165,6 @@
                         <span>Note</span>
                     </div>
                     <div class="row g-compact">
-                        {% include "partials/mask_field.html" with field=form.desc_causale col="col-12" %}
                         {% include "partials/mask_field.html" with field=form.note col="col-12" %}
                         {% include "partials/mask_field.html" with field=form.annotazioni col="col-12" %}
                     </div>
@@ -400,10 +406,11 @@
 <script src="{% static 'eureka/js/long-text-editor.js' %}?v=10"></script>
 <script src="{% static 'eureka/js/documenti.js' %}?v=12"></script>
 <script>window.EUREKA_ALIQUOTE_MAP = {{ aliquote_map_json|default:"{}"|safe }};</script>
+<script>window.EUREKA_SCONTI_MAP = {{ sconti_map_json|default:"{}"|safe }};</script>
 <script>window.EUREKA_ALIQUOTA_IVA_SPESE = {{ aliquota_iva_spese_json|default:'""'|safe }};</script>
-<script src="{% static 'eureka/js/documento-castelletto.js' %}?v=14"></script>
+<script src="{% static 'eureka/js/documento-castelletto.js' %}?v=19"></script>
 <script src="{% static 'eureka/js/documento-riga-articolo.js' %}?v=6"></script>
-<script src="{% static 'eureka/js/linked-lookups.js' %}?v=20"></script>
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=22"></script>
 <script src="{% static 'eureka/js/documento-scadenze.js' %}?v=3"></script>
 {# numero-riga-js v=10: next = max(numeri non-deleted) + 10 #}
 <script data-numero-riga-js="10">

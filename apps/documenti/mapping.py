@@ -174,6 +174,17 @@ HEADER_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "file_name": ("FileName",),
     "iban": ("IBAN",),
     "cod_banca": ("Cod_Banca", "CodBanca", "CodiceBanca", "Banca"),
+    "codice_sconto": (
+        "CodiceSconto",
+        "Cod_Sconto",
+        "CodSconto",
+        "Sconto",
+        "ScontoTes",
+    ),
+    # % composta testata (se presente in 4D); altrimenti sync risolve da tabella Sconti
+    "sconto_1": ("Sconto1",),
+    "sconto_2": ("Sconto2",),
+    "sconto_3": ("Sconto3",),
     "cod_pagamento": (
         "CodPagamento",
         "CondPaga",
@@ -404,6 +415,16 @@ def resolve_detail_tipo_doc(
     return header_tipo_by_id_4d.get(id_testa, "FAT")
 
 
+def compose_sconto_percentuali(row: Mapping[str, Any]) -> str:
+    """Compone Sconto1+Sconto2+Sconto3 (cascata) se valorizzati in testata 4D."""
+    parts: list[str] = []
+    for field in ("sconto_1", "sconto_2", "sconto_3"):
+        raw = normalize_text(pick_mapped(row, field, HEADER_FIELD_ALIASES))
+        if raw and raw not in {"0", "0.0", "0,0"}:
+            parts.append(raw)
+    return "+".join(parts)
+
+
 def map_header_row(
     row: Mapping[str, Any],
     *,
@@ -489,6 +510,10 @@ def map_header_row(
         "file_name": normalize_text(pick_mapped(row, "file_name", HEADER_FIELD_ALIASES)),
         "iban": normalize_text(pick_mapped(row, "iban", HEADER_FIELD_ALIASES)),
         "cod_banca": normalize_text(pick_mapped(row, "cod_banca", HEADER_FIELD_ALIASES)),
+        "codice_sconto": normalize_text(
+            pick_mapped(row, "codice_sconto", HEADER_FIELD_ALIASES)
+        ),
+        "sconto": compose_sconto_percentuali(row),
         "cod_pagamento": normalize_text(
             pick_mapped(row, "cod_pagamento", HEADER_FIELD_ALIASES)
         ),

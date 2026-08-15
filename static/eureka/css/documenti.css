@@ -1,0 +1,1053 @@
+/* Documenti — tipo-specific polish (PRV first; safe for shared templates) */
+
+.eureka-doc--prv {
+    --doc-accent: #0d9488;
+    --doc-accent-rgb: 13, 148, 136;
+    --doc-accent-soft: rgba(13, 148, 136, 0.12);
+    --doc-accent-mid: rgba(13, 148, 136, 0.18);
+    --doc-accent-border: rgba(13, 148, 136, 0.22);
+}
+
+/* ── List hero ─────────────────────────────────────────────── */
+.eureka-doc--prv.eureka-tlist .eureka-tlist-hero {
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(var(--doc-accent-rgb), 0.16), transparent 55%),
+        radial-gradient(90% 110% at 100% 0%, rgba(32, 107, 196, 0.06), transparent 48%),
+        var(--tblr-bg-surface, #fff);
+    border-color: var(--doc-accent-border);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-hero:hover {
+    box-shadow: 0 8px 24px -18px rgba(var(--doc-accent-rgb), 0.45);
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-hero__icon {
+    background: linear-gradient(145deg, var(--doc-accent-mid), var(--doc-accent-soft));
+    color: var(--doc-accent);
+    box-shadow: inset 0 0 0 1px rgba(var(--doc-accent-rgb), 0.14);
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-avatar {
+    background: var(--doc-accent-soft) !important;
+    color: var(--doc-accent) !important;
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-name:hover {
+    color: var(--doc-accent);
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-code {
+    background: var(--doc-accent-soft);
+    color: var(--doc-accent);
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-chip .ti {
+    color: var(--doc-accent) !important;
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-table tbody tr:hover {
+    background: rgba(var(--doc-accent-rgb), 0.04);
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-actions .btn {
+    color: var(--doc-accent);
+    background: var(--doc-accent-soft);
+}
+.eureka-doc--prv.eureka-tlist .eureka-tlist-actions .btn:hover {
+    background: var(--doc-accent-mid);
+}
+.eureka-doc--prv.eureka-tlist .eureka-doc-amount {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+.eureka-doc--prv.eureka-tlist .eureka-doc-amount--total {
+    color: var(--doc-accent);
+}
+
+/* ── Mask hero (detail / form) ─────────────────────────────── */
+.eureka-doc--prv.eureka-mask .eureka-mask-hero {
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(var(--doc-accent-rgb), 0.14), transparent 55%),
+        radial-gradient(80% 100% at 100% 0%, rgba(32, 107, 196, 0.05), transparent 50%),
+        var(--tblr-bg-surface, #fff);
+    border-color: var(--doc-accent-border);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.eureka-doc--prv.eureka-mask .eureka-mask-hero__icon,
+.eureka-doc--prv.eureka-mask .eureka-mask-hero__icon--prv {
+    background: linear-gradient(145deg, var(--doc-accent-mid), var(--doc-accent-soft));
+    color: var(--doc-accent);
+    box-shadow: inset 0 0 0 1px rgba(var(--doc-accent-rgb), 0.14);
+}
+.eureka-doc--prv .eureka-doc-badge {
+    background: var(--doc-accent-soft) !important;
+    color: var(--doc-accent) !important;
+}
+
+/* KPI strip — stronger hierarchy for totals */
+.eureka-doc--prv.eureka-mask .eureka-mask-kpi {
+    transition: border-color 0.18s ease, transform 0.18s ease;
+}
+.eureka-doc--prv.eureka-mask .eureka-mask-kpi:hover {
+    border-color: var(--doc-accent-border);
+    transform: translateY(-1px);
+}
+.eureka-doc--prv .eureka-doc-kpi--total {
+    border-color: var(--doc-accent-border);
+    background:
+        linear-gradient(135deg, rgba(var(--doc-accent-rgb), 0.07), transparent 70%),
+        var(--tblr-bg-surface, #fff);
+}
+.eureka-doc--prv .eureka-doc-kpi--total .eureka-mask-kpi__value {
+    color: var(--doc-accent);
+}
+
+/* Section cards */
+.eureka-doc--prv .eureka-mask-card .eureka-mask-card__icon {
+    color: var(--doc-accent);
+    background: var(--doc-accent-soft);
+}
+.eureka-doc--prv .eureka-doc-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.eureka-doc--prv .eureka-doc-lines {
+    border-top: 2px solid rgba(var(--doc-accent-rgb), 0.18);
+}
+.eureka-doc--prv .eureka-doc-lines thead th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tblr-secondary, #667382);
+    font-weight: 600;
+    background: rgba(var(--doc-accent-rgb), 0.04);
+}
+.eureka-doc-th-icon {
+    opacity: 0.75;
+    font-size: 0.95em;
+    margin-right: 0.28rem;
+    vertical-align: -0.08em;
+}
+.eureka-doc--prv .eureka-doc-lines tbody tr {
+    transition: background-color 0.15s ease;
+}
+.eureka-doc--prv .eureka-doc-lines tbody tr:hover {
+    background: rgba(var(--doc-accent-rgb), 0.035);
+}
+.eureka-doc--prv .eureka-doc-lines td {
+    font-variant-numeric: tabular-nums;
+}
+.eureka-doc--prv .eureka-doc-line-num {
+    color: var(--tblr-secondary, #667382);
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+.eureka-doc--prv .eureka-doc-line-code {
+    font-weight: 650;
+    color: var(--doc-accent);
+}
+
+/* Form lines table */
+.eureka-doc--prv #righeCard .card-header {
+    border-bottom-color: var(--doc-accent-border);
+}
+.eureka-doc--prv #righeTable thead th {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tblr-secondary, #667382);
+    font-weight: 600;
+    background: rgba(var(--doc-accent-rgb), 0.04);
+    border-bottom: 1px solid var(--doc-accent-border);
+}
+.eureka-doc--prv #righeTable thead th .eureka-doc-th-icon,
+.eureka-doc--prv .eureka-doc-lines thead th .eureka-doc-th-icon {
+    color: var(--doc-accent);
+    opacity: 0.85;
+    font-size: 0.95em;
+    margin-right: 0.28rem;
+    vertical-align: -0.08em;
+}
+/* Descrizione expand (Allarga) — PRV teal, clearly visible */
+.eureka-doc--prv .eureka-long-text__btn--expand {
+    color: var(--doc-accent);
+    background: var(--doc-accent-soft);
+    border-color: var(--doc-accent-border);
+}
+.eureka-doc--prv .eureka-long-text__btn--expand:hover,
+.eureka-doc--prv .eureka-long-text__btn--expand:focus-visible {
+    color: #fff;
+    background: var(--doc-accent);
+    border-color: var(--doc-accent);
+    box-shadow: 0 0 0 0.15rem rgba(var(--doc-accent-rgb), 0.28);
+}
+.eureka-doc--prv #righeTable .btn-elimina-riga .ti-trash {
+    font-size: 1rem;
+}
+.eureka-doc--prv #righeTable .riga-form-row {
+    transition: background-color 0.15s ease;
+}
+.eureka-doc--prv #righeTable .riga-form-row:hover {
+    background: rgba(var(--doc-accent-rgb), 0.03);
+}
+.eureka-doc--prv #righeTable .form-control:focus,
+.eureka-doc--prv #righeTable .form-select:focus {
+    border-color: rgba(var(--doc-accent-rgb), 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(var(--doc-accent-rgb), 0.12);
+}
+.eureka-doc--prv .btn-outline-primary {
+    --tblr-btn-color: var(--doc-accent);
+    --tblr-btn-border-color: rgba(var(--doc-accent-rgb), 0.45);
+    --tblr-btn-hover-bg: var(--doc-accent);
+    --tblr-btn-hover-border-color: var(--doc-accent);
+    --tblr-btn-active-bg: var(--doc-accent);
+    --tblr-btn-active-border-color: var(--doc-accent);
+    color: var(--doc-accent);
+    border-color: rgba(var(--doc-accent-rgb), 0.45);
+}
+.eureka-doc--prv .btn-outline-primary:hover,
+.eureka-doc--prv .btn-outline-primary:focus-visible {
+    background: var(--doc-accent);
+    border-color: var(--doc-accent);
+    color: #fff;
+}
+.eureka-doc--prv .btn-primary {
+    --tblr-btn-bg: var(--doc-accent);
+    --tblr-btn-border-color: var(--doc-accent);
+    --tblr-btn-hover-bg: #0f766e;
+    --tblr-btn-hover-border-color: #0f766e;
+    background-color: var(--doc-accent);
+    border-color: var(--doc-accent);
+}
+.eureka-doc--prv .btn-primary:hover,
+.eureka-doc--prv .btn-primary:focus-visible {
+    background-color: #0f766e;
+    border-color: #0f766e;
+}
+
+[data-bs-theme="dark"] .eureka-doc--prv.eureka-tlist .eureka-tlist-hero,
+[data-bs-theme="dark"] .eureka-doc--prv.eureka-mask .eureka-mask-hero {
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(var(--doc-accent-rgb), 0.22), transparent 55%),
+        var(--tblr-bg-surface, #1b2434);
+}
+[data-bs-theme="dark"] .eureka-doc--prv .eureka-doc-lines thead th,
+[data-bs-theme="dark"] .eureka-doc--prv #righeTable thead th {
+    background: rgba(var(--doc-accent-rgb), 0.1);
+}
+[data-bs-theme="dark"] .eureka-doc--prv .eureka-long-text__btn--expand {
+    background: rgba(var(--doc-accent-rgb), 0.2);
+    border-color: rgba(var(--doc-accent-rgb), 0.4);
+    color: #5eead4;
+}
+
+/* ── Collapsible sections: testata + righe (detail + form) ──── */
+.eureka-doc-collapse__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.35rem 0.15rem 0.15rem;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 0.35rem;
+    min-width: 0;
+    text-align: left;
+    flex: 1 1 auto;
+}
+.eureka-doc-collapse__toggle:hover {
+    background: rgba(32, 107, 196, 0.06);
+}
+.eureka-doc-collapse__toggle:focus-visible {
+    outline: 2px solid rgba(32, 107, 196, 0.35);
+    outline-offset: 1px;
+}
+.eureka-doc-collapse__chevron {
+    font-size: 1.05rem;
+    line-height: 1;
+    transition: transform 0.15s ease;
+    color: var(--tblr-secondary, #667382);
+    flex-shrink: 0;
+}
+.eureka-doc-collapse:not(.is-collapsed) .eureka-doc-collapse__chevron {
+    transform: rotate(90deg);
+}
+.eureka-doc-collapse__title {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+.eureka-doc-collapse__count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(32, 107, 196, 0.1);
+    color: var(--tblr-primary, #206bc4);
+    flex-shrink: 0;
+}
+.eureka-doc-collapse__summary {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    margin-left: 0.25rem;
+    flex: 1 1 auto;
+}
+.eureka-doc-collapse.is-collapsed .eureka-doc-collapse__summary {
+    display: inline-flex;
+}
+.eureka-doc-collapse__summary-chip {
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(32, 107, 196, 0.08);
+    color: var(--tblr-secondary, #667382);
+    white-space: nowrap;
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.eureka-doc-collapse__summary-chip--strong {
+    background: rgba(32, 107, 196, 0.12);
+    color: var(--tblr-primary, #206bc4);
+}
+.eureka-doc-collapse.is-collapsed .eureka-doc-collapse__body {
+    display: none;
+}
+/* Form: keep Salva footer; hide only the secondary “Aggiungi” when body is collapsed */
+.eureka-doc-righe.is-collapsed > .card-footer #btnAggiungiRigaFooter {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Compact row height when expanded */
+.eureka-doc-righe .eureka-doc-lines.card-table > :not(caption) > * > * {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+}
+.eureka-doc-righe #righeTable.table-sm > :not(caption) > * > * {
+    padding-top: 0.28rem;
+    padding-bottom: 0.28rem;
+}
+
+/* Row search (codice o descrizione) */
+.eureka-doc-righe-search {
+    flex: 1 1 12rem;
+    max-width: 18rem;
+    min-width: 9rem;
+}
+.eureka-doc-righe-search .form-control {
+    min-height: 2rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+.eureka-doc-riga--nomatch {
+    display: none !important;
+}
+.eureka-doc-righe-filter-empty {
+    font-size: 0.8rem;
+    color: var(--tblr-secondary, #667382);
+    padding: 0.65rem 0.25rem 0.25rem;
+}
+/* Combobox articolo (CODICE/DESCRIZIONE): menu portaled, non clipped dalla table */
+.eureka-doc-articolo-combo-menu.eureka-combo__menu.is-portaled {
+    overflow: auto;
+}
+#righeTable .eureka-doc-articolo-combo.eureka-combo {
+    width: 100%;
+    min-width: 0;
+}
+#righeTable .eureka-long-text .eureka-doc-articolo-combo {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#righeTable .eureka-doc-articolo-combo > .form-control {
+    padding-right: 2rem;
+}
+.eureka-doc--prv .eureka-doc-righe-search .form-control:focus {
+    border-color: rgba(var(--doc-accent-rgb), 0.55);
+    box-shadow: 0 0 0 0.2rem rgba(var(--doc-accent-rgb), 0.15);
+}
+
+.eureka-doc--prv .eureka-doc-collapse__toggle:hover {
+    background: var(--doc-accent-soft);
+}
+.eureka-doc--prv .eureka-doc-collapse__toggle:focus-visible {
+    outline-color: rgba(var(--doc-accent-rgb), 0.45);
+}
+.eureka-doc--prv .eureka-doc-collapse__chevron {
+    color: var(--doc-accent);
+}
+.eureka-doc--prv .eureka-doc-collapse__count,
+.eureka-doc--prv .eureka-doc-collapse__summary-chip--strong {
+    background: var(--doc-accent-soft);
+    color: var(--doc-accent);
+}
+.eureka-doc--prv .eureka-doc-collapse__summary-chip {
+    background: rgba(var(--doc-accent-rgb), 0.08);
+}
+
+/* ── Testata: grouped hierarchy (form + detail) ─────────────── */
+.eureka-doc-testata-card {
+    --testata-label: var(--tblr-secondary, #667382);
+    --testata-accent: var(--tblr-primary, #206bc4);
+    --testata-accent-rgb: 32, 107, 196;
+    --testata-accent-soft: rgba(32, 107, 196, 0.08);
+    --testata-accent-mid: rgba(32, 107, 196, 0.14);
+    --testata-border: rgba(98, 105, 118, 0.12);
+}
+
+.eureka-doc-testata {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-top: 0.85rem;
+    padding-bottom: 0.95rem;
+}
+
+.eureka-doc-testata-card > .card-header {
+    background:
+        linear-gradient(90deg, rgba(var(--testata-accent-rgb), 0.09), transparent 48%),
+        var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.04));
+}
+
+.eureka-doc-testata__block {
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+
+.eureka-doc-testata__label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.55rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--testata-border);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--testata-label);
+    line-height: 1.2;
+}
+
+.eureka-doc-testata__label .ti {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--testata-accent);
+    background: var(--testata-accent-soft);
+    flex-shrink: 0;
+}
+
+/* Compact Importi (spese) — under righe, before castelletto */
+.eureka-doc-importi-card {
+    --testata-accent: var(--tblr-primary, #206bc4);
+    --testata-accent-rgb: 32, 107, 196;
+    border-color: rgba(var(--testata-accent-rgb), 0.18);
+}
+
+.eureka-doc-importi-card > .card-body {
+    background:
+        linear-gradient(145deg, rgba(var(--testata-accent-rgb, 32, 107, 196), 0.05), transparent 62%),
+        var(--tblr-bg-surface, #fff);
+}
+
+.eureka-doc-importi {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.65rem 0.85rem;
+    flex-wrap: wrap;
+}
+
+.eureka-doc-importi__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0;
+    padding: 0.15rem 0.45rem 0.15rem 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--testata-accent, #206bc4);
+    white-space: nowrap;
+}
+
+.eureka-doc-importi__title .ti {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.eureka-doc-importi__fields {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem 0.45rem;
+    flex: 1 1 22rem;
+    min-width: 0;
+}
+
+@media (max-width: 1199.98px) {
+    .eureka-doc-importi__fields {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    .eureka-doc-importi__fields {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .eureka-doc-importi {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .eureka-doc-importi__fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.eureka-doc-importi__field {
+    min-width: 0;
+}
+
+.eureka-doc-importi__field .form-label {
+    margin-bottom: 0.15rem;
+    font-size: 0.68rem;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.eureka-doc-importi__field .form-control,
+.eureka-doc-importi__field .form-select {
+    min-height: 1.85rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.eureka-doc-importi--detail .eureka-doc-importi__field .form-control {
+    pointer-events: none;
+    user-select: none;
+    cursor: default;
+}
+
+.eureka-doc-testata__block--notes {
+    padding-top: 0.15rem;
+}
+
+.eureka-doc-testata__block--notes textarea[name="note"] {
+    min-height: 2.4rem;
+}
+
+/* Causale: una sola riga compatta; allargare con long-text-editor */
+.eureka-doc-testata__block--notes textarea[name="desc_causale"] {
+    min-height: 2.05rem;
+    height: 2.05rem;
+    resize: none;
+}
+
+/* Destinatario (anagrafica) | Luogo di Destinazione (testata) — come 4D */
+.eureka-doc-party {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: stretch;
+}
+@media (max-width: 767.98px) {
+    .eureka-doc-party {
+        grid-template-columns: 1fr;
+    }
+}
+.eureka-doc-party__col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 0.75rem;
+    border: 1px solid var(--tblr-border-color, rgba(98, 105, 118, 0.18));
+    border-radius: 0.5rem;
+    background: var(--tblr-bg-surface, #fff);
+}
+.eureka-doc-party__col .eureka-doc-testata__label {
+    margin: 0 0 0.65rem;
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--tblr-border-color, rgba(98, 105, 118, 0.18));
+    background: var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.06));
+    border-radius: 0.5rem 0.5rem 0 0;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.eureka-doc-party__col .eureka-doc-testata__label > span:first-of-type {
+    flex: 1 1 auto;
+}
+.eureka-doc-party__open-link {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--tblr-primary, #206bc4);
+    white-space: nowrap;
+}
+.eureka-doc-party__open-link[hidden] {
+    display: none !important;
+}
+.eureka-doc-party__open-link:hover {
+    text-decoration: underline;
+}
+.eureka-doc-party__name-link {
+    color: inherit;
+    text-decoration: none;
+}
+.eureka-doc-party__name-link:hover {
+    color: var(--tblr-primary, #206bc4);
+    text-decoration: underline;
+}
+.eureka-doc-party__code a {
+    color: inherit;
+    text-decoration: none;
+}
+.eureka-doc-party__code a:hover {
+    color: var(--tblr-primary, #206bc4);
+    text-decoration: underline;
+}
+.eureka-doc-party__col .row {
+    padding: 0 0.75rem;
+}
+.eureka-doc-party__col--destinatario .eureka-linked-label {
+    display: none;
+}
+.eureka-doc-party__col--destinatario .eureka-linked-field.is-resolved .eureka-combo,
+.eureka-doc-party__col--destinatario .eureka-linked-field.is-resolved .eureka-combo > .form-control {
+    max-width: none;
+    flex: 1 1 auto;
+    border-radius: 0.4rem;
+}
+.eureka-doc-party__col--destinatario .eureka-linked-field.is-resolved .eureka-combo__toggle {
+    border-bottom-right-radius: 0.4rem;
+}
+.eureka-doc-party__col--destinazione .eureka-doc-field--destinazione {
+    margin-bottom: 0.15rem;
+}
+.eureka-doc-party__col--destinatario .form-control[readonly] {
+    background: var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.05));
+    color: inherit;
+    cursor: default;
+}
+.eureka-doc-party__read {
+    padding: 0 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-height: 6.5rem;
+}
+.eureka-doc-party__name {
+    font-weight: 650;
+    font-size: 0.92rem;
+    line-height: 1.3;
+}
+.eureka-doc-party__code {
+    font-size: 0.75rem;
+    color: var(--tblr-secondary, #667382);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 0.25rem;
+}
+.eureka-doc-party__line {
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+.eureka-doc--prv .eureka-doc-party__col {
+    border-color: var(--doc-accent-border);
+}
+.eureka-doc--prv .eureka-doc-party__col .eureka-doc-testata__label {
+    border-bottom-color: var(--doc-accent-border);
+    background: rgba(var(--doc-accent-rgb), 0.08);
+}
+
+[data-bs-theme="dark"] .eureka-doc-party__col {
+    background: var(--tblr-bg-surface, #1b2434);
+}
+
+/* Key fields: Data, Cliente, Totale */
+.eureka-doc-field--key > .form-label,
+.eureka-doc-field--key .eureka-mask-field__label {
+    font-weight: 650;
+    color: var(--tblr-body-color, #1e293b);
+}
+
+.eureka-doc-field--key > .form-control,
+.eureka-doc-field--key .eureka-combo .form-control {
+    border-color: rgba(var(--testata-accent-rgb), 0.28);
+    background:
+        linear-gradient(180deg, rgba(var(--testata-accent-rgb), 0.03), transparent 70%),
+        var(--tblr-bg-forms, #fff);
+}
+
+.eureka-doc-field--key > .form-control:focus,
+.eureka-doc-field--key .eureka-combo .form-control:focus {
+    border-color: rgba(var(--testata-accent-rgb), 0.5);
+    box-shadow: 0 0 0 0.2rem rgba(var(--testata-accent-rgb), 0.12);
+}
+
+.eureka-doc-field--date > .form-control {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.eureka-doc-field--cliente .eureka-linked-label {
+    border-color: rgba(var(--testata-accent-rgb), 0.2);
+}
+
+/* Cond. pagamento: codice + descrizione affiancati (come 4D) */
+.eureka-doc-field--pagamento .eureka-linked-field__control {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: nowrap;
+}
+.eureka-doc-field--pagamento .eureka-combo {
+    flex: 1 1 auto;
+    min-width: 5.5rem;
+}
+.eureka-doc-field--pagamento .eureka-linked-field.is-resolved .eureka-combo {
+    flex: 0 0 6.5rem;
+    max-width: 8rem;
+}
+.eureka-doc-field--pagamento .eureka-linked-field.is-resolved .eureka-combo > .form-control {
+    border-bottom-left-radius: 0.4rem;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-color: inherit;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.eureka-doc-field--pagamento .eureka-linked-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    border-top: 1px solid rgba(32, 107, 196, 0.16);
+    border-left: 0;
+    border-radius: 0 0.45rem 0.45rem 0;
+    align-items: center;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+}
+
+.eureka-doc-field--total > .form-label,
+.eureka-doc-field--total .eureka-mask-field__label {
+    color: var(--testata-accent);
+}
+
+.eureka-doc-field--total > .form-control {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    color: var(--testata-accent);
+    border-color: rgba(var(--testata-accent-rgb), 0.35);
+    background:
+        linear-gradient(135deg, rgba(var(--testata-accent-rgb), 0.1), transparent 65%),
+        var(--tblr-bg-forms, #fff);
+}
+
+.eureka-doc-field--total [data-totale-spese] {
+    pointer-events: none;
+    user-select: none;
+    cursor: default;
+}
+
+.eureka-doc-testata--detail .eureka-doc-field--cliente .eureka-mask-field__value {
+    font-size: 0.95rem;
+}
+
+.eureka-doc-testata--detail .eureka-doc-field--cliente {
+    padding: 0.45rem 0.55rem;
+    border-radius: 0.45rem;
+    border: 1px solid rgba(var(--testata-accent-rgb), 0.14);
+    background: rgba(var(--testata-accent-rgb), 0.04);
+}
+
+/* PRV teal identity on testata */
+.eureka-doc--prv .eureka-doc-testata-card {
+    --testata-accent: var(--doc-accent);
+    --testata-accent-rgb: var(--doc-accent-rgb);
+    --testata-accent-soft: var(--doc-accent-soft);
+    --testata-accent-mid: var(--doc-accent-mid);
+    --testata-border: var(--doc-accent-border);
+}
+
+.eureka-doc--prv .eureka-doc-testata-card > .card-header {
+    background:
+        linear-gradient(90deg, rgba(var(--doc-accent-rgb), 0.12), transparent 52%),
+        var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.04));
+    border-bottom-color: var(--doc-accent-border);
+}
+
+.eureka-doc--prv .eureka-doc-importi-card {
+    --testata-accent: var(--doc-accent);
+    --testata-accent-rgb: var(--doc-accent-rgb);
+    border-color: var(--doc-accent-border);
+    box-shadow: 0 6px 18px -16px rgba(var(--doc-accent-rgb), 0.55);
+}
+
+.eureka-doc--prv .eureka-doc-importi__title {
+    color: var(--doc-accent);
+}
+
+.eureka-doc--prv .eureka-doc-field--total > .form-control {
+    color: var(--doc-accent);
+}
+
+[data-bs-theme="dark"] .eureka-doc-importi-card > .card-body {
+    background:
+        linear-gradient(145deg, rgba(var(--testata-accent-rgb, 32, 107, 196), 0.12), transparent 62%),
+        var(--tblr-bg-surface, #1b2434);
+}
+
+[data-bs-theme="dark"] .eureka-doc-field--key > .form-control,
+[data-bs-theme="dark"] .eureka-doc-field--key .eureka-combo .form-control,
+[data-bs-theme="dark"] .eureka-doc-field--total > .form-control {
+    background:
+        linear-gradient(180deg, rgba(var(--testata-accent-rgb), 0.1), transparent 70%),
+        var(--tblr-bg-forms, #1b2434);
+}
+
+[data-bs-theme="dark"] .eureka-doc-testata--detail .eureka-doc-field--cliente {
+    background: rgba(var(--testata-accent-rgb), 0.1);
+}
+
+/* ── Castelletto IVA ───────────────────────────────────────── */
+.eureka-doc-castelletto-card > .card-header {
+    background: var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.04));
+}
+
+.eureka-doc-castelletto__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(11rem, 14rem);
+    gap: 0.85rem;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .eureka-doc-castelletto__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.eureka-doc-castelletto__table {
+    font-variant-numeric: tabular-nums;
+}
+
+.eureka-doc-castelletto__table thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--tblr-secondary, #667382);
+    border-bottom-width: 1px;
+    white-space: nowrap;
+}
+
+.eureka-doc-castelletto__totals {
+    background: rgba(32, 107, 196, 0.08);
+    color: #1e3a8a;
+}
+
+.eureka-doc-castelletto__totals td {
+    border-top: 1px solid rgba(32, 107, 196, 0.22);
+    font-size: 0.9rem;
+}
+
+.eureka-doc-castelletto__row--spese td {
+    color: var(--tblr-secondary, #667382);
+}
+
+.eureka-doc-castelletto__side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.eureka-doc-castelletto__side-box {
+    border: 1px solid var(--tblr-border-color, rgba(98, 105, 118, 0.16));
+    border-radius: 0.4rem;
+    background: var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.04));
+    padding: 0.35rem 0.5rem;
+}
+
+.eureka-doc-castelletto__side-box--total {
+    border-color: rgba(var(--testata-accent-rgb, 32, 107, 196), 0.28);
+    background:
+        linear-gradient(135deg, rgba(var(--testata-accent-rgb, 32, 107, 196), 0.1), transparent 70%),
+        var(--tblr-bg-surface, #fff);
+}
+
+.eureka-doc-castelletto__side-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--tblr-secondary, #667382);
+    margin-bottom: 0.1rem;
+}
+
+.eureka-doc-castelletto__side-value {
+    font-size: 0.8125rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+}
+
+.eureka-doc-castelletto__side-value--total {
+    font-size: 0.9rem;
+    font-weight: 750;
+    color: var(--testata-accent, #206bc4);
+}
+
+.eureka-doc--prv .eureka-doc-castelletto__totals {
+    background: rgba(var(--doc-accent-rgb), 0.1);
+    color: var(--doc-accent);
+}
+
+.eureka-doc--prv .eureka-doc-castelletto__totals td {
+    border-top-color: var(--doc-accent-border);
+}
+
+.eureka-doc--prv .eureka-doc-castelletto__side-box--total {
+    border-color: var(--doc-accent-border);
+}
+
+.eureka-doc--prv .eureka-doc-castelletto__side-value--total {
+    color: var(--doc-accent);
+}
+
+[data-bs-theme="dark"] .eureka-doc-castelletto__totals {
+    background: rgba(32, 107, 196, 0.18);
+    color: #93c5fd;
+}
+
+[data-bs-theme="dark"] .eureka-doc-castelletto__side-box--total {
+    background:
+        linear-gradient(135deg, rgba(var(--testata-accent-rgb, 32, 107, 196), 0.16), transparent 70%),
+        var(--tblr-bg-surface, #1b2434);
+}
+
+/* Scadenze card — N date (numero rate libero) */
+.eureka-doc-scadenze {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.6rem, 1fr));
+    gap: 0.45rem;
+}
+.eureka-doc-scadenze__slot {
+    min-width: 0;
+    padding: 0.4rem 0.4rem 0.45rem;
+    border: 1px solid rgba(98, 105, 118, 0.18);
+    border-radius: 0.45rem;
+    background: var(--tblr-bg-forms, #fff);
+}
+.eureka-doc-scadenze__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.15rem;
+    margin-bottom: 0.2rem;
+    min-height: 1.15rem;
+}
+.eureka-doc-scadenze__remove {
+    flex-shrink: 0;
+    width: 1.2rem;
+    height: 1.2rem;
+    padding: 0;
+    line-height: 1;
+}
+.eureka-doc-scadenze__remove .ti {
+    font-size: 0.85rem;
+}
+.eureka-doc-scadenze__slot.is-filled {
+    border-color: rgba(var(--testata-accent-rgb, 32, 107, 196), 0.28);
+    background:
+        linear-gradient(180deg, rgba(var(--testata-accent-rgb, 32, 107, 196), 0.06), transparent 70%),
+        var(--tblr-bg-forms, #fff);
+}
+.eureka-doc-scadenze__num {
+    display: block;
+    margin-bottom: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--tblr-secondary, #667382);
+}
+.eureka-doc-scadenze__date {
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    font-size: 0.82rem;
+    line-height: 1.25;
+}
+.eureka-doc-scadenze__importo {
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--tblr-secondary, #667382);
+}
+.eureka-doc-scadenze__slot .form-control {
+    padding: 0.25rem 0.3rem;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+@media (max-width: 575.98px) {
+    .eureka-doc-scadenze {
+        grid-template-columns: repeat(auto-fill, minmax(6.2rem, 1fr));
+    }
+}
+
+.eureka-doc-numero {
+    display: flex;
+    align-items: stretch;
+}
+.eureka-doc-numero > .form-control {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    min-width: 0;
+}
+.eureka-doc-numero:not(:has(.eureka-doc-numero__serie[hidden])) > .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.eureka-doc-numero__serie {
+    display: flex;
+    align-items: center;
+    padding: 0 0.65rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: var(--tblr-body-color, #1e293b);
+    background: rgba(var(--testata-accent-rgb, 32, 107, 196), 0.08);
+    border: 1px solid var(--tblr-border-color, #dce0e5);
+    border-left: 0;
+    border-radius: 0 var(--tblr-border-radius, 0.4rem) var(--tblr-border-radius, 0.4rem) 0;
+    white-space: nowrap;
+    user-select: none;
+}
+.eureka-doc-numero__serie[hidden] {
+    display: none !important;
+}
+[data-bs-theme="dark"] .eureka-doc-numero__serie {
+    background: rgba(var(--testata-accent-rgb, 32, 107, 196), 0.16);
+}
+
+.eureka-doc--prv .eureka-doc-scadenze-card {
+    border-color: var(--doc-accent-border);
+}
+.eureka-doc--prv .eureka-doc-scadenze__slot.is-filled {
+    border-color: rgba(var(--doc-accent-rgb), 0.28);
+}

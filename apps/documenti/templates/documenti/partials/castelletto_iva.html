@@ -1,0 +1,92 @@
+{% load format_tags %}
+{# Castelletto IVA — richiede `castelletto` (CastellettoResult) opzionale #}
+<div class="eureka-doc-castelletto" id="castellettoIva" data-castelletto
+     {% if calc_peso_url %}data-calc-peso-url="{{ calc_peso_url }}"{% endif %}>
+    <div class="eureka-doc-castelletto__grid">
+        <div class="eureka-doc-castelletto__table-wrap">
+            <div class="table-responsive">
+                <table class="table table-sm table-vcenter mb-0 eureka-doc-castelletto__table">
+                    <thead>
+                        <tr>
+                            <th class="text-end">Tot. Merce</th>
+                            <th class="text-end">Tot. Sconto</th>
+                            <th class="text-end">Tot. Netto</th>
+                            <th>Tipo Aliquota Iva</th>
+                            <th class="text-end">Tot. IVA</th>
+                            <th class="text-end">Imponibile + IVA</th>
+                        </tr>
+                    </thead>
+                    <tbody data-castelletto-body>
+                        {% if castelletto and castelletto.righe %}
+                        {% for row in castelletto.righe %}
+                        <tr class="{% if row.is_spese %}eureka-doc-castelletto__row--spese{% endif %}">
+                            <td class="text-end text-nowrap" data-col="merce">{{ row.merce|euro }}</td>
+                            <td class="text-end text-nowrap" data-col="sconto">{{ row.sconto|euro }}</td>
+                            <td class="text-end text-nowrap" data-col="netto">{{ row.netto|euro }}</td>
+                            <td data-col="label">{{ row.label }}</td>
+                            <td class="text-end text-nowrap" data-col="iva">{{ row.iva|euro }}</td>
+                            <td class="text-end text-nowrap" data-col="imponibile-iva">{{ row.imponibile_iva|euro }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr class="eureka-doc-castelletto__empty" data-castelletto-empty>
+                            <td colspan="6" class="text-secondary text-center py-3">Nessuna riga valorizzata</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="eureka-doc-castelletto__totals">
+                            <td class="text-end text-nowrap fw-bold" data-castelletto-totale-merce>
+                                {% if castelletto %}{{ castelletto.totale_merce|euro }}{% else %}0,00{% endif %}
+                            </td>
+                            <td class="text-end text-nowrap fw-bold" data-castelletto-totale-sconto>
+                                {% if castelletto %}{{ castelletto.totale_sconto|euro }}{% else %}0,00{% endif %}
+                            </td>
+                            <td class="text-end text-nowrap fw-bold" data-castelletto-totale-netto>
+                                {% if castelletto %}{{ castelletto.totale_netto|euro }}{% else %}0,00{% endif %}
+                            </td>
+                            <td class="text-secondary small">Totali</td>
+                            <td class="text-end text-nowrap fw-bold" data-castelletto-totale-iva>
+                                {% if castelletto %}{{ castelletto.totale_iva|euro }}{% else %}0,00{% endif %}
+                            </td>
+                            <td class="text-end text-nowrap fw-bold" data-castelletto-totale-imponibile-iva>
+                                {% if castelletto %}{{ castelletto.totale_documento|euro }}{% else %}0,00{% endif %}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        <aside class="eureka-doc-castelletto__side" aria-label="Totali documento">
+            <div class="eureka-doc-castelletto__side-box">
+                <div class="eureka-doc-castelletto__side-label">Totale Quantità</div>
+                <div class="eureka-doc-castelletto__side-value" data-castelletto-quantita data-totale-quantita>
+                    {% if castelletto %}{{ castelletto.totale_quantita|euro }}{% else %}0,00{% endif %}
+                </div>
+            </div>
+            <div class="eureka-doc-castelletto__side-box">
+                <div class="eureka-doc-castelletto__side-label d-flex align-items-center justify-content-between gap-2">
+                    <span>Totale Peso</span>
+                    {% if interactive %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" data-castelletto-calc-peso title="Calcola peso dagli articoli">
+                        Calc
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="eureka-doc-castelletto__side-value" data-castelletto-peso data-totale-peso>
+                    {% if castelletto and castelletto.totale_peso != None %}
+                    {{ castelletto.totale_peso|euro }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-doc-castelletto__side-box eureka-doc-castelletto__side-box--total">
+                <div class="eureka-doc-castelletto__side-label">Totale Documento</div>
+                <div class="eureka-doc-castelletto__side-value eureka-doc-castelletto__side-value--total" data-castelletto-totale-doc>
+                    {% if castelletto %}EUR {{ castelletto.totale_documento|euro }}{% else %}EUR 0,00{% endif %}
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>

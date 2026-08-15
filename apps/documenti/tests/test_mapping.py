@@ -125,6 +125,7 @@ class FieldMappingTests(SimpleTestCase):
             "Cambio": 1.0,
             "AddSpese": "Si",
             "Cod_Banca": "000683",
+            "Sconto": "3",
             "Data1": "28/07/2026",
             "Data2": "28/08/2026",
             "Data10": "28/04/2027",
@@ -152,7 +153,44 @@ class FieldMappingTests(SimpleTestCase):
         self.assertEqual(mapped["cambio"], 1.0)
         self.assertTrue(mapped["add_spese"])
         self.assertEqual(mapped["cod_banca"], "000683")
+        self.assertEqual(mapped["codice_sconto"], "3")
+        self.assertEqual(mapped["sconto"], "")
         self.assertEqual(mapped["scadenze"], ["2026-07-28", "2026-08-28", "2027-04-28"])
+
+    def test_map_header_codice_sconto_prefers_codicesconto(self):
+        mapped = map_header_row(
+            {"ID_Testa": 1, "Cliente": "C1", "CodiceSconto": "10", "Sconto": "3"},
+            tipo_doc="PRV",
+            source_table="Preventivi",
+            clifor_tipo="C",
+        )
+        self.assertEqual(mapped["codice_sconto"], "10")
+
+    def test_map_header_sconto_from_sconto123(self):
+        mapped = map_header_row(
+            {
+                "ID_Testa": 1,
+                "Cliente": "C1",
+                "Sconto": "50A",
+                "Sconto1": "10",
+                "Sconto2": "5",
+                "Sconto3": "",
+            },
+            tipo_doc="PRV",
+            source_table="Preventivi",
+            clifor_tipo="C",
+        )
+        self.assertEqual(mapped["codice_sconto"], "50A")
+        self.assertEqual(mapped["sconto"], "10+5")
+
+    def test_map_header_codice_sconto_alias_scontotes(self):
+        mapped = map_header_row(
+            {"ID_Testa": 1, "Fornitore": "F1", "ScontoTes": "5"},
+            tipo_doc="ORA",
+            source_table="Ordini_Acquisto",
+            clifor_tipo="F",
+        )
+        self.assertEqual(mapped["codice_sconto"], "5")
 
     def test_map_header_cod_banca_alias_banca(self):
         mapped = map_header_row(

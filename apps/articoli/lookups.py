@@ -18,6 +18,7 @@ LOOKUP_TIPI = (
     "porto",
     "causale_trasp",
     "banca",
+    "sconto",
 )
 
 
@@ -197,6 +198,19 @@ def descrizione_banca(codice: str | None) -> str:
 
         obj = Banca.objects.filter(codice__iexact=codice).only("descrizione").first()
         return ((obj.descrizione if obj else "") or "").strip()
+    except Exception:
+        return ""
+
+
+def descrizione_sconto(codice: str | None) -> str:
+    codice = _norm(codice)
+    if not codice:
+        return ""
+    try:
+        from apps.sconti.models import Sconto
+
+        obj = Sconto.objects.filter(codice__iexact=codice).only("sconto").first()
+        return ((obj.sconto if obj else "") or "").strip()
     except Exception:
         return ""
 
@@ -409,6 +423,7 @@ _RESOLVERS = {
     "porto": descrizione_porto,
     "causale_trasp": descrizione_causale_trasp,
     "banca": descrizione_banca,
+    "sconto": descrizione_sconto,
 }
 
 
@@ -626,6 +641,18 @@ def search_opzioni(
             return [
                 _row(o.codice, o.descrizione)
                 for o in qs.order_by("descrizione", "codice")[:limit]
+            ]
+
+        if tipo == "sconto":
+            from apps.sconti.models import Sconto
+            from django.db.models import Q
+
+            qs = Sconto.objects.all().only("codice", "sconto")
+            if q:
+                qs = qs.filter(Q(codice__icontains=q) | Q(sconto__icontains=q))
+            return [
+                _row(o.codice, o.sconto)
+                for o in qs.order_by("codice")[:limit]
             ]
 
         if tipo == "articolo":

@@ -2,6 +2,7 @@ from django import forms
 from django.forms import BaseInlineFormSet, inlineformset_factory
 
 from apps.core.mirror_crud import apply_control_widgets
+from apps.core.models import ParametriContabili
 from apps.documenti.layout import CAMPO_RIGA_CHOICES
 from apps.documenti.models import (
     ColonnaRigaDocumento,
@@ -89,9 +90,10 @@ class TestaDocumentoForm(forms.ModelForm):
             "cod_cau_trasp",
             "iban",
             "cod_banca",
+            "codice_sconto",
+            "sconto",
             "num_ordine_acq",
             "data_ordine_acq",
-            "desc_causale",
             "note",
             "annotazioni",
         ]
@@ -127,9 +129,10 @@ class TestaDocumentoForm(forms.ModelForm):
             "cod_cau_trasp": "Causale trasporto",
             "iban": "IBAN",
             "cod_banca": "Banca",
+            "codice_sconto": "Codice",
+            "sconto": "Sconto",
             "num_ordine_acq": "N. ordine acquisto",
             "data_ordine_acq": "Data ordine acquisto",
-            "desc_causale": "Causale",
             "note": "Note",
             "annotazioni": "Annotazioni",
         }
@@ -173,13 +176,6 @@ class TestaDocumentoForm(forms.ModelForm):
                     "rows": 3,
                     "data-long-text-edit": "1",
                     "data-long-text-title": "Annotazioni",
-                }
-            ),
-            "desc_causale": forms.Textarea(
-                attrs={
-                    "rows": 1,
-                    "data-long-text-edit": "1",
-                    "data-long-text-title": "Causale",
                 }
             ),
         }
@@ -231,7 +227,7 @@ class TestaDocumentoForm(forms.ModelForm):
         apply_control_widgets(
             self,
             exclude={"contatore_scelto"},
-            keep_textarea={"note", "desc_causale"},
+            keep_textarea={"note", "annotazioni"},
         )
         for name in (
             "spese_imballo",
@@ -750,3 +746,24 @@ def riga_formset_for(tipo, *args, **kwargs):
     form_kwargs["visible_campos"] = campi_visibili(colonne_riga_for(tipo))
     kwargs["form_kwargs"] = form_kwargs
     return RigaDocumentoFormSet(*args, **kwargs)
+
+
+class AliquotaIvaSpeseForm(forms.ModelForm):
+    """Solo aliquota IVA spese (Parametri contabili), da maschera Preventivi."""
+
+    class Meta:
+        model = ParametriContabili
+        fields = ["aliquota_iva_spese"]
+        labels = {"aliquota_iva_spese": "Aliquota IVA spese"}
+        widgets = {
+            "aliquota_iva_spese": forms.TextInput(
+                attrs={"class": "form-control", "autocomplete": "off"}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["aliquota_iva_spese"].required = False
+
+    def clean_aliquota_iva_spese(self):
+        return (self.cleaned_data.get("aliquota_iva_spese") or "").strip()

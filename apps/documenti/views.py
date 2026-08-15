@@ -40,7 +40,13 @@ from apps.documenti.castelletto import (
     format_euro,
     get_aliquota_iva_spese,
 )
-from apps.documenti.forms import RigaDocumentoFormSet, TestaDocumentoForm, riga_formset_for
+from apps.documenti.sconto import sconti_map_for_js
+from apps.documenti.forms import (
+    AliquotaIvaSpeseForm,
+    RigaDocumentoFormSet,
+    TestaDocumentoForm,
+    riga_formset_for,
+)
 from apps.documenti.layout import colonne_riga_for
 from apps.anagrafiche.models import clienti_mirror_available
 from apps.documenti.models import (
@@ -374,6 +380,17 @@ def _banca_label(form: TestaDocumentoForm) -> str:
     return ""
 
 
+def _sconto_label(form: TestaDocumentoForm) -> str:
+    from apps.articoli.lookups import resolve_descrizione
+
+    if form.is_bound:
+        return resolve_descrizione("sconto", form.data.get("codice_sconto"))
+    instance = getattr(form, "instance", None)
+    if instance:
+        return resolve_descrizione("sconto", getattr(instance, "codice_sconto", None))
+    return ""
+
+
 def _form_pagamento_display(form: TestaDocumentoForm) -> str:
     from apps.anagrafiche.lookups import condizione_display
 
@@ -442,9 +459,11 @@ def _documento_form_context(
         "porto_label": _porto_label(form),
         "cau_trasp_label": _cau_trasp_label(form),
         "banca_label": _banca_label(form),
+        "sconto_label": _sconto_label(form),
         "lookup_url": reverse("articoli:lookup_codice"),
         "castelletto": castelletto,
         "aliquote_map_json": json.dumps(aliquote_map_for_js(), ensure_ascii=False),
+        "sconti_map_json": json.dumps(sconti_map_for_js(), ensure_ascii=False),
         "aliquota_iva_spese_json": json.dumps(
             get_aliquota_iva_spese(), ensure_ascii=False
         ),
@@ -458,6 +477,8 @@ def _documento_form_context(
 def _castelletto_from_formset(form, formset):
     """Anteprima castelletto da form/formset (anche non salvati)."""
     from apps.documenti.castelletto import calcola_castelletto
+    from apps.documenti.sconto import header_sconto_from_documento
+    from types import SimpleNamespace
 
     righe = []
     for f in formset.forms:
@@ -475,7 +496,10 @@ def _castelletto_from_formset(form, formset):
                 "sconto",
                 "iva",
             ):
-                data[name] = getattr(inst, name, None) or f.initial.get(name)
+                val = getattr(inst, name, None)
+                if val in (None, "") and getattr(f, "initial", None):
+                    val = f.initial.get(name)
+                data[name] = val
             if not any(data.get(n) not in (None, "") for n in data):
                 continue
             righe.append(data)
@@ -501,7 +525,7 @@ def _castelletto_from_formset(form, formset):
     if not form.is_bound and not righe and getattr(formset, "instance", None):
         inst = formset.instance
         if getattr(inst, "pk", None):
-            return calcola_castelletto_documento(inst, with_peso=False)
+            return calcola_castelletto_documento(inst, with_peso=True)
 
     spese = {}
     if form.is_bound and hasattr(form, "cleaned_data") and form.cleaned_data:
@@ -524,10 +548,22 @@ def _castelletto_from_formset(form, formset):
         ):
             spese[name] = getattr(form.instance, name, None)
 
+    header_sconto = ""
+    if form.is_bound and hasattr(form, "cleaned_data") and form.cleaned_data:
+        header_sconto = header_sconto_from_documento(
+            SimpleNamespace(
+                sconto=form.cleaned_data.get("sconto"),
+                codice_sconto=form.cleaned_data.get("codice_sconto"),
+            )
+        )
+    elif getattr(form, "instance", None):
+        header_sconto = header_sconto_from_documento(form.instance)
+
     return calcola_castelletto(
         righe,
         spese=spese,
         aliquota_iva_spese=get_aliquota_iva_spese(),
+        header_sconto=header_sconto,
     )
 
 
@@ -706,6 +742,7 @@ class DocumentoDetailView(LoginRequiredMixin, DetailView):
             "causale_trasp", self.object.cod_cau_trasp
         )
         context["banca_label"] = resolve_descrizione("banca", self.object.cod_banca)
+        context["sconto_label"] = resolve_descrizione("sconto", self.object.codice_sconto)
         context["scadenze"] = scadenze_for_documento(
             self.object, codice_pagamento=codice_pag
         )
@@ -1045,6 +1082,105 @@ class SyncDocumentiStatusView(LoginRequiredMixin, PermissionRequiredMixin, View)
     def get(self, request, log_id, *args, **kwargs):
         log = get_object_or_404(SyncDocumentiLog, pk=log_id)
         return JsonResponse({"ok": True, "log": _sync_documenti_log_snapshot(log)})
+
+
+def _safe_next_url(request, *, fallback: str) -> str:
+    """Redirect interno: query ``next`` o header Referer se stesso host."""
+    candidates = [
+        (request.POST.get("next") or request.GET.get("next") or "").strip(),
+        (request.META.get("HTTP_REFERER") or "").strip(),
+    ]
+    for raw in candidates:
+        if not raw:
+            continue
+        from urllib.parse import urlparse
+
+        parsed = urlparse(raw)
+        if parsed.scheme or parsed.netloc:
+            if parsed.netloc and parsed.netloc != request.get_host():
+                continue
+            path = parsed.path or "/"
+            if parsed.query:
+                path = f"{path}?{parsed.query}"
+            if path.startswith("/") and not path.startswith("//"):
+                return path
+        elif raw.startswith("/") and not raw.startswith("//"):
+            return raw
+    return fallback
+
+
+class DocumentoParametriSpeseView(LoginRequiredMixin, View):
+    """Parametri Preventivi: modifica aliquota IVA spese (Parametri contabili)."""
+
+    template_name = "documenti/parametri_spese.html"
+    allowed_tipi = frozenset({"PRV"})
+
+    def dispatch(self, request, *args, **kwargs):
+        self.tipo = _resolve_tipo_doc(kwargs.get("tipo_doc", ""))
+        if self.tipo.codice not in self.allowed_tipi:
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def _list_url(self) -> str:
+        return reverse("documenti:list", kwargs={"tipo_doc": self.tipo.codice})
+
+    def _context(self, form, *, next_url: str) -> dict:
+        from apps.articoli.lookups import resolve_descrizione
+        from apps.core.models import ParametriContabili
+
+        code = (
+            form.data.get("aliquota_iva_spese")
+            if form.is_bound
+            else form.instance.aliquota_iva_spese
+        )
+        return {
+            "tipo": self.tipo,
+            "form": form,
+            "iva_label": resolve_descrizione("iva", code),
+            "lookup_url": reverse("articoli:lookup_codice"),
+            "next_url": next_url,
+            "parametri_contabili_url": reverse("core:parametri_contabili"),
+            "list_url": self._list_url(),
+            "aliquota_corrente": ParametriContabili.get_solo().aliquota_iva_spese_codice(),
+        }
+
+    def get(self, request, *args, **kwargs):
+        from apps.core.models import ParametriContabili
+
+        instance = ParametriContabili.get_solo()
+        form = AliquotaIvaSpeseForm(instance=instance)
+        next_url = _safe_next_url(request, fallback=self._list_url())
+        return render(
+            request, self.template_name, self._context(form, next_url=next_url)
+        )
+
+    def post(self, request, *args, **kwargs):
+        from apps.core.models import ParametriContabili
+
+        instance = ParametriContabili.get_solo()
+        form = AliquotaIvaSpeseForm(request.POST, instance=instance)
+        next_url = _safe_next_url(request, fallback=self._list_url())
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.updated_by = request.user
+            if not obj.created_by:
+                obj.created_by = request.user
+            obj.save()
+            code = obj.aliquota_iva_spese_codice()
+            if code:
+                messages.success(
+                    request,
+                    f"Aliquota IVA spese impostata su «{code}».",
+                )
+            else:
+                messages.success(
+                    request,
+                    "Aliquota IVA spese azzerata (si userà quella della prima riga merce).",
+                )
+            return redirect(next_url)
+        return render(
+            request, self.template_name, self._context(form, next_url=next_url)
+        )
 
 
 class SyncDocumentiCancelView(LoginRequiredMixin, PermissionRequiredMixin, View):

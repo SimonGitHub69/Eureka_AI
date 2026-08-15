@@ -416,6 +416,8 @@ class TestaDocumento(models.Model):
     file_name = models.TextField(blank=True)  # 4D: FileName
     iban = models.TextField(blank=True)  # 4D: IBAN
     cod_banca = models.TextField(blank=True)  # 4D: Cod_Banca / Banca
+    codice_sconto = models.TextField(blank=True)  # 4D: Sconto (codice Tabella Sconti)
+    sconto = models.TextField(blank=True)  # % da Sconti.Sconto (o Sconto1+2+3)
     cod_pagamento = models.TextField(blank=True)  # 4D: CodPagamento
     cig = models.TextField(blank=True)  # 4D: FattPA_CIG
     cup = models.TextField(blank=True)  # 4D: CUP

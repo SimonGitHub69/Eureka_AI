@@ -1,0 +1,82 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}Parametri · {{ tipo.label }} · Eureka AI{% endblock %}
+{% block page_title %}Parametri {{ tipo.label }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=22">
+{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-doc eureka-doc--prv">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--prv">
+            <i class="ti ti-settings"></i>
+        </span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">Parametri {{ tipo.label }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="badge eureka-doc-badge">{{ tipo.codice }}</span>
+                <span class="text-secondary">Aliquota IVA usata nel castelletto per le spese di testata</span>
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{{ next_url|default:list_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Indietro
+        </a>
+        <a href="{{ list_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" data-linked-lookups data-lookup-url="{{ lookup_url }}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card eureka-mask-card mb-3">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+            <i class="ti ti-receipt-tax eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title mb-0">Aliquota IVA spese</h3>
+        </div>
+        <div class="card-body">
+            <p class="text-secondary small mb-3">
+                Codice aliquota applicata alle spese di testata (imballo, trasporto, incasso, varie, bolli)
+                quando «Addebita spese» è attivo. Se vuoto, si usa l’aliquota della prima riga merce.
+                {% if aliquota_corrente %}
+                Valore attuale: <strong>{{ aliquota_corrente }}{% if iva_label %} — {{ iva_label }}{% endif %}</strong>.
+                {% endif %}
+            </p>
+            <div class="row g-3">
+                {% include "partials/mask_linked_code.html" with field=form.aliquota_iva_spese label=iva_label tipo="iva" col="col-md-6 col-lg-4" %}
+            </div>
+        </div>
+        <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <a href="{{ parametri_contabili_url }}" class="btn btn-ghost-secondary btn-sm">
+                <i class="ti ti-book"></i>
+                Parametri contabili completi
+            </a>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="ti ti-device-floppy"></i>
+                Salva
+            </button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=20"></script>
+{% endblock %}
