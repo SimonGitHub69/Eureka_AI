@@ -1,0 +1,624 @@
+{% extends "base/layout.html" %}
+{% load static format_tags documenti_tags %}
+
+{% block title %}{{ page_heading }} · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eureka/css/long-text-editor.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=22">
+{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask{% if tipo.codice == 'PRV' %} eureka-doc eureka-doc--prv{% endif %}">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon{% if tipo.codice == 'PRV' %} eureka-mask-hero__icon--prv{% endif %}">
+            {% if tipo.codice == "PRV" %}<i class="ti ti-file-certificate"></i>
+            {% elif tipo.codice == "ORV" %}<i class="ti ti-shopping-cart"></i>
+            {% elif tipo.codice == "ORA" %}<i class="ti ti-shopping-bag"></i>
+            {% elif tipo.codice == "DDT" %}<i class="ti ti-truck-delivery"></i>
+            {% elif tipo.codice == "FAT" %}<i class="ti ti-file-invoice"></i>
+            {% elif tipo.codice == "NCR" %}<i class="ti ti-receipt-refund"></i>
+            {% elif tipo.codice == "NDB" %}<i class="ti ti-receipt"></i>
+            {% else %}<i class="ti ti-file"></i>{% endif %}
+        </span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="badge{% if tipo.codice == 'PRV' %} eureka-doc-badge{% else %} bg-primary-lt{% endif %}">{{ tipo.codice }}</span>
+                {% if is_create %}
+                {% if tipo.codice == "PRV" %}Nuovo preventivo{% else %}Nuovo documento{% endif %}
+                {% else %}
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ documento.id_4d }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'documenti:detail' tipo_doc=tipo.codice pk=documento.pk %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Dettaglio</a>
+        {% endif %}
+        <a href="{% url 'documenti:list' tipo_doc=tipo.codice %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list"></i> Elenco</a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" id="documentoForm"
+      data-articolo-lookup-url="{{ lookup_url }}">
+    {% csrf_token %}
+    {{ form.imponibile.as_hidden }}
+    {{ form.totale.as_hidden }}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+    {% if formset.non_form_errors %}<div class="alert alert-danger py-2">{{ formset.non_form_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card eureka-doc-collapse eureka-doc-testata-card" id="testataCard"
+         data-eureka-doc-collapse
+         data-doc-section="testata"
+         data-doc-view="form"
+         data-doc-tipo="{{ tipo.codice }}"
+         data-doc-default="open">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+            <button type="button" class="eureka-doc-collapse__toggle eureka-doc-section-head" data-doc-toggle
+                    aria-expanded="true" aria-controls="testataCollapseBody" title="Comprimi testata">
+                <i class="ti ti-chevron-right eureka-doc-collapse__chevron" aria-hidden="true"></i>
+                <i class="ti ti-file-info eureka-mask-card__icon" aria-hidden="true"></i>
+                <h3 class="card-title eureka-doc-collapse__title mb-0">Testata</h3>
+                <span class="eureka-doc-collapse__summary" data-doc-summary hidden aria-hidden="true">
+                    {% format_numero_documento form.numero.value form.alfa.value as num_display %}
+                    {% if num_display %}
+                    <span class="eureka-doc-collapse__summary-chip eureka-doc-collapse__summary-chip--strong" title="Numero" data-doc-summary-numero>{{ num_display }}</span>
+                    {% endif %}
+                    {% if form.codice_clifor.value or form.destinatario.value %}
+                    <span class="eureka-doc-collapse__summary-chip" title="Cliente / destinatario" data-doc-summary-cliente>{% firstof form.destinatario.value form.codice_clifor.value %}</span>
+                    {% endif %}
+                    {% if form.totale.value %}
+                    <span class="eureka-doc-collapse__summary-chip eureka-doc-collapse__summary-chip--strong" title="Totale" data-doc-summary-totale>€ {{ form.totale.value }}</span>
+                    {% endif %}
+                </span>
+            </button>
+        </div>
+        <div class="eureka-doc-collapse__body" id="testataCollapseBody">
+            <div class="card-body eureka-doc-testata" data-linked-lookups data-lookup-url="{{ lookup_url }}" data-fill-from-anagrafica>
+
+                <section class="eureka-doc-testata__block eureka-doc-testata__block--id" aria-labelledby="testata-label-id">
+                    <div class="eureka-doc-testata__label" id="testata-label-id">
+                        <i class="ti ti-fingerprint" aria-hidden="true"></i>
+                        <span>Identificazione</span>
+                    </div>
+                    <div class="row g-compact">
+                        {% if form.contatore_scelto %}
+                        <div class="col-6 col-sm-3">
+                            <label class="form-label" for="{{ form.numero.id_for_label }}">{{ form.numero.label }}</label>
+                            <div class="eureka-doc-numero" data-doc-numero-group>
+                                {{ form.numero }}
+                                <span class="eureka-doc-numero__serie" data-doc-numero-serie{% if not form.alfa.value %} hidden{% endif %}>{% if form.alfa.value %}/{{ form.alfa.value }}{% endif %}</span>
+                            </div>
+                            {% if form.numero.help_text %}<div class="form-hint">{{ form.numero.help_text }}</div>{% endif %}
+                            {% if form.numero.errors %}<div class="invalid-feedback d-block">{{ form.numero.errors|striptags }}</div>{% endif %}
+                        </div>
+                        {% include "partials/mask_field.html" with field=form.contatore_scelto col="col-6 col-sm-3 eureka-doc-field--key" %}
+                        {{ form.alfa }}
+                        {% else %}
+                        {% include "partials/mask_field.html" with field=form.numero col="col-6 col-sm-2" %}
+                        {% include "partials/mask_field.html" with field=form.alfa col="col-6 col-sm-2" %}
+                        {% endif %}
+                        {% if tipo.codice == "PRV" %}
+                        {% include "partials/mask_field.html" with field=form.data_documento col="col-sm-2 eureka-doc-field--key eureka-doc-field--date" %}
+                        {% include "partials/mask_linked_code.html" with field=form.codice_agente label=agente_label tipo="agente" col="col-sm-4 eureka-doc-field--key" %}
+                        {% else %}
+                        {% include "partials/mask_field.html" with field=form.data_documento col="col-sm-4 eureka-doc-field--key eureka-doc-field--date" %}
+                        {% include "partials/mask_linked_code.html" with field=form.codice_agente label=agente_label tipo="agente" col="col-sm-4 eureka-doc-field--key" %}
+                        {% endif %}
+                    </div>
+                    {% if tipo.codice == "PRV" %}
+                    <div class="row g-compact align-items-end">
+                        {% include "partials/mask_field.html" with field=form.tipo_preventivo col="col-sm-3 eureka-doc-field--key" %}
+                        {% include "partials/mask_field.html" with field=form.validita col="col-sm-3 eureka-doc-field--key" %}
+                        {% include "partials/mask_field.html" with field=form.data_consegna col="col-sm-3 eureka-doc-field--key eureka-doc-field--date" %}
+                        {% include "partials/mask_field.html" with field=form.confermato col="col-sm-2 eureka-doc-field--key" check=1 %}
+                    </div>
+                    {% endif %}
+                </section>
+
+                <section class="eureka-doc-testata__block eureka-doc-testata__block--party" aria-label="Destinatario e luogo di destinazione">
+                    {% include "documenti/partials/party_blocks.html" with editable=True %}
+                </section>
+
+                <section class="eureka-doc-testata__block eureka-doc-testata__block--pay" aria-labelledby="testata-label-pay">
+                    <div class="eureka-doc-testata__label" id="testata-label-pay">
+                        <i class="ti ti-building-bank" aria-hidden="true"></i>
+                        <span>Pagamento</span>
+                    </div>
+                    <div class="row g-compact">
+                        {% include "partials/mask_linked_code.html" with field=form.cod_pagamento label=pagamento_label tipo="condizione" col="col-sm-5 eureka-doc-field--pagamento" %}
+                        {% include "partials/mask_linked_code.html" with field=form.cod_banca label=banca_label tipo="banca" col="col-sm-4" %}
+                        {% include "partials/mask_field.html" with field=form.iban col="col-sm-3" %}
+                    </div>
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.valuta col="col-sm-2 eureka-doc-field--key" %}
+                        {% include "partials/mask_field.html" with field=form.cambio col="col-sm-2 eureka-doc-field--key" %}
+                    </div>
+                    <div class="row g-compact">
+                        {% include "partials/mask_linked_code.html" with field=form.cod_cau_trasp label=cau_trasp_label tipo="causale_trasp" col="col-sm-7" %}
+                        {% include "partials/mask_linked_code.html" with field=form.porto label=porto_label tipo="porto" col="col-sm-5" %}
+                    </div>
+                    {% if tipo.codice != "PRV" %}
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.num_ordine_acq col="col-sm-4" %}
+                        {% include "partials/mask_field.html" with field=form.data_ordine_acq col="col-sm-3" %}
+                    </div>
+                    {% endif %}
+                </section>
+
+                <section class="eureka-doc-testata__block eureka-doc-testata__block--notes" aria-labelledby="testata-label-notes">
+                    <div class="eureka-doc-testata__label" id="testata-label-notes">
+                        <i class="ti ti-notes" aria-hidden="true"></i>
+                        <span>Note</span>
+                    </div>
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.desc_causale col="col-12" %}
+                        {% include "partials/mask_field.html" with field=form.note col="col-12" %}
+                        {% include "partials/mask_field.html" with field=form.annotazioni col="col-12" %}
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    {% include "documenti/partials/scadenze_card.html" with editable=True %}
+
+    <div class="card eureka-mask-card mt-3 eureka-doc-collapse eureka-doc-righe" id="righeCard"
+         data-eureka-doc-collapse
+         data-doc-section="righe"
+         data-doc-view="form"
+         data-doc-tipo="{{ tipo.codice }}"
+         data-doc-count="{{ formset.forms|length }}"
+         data-doc-threshold="10">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <button type="button" class="eureka-doc-collapse__toggle eureka-doc-section-head" data-doc-toggle
+                    aria-expanded="true" aria-controls="righeCollapseBody" title="Comprimi righe">
+                <i class="ti ti-chevron-right eureka-doc-collapse__chevron" aria-hidden="true"></i>
+                <i class="ti ti-list-details eureka-mask-card__icon" aria-hidden="true"></i>
+                <h3 class="card-title eureka-doc-collapse__title mb-0">Righe</h3>
+                <span class="eureka-doc-collapse__count" id="righeCountBadge" title="Numero righe">{{ formset.forms|length }}</span>
+            </button>
+            <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+                <div class="input-icon eureka-doc-righe-search">
+                    <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                    <input type="search"
+                           class="form-control form-control-sm"
+                           id="righeSearch"
+                           data-doc-righe-filter
+                           placeholder="Codice o descrizione…"
+                           aria-label="Cerca nelle righe per codice o descrizione"
+                           autocomplete="off">
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnAggiungiRiga" data-add-riga>
+                    <i class="ti ti-plus"></i> Aggiungi riga
+                </button>
+            </div>
+        </div>
+        <div class="eureka-doc-collapse__body" id="righeCollapseBody">
+            <div class="card-body py-2">
+                {{ formset.management_form }}
+                <div class="eureka-doc-righe-filter-empty" data-doc-righe-filter-empty hidden>
+                    Nessuna riga corrisponde alla ricerca.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter table-sm mb-0" id="righeTable">
+                        <thead>
+                            <tr>
+                                {% for col in colonne_riga %}
+                                <th{% if col.larghezza_css %} style="width:{{ col.larghezza_css }};"{% endif %} class="{{ col.align_class }}">
+                                    <i class="ti {{ col.icon }} eureka-doc-th-icon" aria-hidden="true"></i>{{ col.etichetta_display }}
+                                </th>
+                                {% endfor %}
+                                <th style="width:3.5rem;" class="text-center" title="Elimina"><i class="ti ti-trash eureka-doc-th-icon" aria-hidden="true"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="righeBody">
+                            {% for f in formset %}
+                            {% with deleted=f.DELETE.value %}
+                            <tr class="riga-form-row{% if deleted %} d-none{% endif %}" data-riga-row>
+                                {% for col in colonne_riga %}
+                                <td class="align-top {{ col.align_class }}">
+                                    {% if forloop.first %}
+                                    {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                                    {% endif %}
+                                    {{ f|form_field:col.campo }}
+                                    {% with cell=f|form_field:col.campo %}
+                                    {% if cell.errors %}<div class="invalid-feedback d-block">{{ cell.errors|striptags }}</div>{% endif %}
+                                    {% endwith %}
+                                </td>
+                                {% endfor %}
+                                <td class="align-top text-center">
+                                    {% if f.DELETE %}
+                                    <div class="visually-hidden">{{ f.DELETE }}</div>
+                                    <button type="button" class="btn btn-ghost-danger btn-icon btn-sm btn-elimina-riga" title="Elimina riga" aria-label="Elimina riga">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% if f.non_field_errors %}
+                            <tr>
+                                <td colspan="{{ colonne_riga|length|add:1 }}"><div class="alert alert-danger py-1 mb-0">{{ f.non_field_errors }}</div></td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center gap-2 py-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAggiungiRigaFooter" data-add-riga>
+                <i class="ti ti-plus"></i> Aggiungi riga
+            </button>
+            <div class="d-flex gap-2">
+                {% if is_create %}
+                <a href="{% url 'documenti:list' tipo_doc=tipo.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+                {% else %}
+                <a href="{% url 'documenti:detail' tipo_doc=tipo.codice pk=documento.pk %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+                {% endif %}
+                <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card mt-2 eureka-doc-importi-card" id="importiCard">
+        <div class="card-body py-2 px-3">
+            <div class="eureka-doc-importi" data-spese-sum>
+                <div class="eureka-doc-importi__title">
+                    <i class="ti ti-currency-euro" aria-hidden="true"></i>
+                    <span>Importi</span>
+                </div>
+                <div class="eureka-doc-importi__fields">
+                    {% include "partials/mask_field.html" with field=form.add_spese col="eureka-doc-importi__field eureka-doc-field--key" check=1 %}
+                    {% include "partials/mask_field.html" with field=form.spese_imballo col="eureka-doc-importi__field" %}
+                    {% include "partials/mask_field.html" with field=form.spese_trasporto col="eureka-doc-importi__field" %}
+                    {% include "partials/mask_field.html" with field=form.spese_incasso col="eureka-doc-importi__field" %}
+                    {% include "partials/mask_field.html" with field=form.spese_varie col="eureka-doc-importi__field" %}
+                    {% include "partials/mask_field.html" with field=form.spese_bolli col="eureka-doc-importi__field" %}
+                    <div class="eureka-doc-importi__field eureka-doc-field--key eureka-doc-field--total">
+                        <div class="form-label">Totale spese</div>
+                        <div class="form-control form-control-sm" id="id_totale_spese" data-totale-spese role="status" aria-live="polite" aria-readonly="true">0,00</div>
+                    </div>
+                </div>
+            </div>
+            <script>
+            (function () {
+              var box = document.querySelector("[data-spese-sum]");
+              var out = document.querySelector("[data-totale-spese]");
+              if (!box || !out) return;
+              var form = box.closest("form");
+              function addSpeseOn() {
+                var el = (form && (form.querySelector("[name='add_spese']") || form.querySelector("#id_add_spese"))) || box.querySelector("#id_add_spese");
+                if (!el) return true;
+                if (el.type === "checkbox") return !!el.checked;
+                var v = String(el.value || "").trim().toLowerCase();
+                return v === "1" || v === "true" || v === "si" || v === "on";
+              }
+              function parseNum(value) {
+                if (value == null) return 0;
+                var s = String(value).trim();
+                if (!s) return 0;
+                if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", ".");
+                var n = Number(s);
+                return isFinite(n) ? n : 0;
+              }
+              function formatEuro(n) {
+                n = Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+                var parts = n.toFixed(2).split(".");
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                return parts[0] + "," + parts[1];
+              }
+              function syncSpeseFields() {
+                var on = addSpeseOn();
+                box.querySelectorAll("[data-spese-importo]").forEach(function (el) {
+                  el.readOnly = !on;
+                  el.classList.toggle("bg-light", !on);
+                });
+              }
+              function sum() {
+                if (!addSpeseOn()) {
+                  out.textContent = formatEuro(0);
+                  syncSpeseFields();
+                  return;
+                }
+                var tot = 0;
+                box.querySelectorAll("[data-spese-importo]").forEach(function (el) {
+                  tot += parseNum(el.value);
+                });
+                out.textContent = formatEuro(tot);
+                syncSpeseFields();
+              }
+              function onSpese(ev) {
+                var t = ev.target;
+                if (!t) return;
+                if (t.name === "add_spese" || t.id === "id_add_spese") {
+                  sum();
+                  return;
+                }
+                if (!t.getAttribute || !t.getAttribute("data-spese-importo")) return;
+                sum();
+              }
+              box.addEventListener("input", onSpese, true);
+              box.addEventListener("change", onSpese, true);
+              box.addEventListener("keyup", onSpese, true);
+              if (form) {
+                form.addEventListener("change", onSpese, true);
+              }
+              sum();
+            })();
+            </script>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card mt-2 eureka-doc-castelletto-card" id="castellettoCard">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+            <i class="ti ti-receipt-tax eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title mb-0">Castelletto IVA</h3>
+            <span class="text-secondary small ms-1">Ricalcolato dalle righe</span>
+        </div>
+        <div class="card-body py-2">
+            {% include "documenti/partials/castelletto_iva.html" with interactive=True %}
+        </div>
+    </div>
+</form>
+
+<template id="rigaEmptyFormTemplate">
+    <tr class="riga-form-row" data-riga-row>
+        {% for col in colonne_riga %}
+        <td class="align-top {{ col.align_class }}">
+            {% if forloop.first %}
+            {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            {% endif %}
+            {{ formset.empty_form|form_field:col.campo }}
+        </td>
+        {% endfor %}
+        <td class="align-top text-center">
+            {% if formset.empty_form.DELETE %}
+            <div class="visually-hidden">{{ formset.empty_form.DELETE }}</div>
+            <button type="button" class="btn btn-ghost-danger btn-icon btn-sm btn-elimina-riga" title="Elimina riga" aria-label="Elimina riga">
+                <i class="ti ti-trash"></i>
+            </button>
+            {% endif %}
+        </td>
+    </tr>
+</template>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/long-text-editor.js' %}?v=10"></script>
+<script src="{% static 'eureka/js/documenti.js' %}?v=12"></script>
+<script>window.EUREKA_ALIQUOTE_MAP = {{ aliquote_map_json|default:"{}"|safe }};</script>
+<script>window.EUREKA_ALIQUOTA_IVA_SPESE = {{ aliquota_iva_spese_json|default:'""'|safe }};</script>
+<script src="{% static 'eureka/js/documento-castelletto.js' %}?v=14"></script>
+<script src="{% static 'eureka/js/documento-riga-articolo.js' %}?v=6"></script>
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=20"></script>
+<script src="{% static 'eureka/js/documento-scadenze.js' %}?v=3"></script>
+{# numero-riga-js v=10: next = max(numeri non-deleted) + 10 #}
+<script data-numero-riga-js="10">
+(function () {
+  const form = document.getElementById("documentoForm");
+  const totalInput =
+    document.getElementById("id_{{ formset.prefix }}-TOTAL_FORMS") ||
+    form?.querySelector("input[name$='-TOTAL_FORMS']");
+  const body = document.getElementById("righeBody");
+  const tpl = document.getElementById("rigaEmptyFormTemplate");
+  const righeCard = document.getElementById("righeCard");
+  const countBadge = document.getElementById("righeCountBadge");
+  if (!totalInput || !body || !tpl) return;
+
+  const NUMERO_STEP = 10;
+  const CONTENT_FIELDS = [
+    "codice",
+    "descrizione",
+    "quantita",
+    "unita_misura",
+    "prezzo_unitario",
+    "sconto",
+    "iva",
+  ];
+
+  function isRowDeleted(row) {
+    if (row.classList.contains("d-none")) return true;
+    const checkbox = row.querySelector(
+      ".riga-delete-input, input[type='checkbox'][name$='-DELETE']"
+    );
+    return !!(checkbox && checkbox.checked);
+  }
+
+  function numeroInput(row) {
+    return (
+      row.querySelector("input[name$='-numero_riga']") ||
+      row.querySelector("input[id$='-numero_riga']")
+    );
+  }
+
+  function parseNumero(value) {
+    if (value == null) return null;
+    const raw = String(value).trim().replace(",", ".");
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /** Extra vuota (no pk, no contenuto) — tipicamente formset extra=1. */
+  function isEmptyExtraRow(row) {
+    const idInput = row.querySelector("input[name$='-id']");
+    if (idInput && String(idInput.value || "").trim()) return false;
+    return CONTENT_FIELDS.every((name) => {
+      const el = row.querySelector(`[name$='-${name}']`);
+      return !el || !String(el.value || "").trim();
+    });
+  }
+
+  /**
+   * Prossimo numero = max(numero_riga delle righe non cancellate) + 10.
+   * Se max=0 (nessun numero) → 10. Es. max=170 → 180.
+   * Usa MAX, non "ultima riga DOM": immune a blank extra=1 e a numeri fuori ordine.
+   */
+  function nextNumeroRiga(exceptRow) {
+    let max = 0;
+    body.querySelectorAll("[data-riga-row]").forEach((row) => {
+      if (exceptRow && row === exceptRow) return;
+      if (isRowDeleted(row)) return;
+      const n = parseNumero(numeroInput(row)?.value);
+      if (n != null && n > max) max = n;
+    });
+    return max + NUMERO_STEP;
+  }
+
+  /** Solo su delete: rinumera visibili in ordine DOM a 10, 20, 30… */
+  function renumberVisibleRows() {
+    let n = NUMERO_STEP;
+    body.querySelectorAll("[data-riga-row]").forEach((row) => {
+      if (isRowDeleted(row)) return;
+      const input = numeroInput(row);
+      if (!input) return;
+      input.value = String(n);
+      n += NUMERO_STEP;
+    });
+  }
+
+  function visibleRowCount() {
+    return body.querySelectorAll("[data-riga-row]:not(.d-none)").length;
+  }
+
+  function refreshCount() {
+    const n = visibleRowCount();
+    if (righeCard) righeCard.setAttribute("data-doc-count", String(n));
+    const filterInput = righeCard && righeCard.querySelector("[data-doc-righe-filter]");
+    if (filterInput && (filterInput.value || "").trim() && window.EurekaDocRigheFilter) {
+      window.EurekaDocRigheFilter.refresh(righeCard);
+      return;
+    }
+    if (countBadge) countBadge.textContent = String(n);
+  }
+
+  function addRow(ev) {
+    if (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    if (window.EurekaDocCollapse) window.EurekaDocCollapse.expand(righeCard);
+    const index = parseInt(totalInput.value, 10);
+    if (Number.isNaN(index)) return;
+    const next = nextNumeroRiga();
+    const html = tpl.innerHTML.replace(/__prefix__/g, String(index));
+    const wrap = document.createElement("tbody");
+    wrap.innerHTML = html.trim();
+    const row = wrap.querySelector("[data-riga-row]");
+    if (!row) return;
+    const input = numeroInput(row);
+    if (input) input.value = String(next);
+    body.appendChild(row);
+    totalInput.value = String(index + 1);
+    if (window.EurekaLongText) window.EurekaLongText.enhance(row);
+    refreshCount();
+    if (window.EurekaDocCastelletto && typeof window.EurekaDocCastelletto.recalc === "function") {
+      window.EurekaDocCastelletto.recalc(form);
+    }
+    const focus = row.querySelector(
+      'input:not([type="hidden"]):not([type="checkbox"])'
+    );
+    if (focus) focus.focus();
+  }
+
+  function markDelete(row) {
+    const checkbox = row.querySelector(
+      ".riga-delete-input, input[type='checkbox'][name$='-DELETE']"
+    );
+    if (checkbox) {
+      checkbox.checked = true;
+      // Castelletto ascolta change su *-DELETE (set nativo non emette eventi)
+      checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    row.classList.add("d-none");
+    renumberVisibleRows();
+    refreshCount();
+    if (window.EurekaDocCastelletto && typeof window.EurekaDocCastelletto.recalc === "function") {
+      window.EurekaDocCastelletto.recalc(form);
+    }
+  }
+
+  /** Extra vuote senza contenuto → max(altre righe) + 10. */
+  function initTrailingExtraNumero() {
+    body.querySelectorAll("[data-riga-row]").forEach((row) => {
+      if (isRowDeleted(row) || !isEmptyExtraRow(row)) return;
+      const input = numeroInput(row);
+      if (!input) return;
+      input.value = String(nextNumeroRiga(row));
+    });
+  }
+
+  initTrailingExtraNumero();
+
+  // Un solo handler delegato: entrambi i pulsanti [data-add-riga]
+  document.addEventListener("click", (ev) => {
+    const addBtn = ev.target.closest("[data-add-riga]");
+    if (addBtn) {
+      addRow(ev);
+      return;
+    }
+    const delBtn = ev.target.closest(".btn-elimina-riga");
+    if (!delBtn || !body.contains(delBtn)) return;
+    const row = delBtn.closest("[data-riga-row]");
+    if (row) markDelete(row);
+  });
+})();
+</script>
+<script>
+(function () {
+  const select = document.querySelector("[data-serie-contatore]");
+  if (!select) return;
+  const form = document.getElementById("documentoForm");
+  const alfa = form?.querySelector("input[name='alfa']");
+  const numero = form?.querySelector("input[name='numero']");
+  const chip = document.querySelector("[data-doc-summary-numero]");
+  const serieSuffix = document.querySelector("[data-doc-numero-serie]");
+
+  function formatNumeroDocumento(n, serie) {
+    const num = n == null ? "" : String(n).trim();
+    const s = serie == null ? "" : String(serie).trim();
+    if (!num) return s;
+    if (!s) return num;
+    return num + "/" + s;
+  }
+
+  function updateDisplay() {
+    const n = numero ? numero.value : "";
+    const s = alfa ? alfa.value : "";
+    const formatted = formatNumeroDocumento(n, s);
+    if (chip) chip.textContent = formatted;
+    if (serieSuffix) {
+      serieSuffix.textContent = s ? "/" + s : "";
+      serieSuffix.hidden = !s;
+    }
+  }
+
+  function syncFromOption() {
+    const opt = select.selectedOptions && select.selectedOptions[0];
+    if (!opt) return;
+    const serie = opt.getAttribute("data-serie") || "";
+    const prossimo = opt.getAttribute("data-prossimo") || "";
+    if (alfa) alfa.value = serie;
+    if (numero && prossimo) numero.value = prossimo;
+    updateDisplay();
+  }
+
+  select.addEventListener("change", syncFromOption);
+  if (numero) numero.addEventListener("input", updateDisplay);
+  syncFromOption();
+})();
+</script>
+{% endblock %}

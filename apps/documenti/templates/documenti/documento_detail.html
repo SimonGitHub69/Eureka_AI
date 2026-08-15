@@ -1,0 +1,394 @@
+{% extends "base/layout.html" %}
+{% load static format_tags documenti_tags %}
+
+{% block title %}{{ documento.tipo_doc.label }} {{ documento.numero_documento }} · Eureka AI{% endblock %}
+{% block page_title %}{{ documento.tipo_doc.label }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eureka/css/long-text-editor.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=21">
+{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask{% if documento.tipo_doc.codice == 'PRV' %} eureka-doc eureka-doc--prv{% endif %}">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon{% if documento.tipo_doc.codice == 'PRV' %} eureka-mask-hero__icon--prv{% endif %}">
+            {% if documento.tipo_doc.codice == "PRV" %}<i class="ti ti-file-certificate"></i>
+            {% elif documento.tipo_doc.codice == "ORV" %}<i class="ti ti-shopping-cart"></i>
+            {% elif documento.tipo_doc.codice == "ORA" %}<i class="ti ti-shopping-bag"></i>
+            {% elif documento.tipo_doc.codice == "DDT" %}<i class="ti ti-truck-delivery"></i>
+            {% elif documento.tipo_doc.codice == "FAT" %}<i class="ti ti-file-invoice"></i>
+            {% elif documento.tipo_doc.codice == "NCR" %}<i class="ti ti-receipt-refund"></i>
+            {% elif documento.tipo_doc.codice == "NDB" %}<i class="ti ti-receipt"></i>
+            {% else %}<i class="ti ti-file"></i>{% endif %}
+        </span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ documento.tipo_doc.label }} {{ documento.numero_documento }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ documento.id_4d }}</span>
+                <span class="badge{% if documento.tipo_doc.codice == 'PRV' %} eureka-doc-badge{% else %} bg-primary-lt{% endif %}">{{ documento.tipo_doc.codice }}</span>
+                {% if documento.data_documento %}<span class="badge bg-azure-lt">{{ documento.data_documento|date:"d/m/Y" }}</span>{% endif %}
+                {% if documento.tipo_preventivo %}<span class="badge bg-purple-lt" title="Tipo preventivo">{{ documento.tipo_preventivo }}</span>{% endif %}
+                {% if documento.confermato %}<span class="badge bg-green-lt" title="Confermato">Confermato</span>{% endif %}
+                {% if documento.validita %}<span class="badge bg-teal-lt" title="Validità">{{ documento.validita }}</span>{% endif %}
+                {% if documento.data_consegna %}<span class="badge bg-cyan-lt" title="Data consegna">Consegna {{ documento.data_consegna|date:"d/m/Y" }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'documenti:edit' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'documenti:list' tipo_doc=documento.tipo_doc.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-receipt"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Imponibile</div>
+            <div class="eureka-mask-kpi__value">{% if documento.imponibile != None %}€ {{ documento.imponibile|euro }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-truck"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Spese</div>
+            <div class="eureka-mask-kpi__value text-orange">€ {{ documento.totale_spese|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if documento.tipo_doc.codice == 'PRV' %} eureka-doc-kpi--total{% endif %}">
+        <span class="eureka-mask-kpi__icon{% if documento.tipo_doc.codice == 'PRV' %} bg-teal-lt text-teal{% else %} bg-green-lt text-green{% endif %}"><i class="ti ti-currency-euro"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale</div>
+            <div class="eureka-mask-kpi__value">{% if documento.totale != None %}€ {{ documento.totale|euro }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value">{{ righe|length }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card eureka-doc-collapse eureka-doc-testata-card" id="testataCard"
+     data-eureka-doc-collapse
+     data-doc-section="testata"
+     data-doc-view="detail"
+     data-doc-tipo="{{ documento.tipo_doc.codice }}"
+     data-doc-default="open">
+    <div class="card-header py-2 d-flex align-items-center gap-2">
+        <button type="button" class="eureka-doc-collapse__toggle eureka-doc-section-head" data-doc-toggle
+                aria-expanded="true" aria-controls="testataCollapseBody" title="Comprimi testata">
+            <i class="ti ti-chevron-right eureka-doc-collapse__chevron" aria-hidden="true"></i>
+            <i class="ti ti-user eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title eureka-doc-collapse__title mb-0">
+                {% if documento.clifor_tipo == "F" %}Fornitore e destinazione{% else %}Cliente e destinazione{% endif %}
+            </h3>
+            <span class="eureka-doc-collapse__summary" data-doc-summary hidden aria-hidden="true">
+                {% if documento.numero_documento and documento.numero_documento != "—" %}
+                <span class="eureka-doc-collapse__summary-chip eureka-doc-collapse__summary-chip--strong" title="Numero">{{ documento.numero_documento }}</span>
+                {% endif %}
+                {% if documento.cliente_ragione_sociale or documento.codice_clifor %}
+                <span class="eureka-doc-collapse__summary-chip" title="{% if documento.clifor_tipo == 'F' %}Fornitore{% else %}Cliente{% endif %}">{% firstof documento.cliente_ragione_sociale documento.codice_clifor %}</span>
+                {% endif %}
+                {% if documento.totale != None %}
+                <span class="eureka-doc-collapse__summary-chip eureka-doc-collapse__summary-chip--strong" title="Totale">€ {{ documento.totale|euro }}</span>
+                {% endif %}
+            </span>
+        </button>
+    </div>
+    <div class="eureka-doc-collapse__body" id="testataCollapseBody">
+        <div class="card-body eureka-doc-testata eureka-doc-testata--detail">
+            <section class="eureka-doc-testata__block eureka-doc-testata__block--party" aria-label="Destinatario e luogo di destinazione">
+                {% include "documenti/partials/party_blocks.html" with editable=False %}
+            </section>
+            <section class="eureka-doc-testata__block eureka-doc-testata__block--pay" aria-labelledby="detail-testata-pay">
+                <div class="eureka-doc-testata__label" id="detail-testata-pay">
+                    <i class="ti ti-building-bank" aria-hidden="true"></i>
+                    <span>Pagamento</span>
+                </div>
+                <div class="eureka-mask-grid">
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Condizioni di pagamento</div>
+                        <div class="eureka-mask-field__value">{{ pagamento_display|default:documento.cod_pagamento|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Banca</div>
+                        <div class="eureka-mask-field__value">{% if documento.cod_banca %}{{ documento.cod_banca }}{% if banca_label %} — {{ banca_label }}{% endif %}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">IBAN</div>
+                        <div class="eureka-mask-field__value">{{ documento.iban|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Valuta</div>
+                        <div class="eureka-mask-field__value">{{ documento.valuta|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Cambio (€)</div>
+                        <div class="eureka-mask-field__value">{% if documento.cambio is not None %}{{ documento.cambio }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Causale trasporto</div>
+                        <div class="eureka-mask-field__value">{% if documento.cod_cau_trasp %}{{ documento.cod_cau_trasp }}{% if cau_trasp_label %} — {{ cau_trasp_label }}{% endif %}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Porto</div>
+                        <div class="eureka-mask-field__value">{% if documento.porto %}{{ documento.porto }}{% if porto_label %} — {{ porto_label }}{% endif %}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Agente</div>
+                        <div class="eureka-mask-field__value">{% if documento.codice_agente %}{{ documento.codice_agente }}{% if agente_label %} — {{ agente_label }}{% endif %}{% else %}—{% endif %}</div>
+                    </div>
+                    {% if documento.tipo_doc.codice == "PRV" or documento.tipo_preventivo or documento.validita or documento.data_consegna or documento.confermato %}
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Tipo preventivo</div>
+                        <div class="eureka-mask-field__value">{{ documento.tipo_preventivo|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Confermato</div>
+                        <div class="eureka-mask-field__value">{% if documento.confermato %}Si{% else %}No{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Validità</div>
+                        <div class="eureka-mask-field__value">{{ documento.validita|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Data consegna</div>
+                        <div class="eureka-mask-field__value">{% if documento.data_consegna %}{{ documento.data_consegna|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if tipo.codice != "PRV" %}
+                {% if documento.num_ordine_acq or documento.data_ordine_acq %}
+                <div class="eureka-mask-grid">
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">N. ordine acquisto</div>
+                        <div class="eureka-mask-field__value">{{ documento.num_ordine_acq|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Data ordine acquisto</div>
+                        <div class="eureka-mask-field__value">{% if documento.data_ordine_acq %}{{ documento.data_ordine_acq|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+            </section>
+            {% if documento.desc_causale or documento.note or documento.annotazioni %}
+            <section class="eureka-doc-testata__block eureka-doc-testata__block--notes" aria-labelledby="detail-testata-notes">
+                <div class="eureka-doc-testata__label" id="detail-testata-notes">
+                    <i class="ti ti-notes" aria-hidden="true"></i>
+                    <span>Note</span>
+                </div>
+                <div class="eureka-mask-grid eureka-mask-grid--3">
+                    {% if documento.desc_causale %}
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Causale</div>
+                        <div class="eureka-mask-field__value">
+                            <span data-long-text-view data-long-text-title="Causale" data-long-text-max="100"
+                                  data-long-text-edit-url="{% url 'documenti:edit' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}">{{ documento.desc_causale }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if documento.note %}
+                    <div class="eureka-mask-field" style="grid-column: 1 / -1;">
+                        <div class="eureka-mask-field__label">Note</div>
+                        <div class="eureka-mask-field__value">
+                            <span data-long-text-view data-long-text-title="Note" data-long-text-max="120"
+                                  data-long-text-edit-url="{% url 'documenti:edit' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}">{{ documento.note }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if documento.annotazioni %}
+                    <div class="eureka-mask-field" style="grid-column: 1 / -1;">
+                        <div class="eureka-mask-field__label">Annotazioni</div>
+                        <div class="eureka-mask-field__value">
+                            <span data-long-text-view data-long-text-title="Annotazioni" data-long-text-max="120"
+                                  data-long-text-edit-url="{% url 'documenti:edit' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}">{{ documento.annotazioni }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% include "documenti/partials/scadenze_card.html" %}
+
+{% if righe %}
+<div class="card eureka-mask-card mt-3 eureka-doc-collapse eureka-doc-righe" id="righeCard"
+     data-eureka-doc-collapse
+     data-doc-section="righe"
+     data-doc-view="detail"
+     data-doc-tipo="{{ documento.tipo_doc.codice }}"
+     data-doc-count="{{ righe|length }}"
+     data-doc-threshold="10">
+    <div class="card-header py-2 d-flex align-items-center gap-2 flex-wrap">
+        <button type="button" class="eureka-doc-collapse__toggle eureka-doc-section-head" data-doc-toggle
+                aria-expanded="true" aria-controls="righeCollapseBody" title="Comprimi righe">
+            <i class="ti ti-chevron-right eureka-doc-collapse__chevron" aria-hidden="true"></i>
+            <i class="ti ti-list-details eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title eureka-doc-collapse__title mb-0">Righe documento</h3>
+            <span class="eureka-doc-collapse__count" title="Numero righe">{{ righe|length }}</span>
+        </button>
+        <div class="input-icon eureka-doc-righe-search ms-auto">
+            <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+            <input type="search"
+                   class="form-control form-control-sm"
+                   id="righeSearch"
+                   data-doc-righe-filter
+                   placeholder="Codice o descrizione…"
+                   aria-label="Cerca nelle righe per codice o descrizione"
+                   autocomplete="off">
+        </div>
+    </div>
+    <div class="eureka-doc-collapse__body" id="righeCollapseBody">
+        <div class="eureka-doc-righe-filter-empty px-3 pt-2" data-doc-righe-filter-empty hidden>
+            Nessuna riga corrisponde alla ricerca.
+        </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table mb-0 eureka-doc-lines">
+                <thead>
+                    <tr>
+                        {% for col in colonne_riga %}
+                        <th class="{{ col.align_class }}">
+                            <i class="ti {{ col.icon }} eureka-doc-th-icon" aria-hidden="true"></i>{{ col.etichetta_display }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for riga in righe %}
+                    <tr data-doc-line
+                        data-codice="{{ riga.codice|default:'' }}"
+                        data-descrizione="{{ riga.descrizione|default:'' }}">
+                        {% for col in colonne_riga %}
+                        {% with value=riga|riga_attr:col.campo %}
+                        <td class="{{ col.align_class }}{% if col.campo == 'numero_riga' %} eureka-doc-line-num{% endif %}">
+                            {% if col.campo == "codice" %}
+                                {% if value %}<span class="eureka-doc-line-code">{{ value }}</span>{% else %}—{% endif %}
+                            {% elif col.campo == "descrizione" %}
+                                {% if value %}
+                                <span data-long-text-view data-long-text-title="Descrizione riga {{ riga.numero_riga|default:'' }}" data-long-text-max="70"
+                                      data-long-text-edit-url="{% url 'documenti:edit' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}">{{ value }}</span>
+                                {% else %}—{% endif %}
+                            {% elif col.campo == "prezzo_unitario" %}
+                                {% if value != None %}€ {{ value|euro:3 }}{% else %}—{% endif %}
+                            {% else %}
+                                {% if value != None and value != "" %}{{ value }}{% else %}—{% endif %}
+                            {% endif %}
+                        </td>
+                        {% endwith %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card eureka-mask-card mt-2 eureka-doc-importi-card" id="importiCard">
+    <div class="card-body py-2 px-3">
+        <div class="eureka-doc-importi eureka-doc-importi--detail">
+            <div class="eureka-doc-importi__title">
+                <i class="ti ti-currency-euro" aria-hidden="true"></i>
+                <span>Importi</span>
+            </div>
+            <div class="eureka-doc-importi__fields">
+                <div class="eureka-doc-importi__field eureka-doc-field--key">
+                    <div class="form-label">Addebita spese</div>
+                    <div class="form-control form-control-sm" aria-readonly="true">{% if documento.add_spese %}Si{% else %}No{% endif %}</div>
+                </div>
+                <div class="eureka-doc-importi__field">
+                    <div class="form-label">Spese imballo</div>
+                    <div class="form-control form-control-sm" aria-readonly="true">{{ documento.spese_imballo|euro }}</div>
+                </div>
+                <div class="eureka-doc-importi__field">
+                    <div class="form-label">Spese trasporto</div>
+                    <div class="form-control form-control-sm" aria-readonly="true">{{ documento.spese_trasporto|euro }}</div>
+                </div>
+                <div class="eureka-doc-importi__field">
+                    <div class="form-label">Spese incasso</div>
+                    <div class="form-control form-control-sm" aria-readonly="true">{{ documento.spese_incasso|euro }}</div>
+                </div>
+                <div class="eureka-doc-importi__field">
+                    <div class="form-label">Spese varie</div>
+                    <div class="form-control form-control-sm" aria-readonly="true">{{ documento.spese_varie|euro }}</div>
+                </div>
+                <div class="eureka-doc-importi__field">
+                    <div class="form-label">Spese bolli</div>
+                    <div class="form-control form-control-sm" aria-readonly="true">{{ documento.spese_bolli|euro }}</div>
+                </div>
+                <div class="eureka-doc-importi__field eureka-doc-field--key eureka-doc-field--total">
+                    <div class="form-label">Totale spese</div>
+                    <div class="form-control form-control-sm" aria-readonly="true">{{ documento.totale_spese|euro }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card mt-2 eureka-doc-castelletto-card" id="castellettoCard">
+    <div class="card-header py-2 d-flex align-items-center gap-2">
+        <i class="ti ti-receipt-tax eureka-mask-card__icon" aria-hidden="true"></i>
+        <h3 class="card-title mb-0">Castelletto IVA</h3>
+    </div>
+    <div class="card-body py-2">
+        {% include "documenti/partials/castelletto_iva.html" with interactive=False %}
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaDocumentoWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaDocumento">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaDocumento" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ documento.tipo_doc.label }} {{ documento.numero_documento }}?</div>
+                    <div class="text-secondary small mb-2">Verranno eliminate anche le righe. Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaDocumento">Annulla</button>
+                        <button type="submit" form="formEliminaDocumento" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaDocumento" method="post" action="{% url 'documenti:delete' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/long-text-editor.js' %}?v=2"></script>
+<script src="{% static 'eureka/js/documenti.js' %}?v=12"></script>
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaDocumento");
+  document.getElementById("btnApriEliminaDocumento")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaDocumento")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}
