@@ -1,0 +1,523 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}Primanota {{ registrazione.numero_registrazione }} · Eureka AI{% endblock %}
+{% block page_title %}Primanota{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-notebook"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">Registrazione {{ registrazione.numero_registrazione }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ registrazione.id }}</span>
+                {% if registrazione.data_reg %}<span class="badge bg-azure-lt">{{ registrazione.data_reg|date:"d/m/Y" }}</span>{% endif %}
+                {% if causale_contabile %}
+                <a href="{% url 'causali_contabili:detail' causale_contabile.codice %}" class="badge bg-green-lt text-decoration-none">
+                    {{ registrazione.causale }}{% if causale_contabile.label %} — {{ causale_contabile.label }}{% endif %}
+                </a>
+                {% elif registrazione.causale %}
+                <span class="badge bg-green-lt">{{ registrazione.causale }}</span>
+                {% endif %}
+                {% if registrazione.tipo_label != "—" %}<span class="badge bg-purple-lt">{{ registrazione.tipo_label }}</span>{% endif %}
+                {% if not registrazione.is_generico %}
+                {% if registro_iva %}
+                <a href="{% url 'registri_iva:detail' registro_iva.codice %}" class="badge bg-secondary-lt text-decoration-none">
+                    {{ registrazione.registro }}{% if registro_iva.label %} — {{ registro_iva.label }}{% endif %}
+                </a>
+                {% elif registrazione.registro %}
+                <span class="badge bg-secondary-lt">{{ registrazione.registro }}</span>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'primanota:edit' registrazione.id %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'primanota:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+{% if dettaglio_mancante %}
+<div class="alert alert-warning">
+    Tabella <code>primanota_dettaglio</code> non ancora importata.
+    Completa lo step <strong>Primanota</strong> in
+    <a href="{% url 'core:parametri_4d' %}">Parametri 4D</a>
+    (testata e righe insieme).
+</div>
+{% endif %}
+
+{% if is_iva %}
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-receipt"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale imponibile</div>
+            <div class="eureka-mask-kpi__value">€ {{ totale_imponibile|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-receipt-tax"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale IVA</div>
+            <div class="eureka-mask-kpi__value">€ {{ totale_iva|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-currency-euro"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale documento</div>
+            <div class="eureka-mask-kpi__value">€ {{ totale_documento|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value">{{ righe|length }}</div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-arrow-down-left"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Dare</div>
+            <div class="eureka-mask-kpi__value">€ {{ totale_dare|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-arrow-up-right"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Avere</div>
+            <div class="eureka-mask-kpi__value">€ {{ totale_avere|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-yellow-lt text-yellow"><i class="ti ti-scale"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Sbilancio</div>
+            <div class="eureka-mask-kpi__value{% if sbilancio %} text-danger{% endif %}">€ {{ sbilancio|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-receipt"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale documento</div>
+            <div class="eureka-mask-kpi__value">
+                {% if registrazione.totale_doc_controllo != None %}€ {{ registrazione.totale_doc_controllo|euro }}{% else %}—{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value">{{ righe|length }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        {% if is_iva %}
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo di movimento</div>
+                <div class="eureka-mask-field__value">{{ registrazione.tipo_label }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Registrazione n°</div>
+                <div class="eureka-mask-field__value">{{ registrazione.numero_registrazione }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Data registrazione</div>
+                <div class="eureka-mask-field__value">{% if registrazione.data_reg %}{{ registrazione.data_reg|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Causale</div>
+                <div class="eureka-mask-field__value">
+                    {% if causale_contabile %}
+                    <a href="{% url 'causali_contabili:detail' causale_contabile.codice %}">{{ registrazione.causale }}</a>
+                    {% if causale_contabile.label %}
+                    <span class="text-secondary">— {{ causale_contabile.label }}</span>
+                    {% endif %}
+                    {% else %}
+                    {{ registrazione.causale|default:"—" }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Documento n°</div>
+                <div class="eureka-mask-field__value">{{ registrazione.numero_doc|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Data documento</div>
+                <div class="eureka-mask-field__value">{% if registrazione.data_doc %}{{ registrazione.data_doc|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Competenza</div>
+                <div class="eureka-mask-field__value">{% if registrazione.data_valuta %}{{ registrazione.data_valuta|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ clifor.tipo|default:"Cliente / Fornitore" }}</div>
+                <div class="eureka-mask-field__value">
+                    {% if clifor.url %}
+                    <a href="{{ clifor.url }}">{{ clifor.codice }}</a>
+                    {% if clifor.label %}<span class="text-secondary">— {{ clifor.label }}</span>{% endif %}
+                    {% elif registrazione.codice_partita %}
+                    {{ registrazione.codice_partita }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Registro</div>
+                <div class="eureka-mask-field__value">
+                    {% if registro_iva %}
+                    <a href="{% url 'registri_iva:detail' registro_iva.codice %}">{{ registrazione.registro }}</a>
+                    {% if registro_iva.label %}<span class="text-secondary">— {{ registro_iva.label }}</span>{% endif %}
+                    {% elif registrazione.registro %}
+                    {{ registrazione.registro }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Protocollo numero</div>
+                <div class="eureka-mask-field__value">{{ registrazione.protocollo }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Condizione di pagamento</div>
+                <div class="eureka-mask-field__value">
+                    {% if pagamento.url %}
+                    <a href="{{ pagamento.url }}">{{ pagamento.codice }}</a>
+                    {% if pagamento.label %}<span class="text-secondary">— {{ pagamento.label }}</span>{% endif %}
+                    {% elif registrazione.codice_paga %}
+                    {{ registrazione.codice_paga }}{% if pagamento.label %} <span class="text-secondary">— {{ pagamento.label }}</span>{% endif %}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">1° scad.</div>
+                <div class="eureka-mask-field__value">{% if registrazione.scad1 %}{{ registrazione.scad1|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Acconto</div>
+                <div class="eureka-mask-field__value">{% if registrazione.acconto %}€ {{ registrazione.acconto|euro }}{% else %}—{% endif %}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">N. registrazione</div>
+                <div class="eureka-mask-field__value">{{ registrazione.numero_registrazione }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Data registrazione</div>
+                <div class="eureka-mask-field__value">{% if registrazione.data_reg %}{{ registrazione.data_reg|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            {% if not registrazione.is_generico %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Protocollo</div>
+                <div class="eureka-mask-field__value">{{ registrazione.protocollo }}</div>
+            </div>
+            {% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Causale</div>
+                <div class="eureka-mask-field__value">
+                    {% if causale_contabile %}
+                    <a href="{% url 'causali_contabili:detail' causale_contabile.codice %}">{{ registrazione.causale }}</a>
+                    {% if causale_contabile.label %}
+                    <span class="text-secondary">— {{ causale_contabile.label }}</span>
+                    {% endif %}
+                    {% else %}
+                    {{ registrazione.causale|default:"—" }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Documento</div>
+                <div class="eureka-mask-field__value">
+                    {{ registrazione.numero_doc|default:"—" }}
+                    {% if registrazione.data_doc %}<span class="text-secondary small">· {{ registrazione.data_doc|date:"d/m/Y" }}</span>{% endif %}
+                </div>
+            </div>
+            {% if not registrazione.is_generico %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Registro</div>
+                <div class="eureka-mask-field__value">
+                    {% if registro_iva %}
+                    <a href="{% url 'registri_iva:detail' registro_iva.codice %}">{{ registrazione.registro }}</a>
+                    {% if registro_iva.label %}<span class="text-secondary">— {{ registro_iva.label }}</span>{% endif %}
+                    {% elif registrazione.registro %}
+                    {{ registrazione.registro }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo</div>
+                <div class="eureka-mask-field__value">{{ registrazione.tipo_label }}</div>
+            </div>
+            {% if not registrazione.is_generico %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ clifor.tipo|default:"Cliente / Fornitore" }}</div>
+                <div class="eureka-mask-field__value">
+                    {% if clifor.url %}
+                    <a href="{{ clifor.url }}">{{ clifor.codice }}</a>
+                    {% if clifor.label %}<span class="text-secondary">— {{ clifor.label }}</span>{% endif %}
+                    {% elif registrazione.codice_partita %}
+                    {{ registrazione.codice_partita }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Condizione di pagamento</div>
+                <div class="eureka-mask-field__value">
+                    {% if pagamento.url %}
+                    <a href="{{ pagamento.url }}">{{ pagamento.codice }}</a>
+                    {% if pagamento.label %}<span class="text-secondary">— {{ pagamento.label }}</span>{% endif %}
+                    {% elif registrazione.codice_paga %}
+                    {{ registrazione.codice_paga }}{% if pagamento.label %} <span class="text-secondary">— {{ pagamento.label }}</span>{% endif %}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Valuta</div>
+                <div class="eureka-mask-field__value">{{ registrazione.valuta|default:"—" }}</div>
+            </div>
+            {% endif %}
+            {% for name, value in campi %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-list-details me-1"></i>
+            {% if is_iva %}Movimenti IVA{% else %}Dettaglio{% endif %} ({{ righe|length }})
+        </h3>
+        <a href="{% url 'primanota:edit' registrazione.id %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-plus"></i> Aggiungi riga
+        </a>
+    </div>
+    <div class="table-responsive">
+        {% if is_iva %}
+        <table class="table table-vcenter card-table mb-0">
+            <thead>
+                <tr>
+                    <th class="w-1">Pos.</th>
+                    <th>C/Partita</th>
+                    <th class="text-end">Imponibile</th>
+                    <th>C. IVA</th>
+                    <th class="text-end">Importo IVA</th>
+                    <th>Descrizione aggiuntiva</th>
+                    <th>Anno doc</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for riga in righe %}
+                <tr>
+                    <td class="text-secondary">{{ riga.pos|default:forloop.counter }}</td>
+                    <td>
+                        {% if riga.pdc_url %}
+                        <a href="{{ riga.pdc_url }}" class="fw-semibold">{{ riga.conto_partita }}</a>
+                        {% else %}
+                        <span class="fw-semibold">{{ riga.conto_partita|default:"—" }}</span>
+                        {% endif %}
+                        {% if riga.pdc.label %}
+                        <div class="text-secondary small">{{ riga.pdc.label }}</div>
+                        {% elif riga.des_conto_avere %}
+                        <div class="text-secondary small">{{ riga.des_conto_avere }}</div>
+                        {% elif riga.des_conto_dare %}
+                        <div class="text-secondary small">{{ riga.des_conto_dare }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{% if riga.imponibile %}€ {{ riga.imponibile|euro }}{% else %}—{% endif %}</td>
+                    <td>
+                        {% if riga.iva_url %}
+                        <a href="{{ riga.iva_url }}">{{ riga.codice_iva }}</a>
+                        {% else %}
+                        {{ riga.codice_iva|default:"—" }}
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{% if riga.importo_iva %}€ {{ riga.importo_iva|euro }}{% else %}—{% endif %}</td>
+                    <td>{{ riga.descrizione|default:"" }}</td>
+                    <td>{{ riga.anno_doc|default:"" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-secondary py-4">Nessuna riga di dettaglio</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if righe %}
+            <tfoot>
+                <tr class="fw-semibold">
+                    <td colspan="2" class="text-end">Totale imponibile</td>
+                    <td class="text-end">€ {{ totale_imponibile|euro }}</td>
+                    <td class="text-end">Totale IVA</td>
+                    <td class="text-end">€ {{ totale_iva|euro }}</td>
+                    <td colspan="2" class="text-end">Totale documento € {{ totale_documento|euro }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+        {% else %}
+        <table class="table table-vcenter card-table mb-0 eureka-primanota-righe-table">
+            <thead>
+                <tr>
+                    <th class="w-1">#</th>
+                    <th data-gen-sezione="dare" data-gen-sezione-start>Conto dare</th>
+                    <th class="text-end" data-gen-sezione="dare" data-gen-importo="dare">Dare</th>
+                    <th data-gen-sezione="avere" data-gen-sezione-start>Conto avere</th>
+                    <th class="text-end" data-gen-sezione="avere" data-gen-importo="avere">Avere</th>
+                    <th>Descrizione</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for riga in righe %}
+                <tr>
+                    <td class="text-secondary">{{ riga.pos|default:forloop.counter }}</td>
+                    <td data-gen-sezione="dare" data-gen-sezione-start>
+                        {% if riga.pdc_dare_url %}
+                        <a href="{{ riga.pdc_dare_url }}" class="fw-semibold">{{ riga.conto_dare }}</a>
+                        {% else %}
+                        <div class="fw-semibold">{{ riga.conto_dare|default:"—" }}</div>
+                        {% endif %}
+                        {% if riga.pdc_dare.label %}
+                        <div class="text-secondary small">{{ riga.pdc_dare.label }}</div>
+                        {% elif riga.des_conto_dare %}
+                        <div class="text-secondary small">{{ riga.des_conto_dare }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-end" data-gen-sezione="dare" data-gen-importo="dare">€ {{ riga.dare|default:0|euro }}</td>
+                    <td data-gen-sezione="avere" data-gen-sezione-start>
+                        {% if riga.pdc_avere_url %}
+                        <a href="{{ riga.pdc_avere_url }}" class="fw-semibold">{{ riga.conto_avere }}</a>
+                        {% else %}
+                        <div class="fw-semibold">{{ riga.conto_avere|default:"—" }}</div>
+                        {% endif %}
+                        {% if riga.pdc_avere.label %}
+                        <div class="text-secondary small">{{ riga.pdc_avere.label }}</div>
+                        {% elif riga.des_conto_avere %}
+                        <div class="text-secondary small">{{ riga.des_conto_avere }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-end" data-gen-sezione="avere" data-gen-importo="avere">€ {{ riga.avere|default:0|euro }}</td>
+                    <td>{{ riga.descrizione|default:"" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-secondary py-4">Nessuna riga di dettaglio</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if righe %}
+            <tfoot>
+                <tr class="fw-semibold">
+                    <td class="text-end">Totali</td>
+                    <td data-gen-sezione="dare" data-gen-sezione-start></td>
+                    <td class="text-end" data-gen-sezione="dare" data-gen-importo="dare">€ {{ totale_dare|euro }}</td>
+                    <td data-gen-sezione="avere" data-gen-sezione-start></td>
+                    <td class="text-end" data-gen-sezione="avere" data-gen-importo="avere">€ {{ totale_avere|euro }}</td>
+                    <td class="text-end{% if sbilancio %} text-danger{% endif %}">Sbilancio € {{ sbilancio|euro }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+{% if is_iva %}
+{% include "primanota/partials/scadenze_iva.html" %}
+{% endif %}
+
+{% if is_iva and campi %}
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">Altri dati</h3>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            {% for name, value in campi %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="eureka-mask-delete mt-3" id="eliminaPrimanotaWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaPrimanota">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaPrimanota" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare la registrazione {{ registrazione.numero_registrazione }}?</div>
+                    <div class="text-secondary small mb-2">Vengono eliminate anche le righe di dettaglio. Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaPrimanota">Annulla</button>
+                        <button type="submit" form="formEliminaPrimanota" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaPrimanota" method="post" action="{% url 'primanota:delete' registrazione.id %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaPrimanota");
+  document.getElementById("btnApriEliminaPrimanota")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaPrimanota")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}
+

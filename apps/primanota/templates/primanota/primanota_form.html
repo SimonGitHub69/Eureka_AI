@@ -1,0 +1,491 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}{{ page_heading }} · Primanota · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--primanota eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--primanota"><i class="ti ti-notebook"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                {% if is_create %}
+                Nuovo movimento contabile
+                {% else %}
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ registrazione.id }}</span>
+                <span class="badge bg-azure-lt">Reg. {{ registrazione.numero_registrazione }}</span>
+                {% if registrazione.data_reg %}<span class="badge bg-secondary-lt">{{ registrazione.data_reg|date:"d/m/Y" }}</span>{% endif %}
+                {% if registrazione.tipo_label != "—" %}<span class="badge bg-purple-lt">{{ registrazione.tipo_label }}</span>{% endif %}
+                {% if causale_contabile %}
+                <span class="badge bg-green-lt">{{ registrazione.causale }}{% if causale_contabile.label %} — {{ causale_contabile.label }}{% endif %}</span>
+                {% elif registrazione.causale %}
+                <span class="badge bg-green-lt">{{ registrazione.causale }}</span>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'primanota:detail' registrazione.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        <a href="{% url 'primanota:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="eureka-mask-kpis mb-3{% if not is_iva %} d-none{% endif %}" data-iva-kpis>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-receipt"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale imponibile</div>
+            <div class="eureka-mask-kpi__value" data-totale-imponibile>€ {{ totale_imponibile|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-receipt-tax"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale IVA</div>
+            <div class="eureka-mask-kpi__value" data-totale-iva>€ {{ totale_iva|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-currency-euro"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale documento</div>
+            <div class="eureka-mask-kpi__value" data-totale-documento>€ {{ totale_documento|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value">{{ righe_count }}</div>
+        </div>
+    </div>
+</div>
+<div class="eureka-mask-kpis mb-3{% if is_iva %} d-none{% endif %}" data-gen-kpis>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-arrow-down-left"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Dare</div>
+            <div class="eureka-mask-kpi__value" data-totale-dare>€ {{ totale_dare|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-arrow-up-right"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Avere</div>
+            <div class="eureka-mask-kpi__value" data-totale-avere>€ {{ totale_avere|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-yellow-lt text-yellow"><i class="ti ti-scale"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Sbilancio</div>
+            <div class="eureka-mask-kpi__value{% if sbilancio %} text-danger{% endif %}" data-sbilancio>€ {{ sbilancio|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value">{{ righe_count }}</div>
+        </div>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" id="primanotaForm" class="eureka-mask-form" data-linked-lookups data-lookup-url="{{ lookup_url }}" data-da-causale-url="{% url 'primanota:da_causale' %}" data-calc-scadenze-url="{{ calc_scadenze_url }}"{% if is_create %} data-prossimo-numero-url="{% url 'primanota:prossimo_numero' %}" data-protocollo-from-registro data-sync-competenza{% endif %}>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+    {% if formset.non_form_errors %}<div class="alert alert-danger py-2">{{ formset.non_form_errors }}</div>{% endif %}
+    <div class="alert alert-danger py-2" data-sbilancio-banner hidden>
+        Impossibile salvare: Dare e Avere non coincidono (<span data-sbilancio-banner-amt></span>).
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card eureka-mask-card--compact h-100">
+                <div class="card-header py-2">
+                    <h3 class="card-title mb-0">
+                        <span class="eureka-mask-card__icon"><i class="ti ti-file-invoice"></i></span>
+                        Registrazione
+                    </h3>
+                </div>
+                <div class="card-body py-3">
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.tipo col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.numero_reg col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.data_reg col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.causale col="col-sm-6" %}
+                        <div class="col-sm-6" data-registro-col>
+                            {% include "partials/mask_field.html" with field=form.registro col="col-12" %}
+                        </div>
+                        {% include "partials/mask_field.html" with field=form.data_valuta col="col-sm-6" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card eureka-mask-card--compact h-100">
+                <div class="card-header py-2">
+                    <h3 class="card-title mb-0">
+                        <span class="eureka-mask-card__icon"><i class="ti ti-file-description"></i></span>
+                        Documento<span data-partita-col> e partita</span>
+                    </h3>
+                </div>
+                <div class="card-body py-3">
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.numero_doc col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.data_doc col="col-sm-6" %}
+                        <div class="col-12" data-partita-col>
+                            {% include "partials/mask_linked_code.html" with field=form.codice_partita label=partita_label tipo="clifor" col="col-12" open_url=partita_url %}
+                        </div>
+                        <div class="col-sm-6" data-paga-col>
+                            {% include "partials/mask_linked_code.html" with field=form.codice_paga label=pagamento_label tipo="condizione" col="col-12" %}
+                        </div>
+                        <div class="col-sm-6" data-valuta-col>
+                            {% include "partials/mask_field.html" with field=form.valuta col="col-12" %}
+                        </div>
+                        <div class="col-sm-6" data-acconto-col>
+                            {% include "partials/mask_field.html" with field=form.acconto col="col-12" %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3" data-registro-col>
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-hash"></i></span>
+                Protocollo e altro
+            </h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                <div class="col-sm-3" data-registro-col>{% include "partials/mask_field.html" with field=form.numero_prot col="col-12" %}</div>
+                <div class="col-sm-3" data-registro-col>{% include "partials/mask_field.html" with field=form.alfa_prot col="col-12" %}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--primanota-movimenti mb-3">
+        <div class="card-header eureka-mask-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-list-details"></i></span>
+                <span data-movimenti-title>{% if is_iva %}Movimenti IVA{% else %}Dettaglio{% endif %}</span>
+                {% if righe_count %}<span class="badge bg-white text-purple ms-1">{{ righe_count }}</span>{% endif %}
+            </h3>
+            <button type="button" class="btn btn-outline-light btn-sm" data-add-riga>
+                <i class="ti ti-plus"></i> Aggiungi riga
+            </button>
+        </div>
+        <div class="table-responsive">
+            {{ formset.management_form }}
+            <table class="table table-vcenter table-sm card-table mb-0 eureka-primanota-righe-table" id="righeTable">
+                <thead>
+                    <tr>
+                        <th class="w-1">Pos.</th>
+                        <th data-iva-col>C/Partita</th>
+                        <th class="text-end" data-iva-col>Imponibile</th>
+                        <th data-gen-col data-gen-sezione="dare" data-gen-sezione-start>Conto dare</th>
+                        <th class="text-end" data-gen-col data-gen-sezione="dare" data-gen-importo="dare">Dare</th>
+                        <th data-gen-col data-gen-sezione="avere" data-gen-sezione-start>Conto avere</th>
+                        <th class="text-end" data-gen-col data-gen-sezione="avere" data-gen-importo="avere">Avere</th>
+                        <th data-iva-col>C. IVA</th>
+                        <th class="text-end" data-iva-col>Importo IVA</th>
+                        <th>Descrizione</th>
+                        <th>Anno</th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+                <tbody id="righeBody">
+                    {% for f in formset %}
+                    {% include "primanota/partials/riga_form_row.html" with f=f %}
+                    {% empty %}
+                    <tr data-riga-empty-hint>
+                        <td colspan="12" class="text-center text-secondary py-3">Nessuna riga. Usa «Aggiungi riga».</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="fw-semibold">
+                        <td></td>
+                        <td class="text-end" data-iva-col>Totale imponibile</td>
+                        <td class="text-end" data-iva-col data-totale-imponibile>€ {{ totale_imponibile|euro }}</td>
+                        <td data-gen-col data-gen-sezione="dare" data-gen-sezione-start></td>
+                        <td class="text-end" data-gen-col data-gen-sezione="dare" data-gen-importo="dare" data-totale-dare>€ {{ totale_dare|euro }}</td>
+                        <td data-gen-col data-gen-sezione="avere" data-gen-sezione-start></td>
+                        <td class="text-end" data-gen-col data-gen-sezione="avere" data-gen-importo="avere" data-totale-avere>€ {{ totale_avere|euro }}</td>
+                        <td class="text-end" data-iva-col>Totale IVA</td>
+                        <td class="text-end" data-iva-col data-totale-iva>€ {{ totale_iva|euro }}</td>
+                        <td colspan="3" class="text-end" data-iva-col>Totale documento <span data-totale-documento>€ {{ totale_documento|euro }}</span></td>
+                        <td colspan="3" class="text-end" data-gen-col>Sbilancio <span class="{% if sbilancio %}text-danger{% endif %}" data-sbilancio>€ {{ sbilancio|euro }}</span></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2 py-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-add-riga>
+                <i class="ti ti-plus"></i> Aggiungi riga
+            </button>
+            <div class="text-secondary small{% if not is_iva %} d-none{% endif %}" data-iva-block>
+                I conti e i codici IVA si selezionano dalla lista; l'importo IVA si calcola da imponibile (o dare/avere) e codice IVA usando la tabella AliquoteIva.
+            </div>
+            <div class="text-secondary small{% if is_iva %} d-none{% endif %}" data-gen-block>
+                I conti si selezionano dalla lista.
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--primanota-scadenze mb-3{% if is_generico %} d-none{% endif %}" data-scadenze-block>
+        <div class="card-header eureka-mask-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-calendar-due"></i></span>
+                Scadenze
+            </h3>
+            {% include "partials/mask_field.html" with field=form.scadenze_ins col="col-auto" check=1 hide_label=0 %}
+        </div>
+        <div class="card-body py-3{% if not scadenze_editable %} is-locked{% endif %}" data-scadenze-body>
+            <div class="eureka-scadenze-riepilogo mb-3{% if scadenze_editable %} d-none{% endif %}" data-scadenze-locked-hint>
+                <i class="ti ti-lock me-1"></i>
+                Scadenze in sola lettura. Attiva «Scadenze e importi inseribili manualmente» per modificarle.
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <table class="table table-sm table-vcenter mb-0 eureka-primanota-righe-table">
+                        <thead>
+                            <tr>
+                                <th class="w-1">N°</th>
+                                <th>Scadenza</th>
+                                <th>Importo</th>
+                                <th class="text-center">Rit. Acc.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in scadenza_slots|slice:":5" %}
+                            <tr>
+                                <td class="text-secondary fw-semibold">{{ s.n }}</td>
+                                <td>{{ s.data }}</td>
+                                <td>{{ s.importo }}</td>
+                                <td class="text-center">{{ s.rit }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm table-vcenter mb-0 eureka-primanota-righe-table">
+                        <thead>
+                            <tr>
+                                <th class="w-1">N°</th>
+                                <th>Scadenza</th>
+                                <th>Importo</th>
+                                <th class="text-center">Rit. Acc.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in scadenza_slots|slice:"5:" %}
+                            <tr>
+                                <td class="text-secondary fw-semibold">{{ s.n }}</td>
+                                <td>{{ s.data }}</td>
+                                <td>{{ s.importo }}</td>
+                                <td class="text-center">{{ s.rit }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="eureka-mask-actions">
+        {% if is_create %}
+        <a href="{% url 'primanota:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% else %}
+        <a href="{% url 'primanota:detail' registrazione.id %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ti ti-device-floppy"></i> Salva registrazione
+        </button>
+    </div>
+</form>
+
+<template id="rigaEmptyFormTemplate">
+{% include "primanota/partials/riga_form_row.html" with f=formset.empty_form is_empty_tpl=1 %}
+</template>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script>window.EUREKA_ALIQUOTE_MAP = {{ aliquote_map_json|default:"{}"|safe }};</script>
+<script>window.EUREKA_CAUSALI = {{ causali_catalog_json|default:"[]"|safe }};</script>
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=26"></script>
+<script src="{% static 'eureka/js/primanota-righe.js' %}?v=10"></script>
+<script src="{% static 'eureka/js/primanota-scadenze.js' %}?v=2"></script>
+<script>
+(() => {
+  const tipo = document.getElementById("id_tipo");
+  const form = document.getElementById("primanotaForm");
+  const scadenzeIns = document.getElementById("id_scadenze_ins");
+  const scadenzeBody = document.querySelector("[data-scadenze-body]");
+  const scadenzeHint = document.querySelector("[data-scadenze-locked-hint]");
+  const registroEl = document.getElementById("id_registro");
+  const numeroProt = document.getElementById("id_numero_prot");
+
+  const fillCausaleOptions = (generico, iva) => {
+    const causaleSelect = document.getElementById("id_causale");
+    const catalog = window.EUREKA_CAUSALI;
+    if (!causaleSelect || !Array.isArray(catalog)) return;
+    const current = causaleSelect.value;
+    const items = catalog.filter((c) => {
+      if (generico) return !c.has_registro;
+      if (iva) return c.has_registro;
+      return true;
+    });
+    causaleSelect.innerHTML = "";
+    causaleSelect.add(new Option("—", ""));
+    let keep = false;
+    items.forEach((c) => {
+      causaleSelect.add(new Option(c.label, c.code));
+      if (c.code === current) keep = true;
+    });
+    causaleSelect.value = keep ? current : "";
+  };
+
+  const syncTipo = () => {
+    const iva = tipo && (tipo.value === "2" || tipo.value === "4");
+    const generico = tipo && tipo.value === "1";
+    fillCausaleOptions(generico, iva);
+    document.querySelectorAll("[data-iva-col], [data-iva-block], [data-iva-kpis]").forEach((el) => {
+      el.classList.toggle("d-none", !iva);
+    });
+    document.querySelectorAll("[data-gen-col], [data-gen-kpis], [data-gen-block]").forEach((el) => {
+      el.classList.toggle("d-none", iva);
+    });
+    document.querySelectorAll("[data-registro-col], [data-partita-col], [data-paga-col], [data-valuta-col], [data-acconto-col], [data-scadenze-block]").forEach((el) => {
+      el.classList.toggle("d-none", generico);
+    });
+    const movimentiTitle = document.querySelector("[data-movimenti-title]");
+    if (movimentiTitle) {
+      movimentiTitle.textContent = iva ? "Movimenti IVA" : "Dettaglio";
+    }
+    if (generico) {
+      if (registroEl) registroEl.value = "";
+      if (numeroProt) numeroProt.value = "";
+      const alfaProt = document.getElementById("id_alfa_prot");
+      if (alfaProt) alfaProt.value = "";
+      const partitaEl = document.getElementById("id_codice_partita");
+      if (partitaEl) partitaEl.value = "";
+      const pagaEl = document.getElementById("id_codice_paga");
+      if (pagaEl) pagaEl.value = "";
+      const valutaEl = document.getElementById("id_valuta");
+      if (valutaEl) valutaEl.value = "";
+      const accontoEl = document.getElementById("id_acconto");
+      if (accontoEl) accontoEl.value = "";
+    }
+  };
+
+  const scadenzeInputs = () =>
+    scadenzeBody
+      ? Array.from(scadenzeBody.querySelectorAll("input, select, textarea"))
+      : [];
+
+  const syncScadenze = () => {
+    const editable = Boolean(scadenzeIns?.checked);
+    scadenzeBody?.classList.toggle("is-locked", !editable);
+    scadenzeHint?.classList.toggle("d-none", editable);
+    scadenzeInputs().forEach((el) => {
+      el.disabled = !editable;
+    });
+  };
+
+  tipo?.addEventListener("change", syncTipo);
+  scadenzeIns?.addEventListener("change", syncScadenze);
+  form?.addEventListener("submit", () => {
+    scadenzeInputs().forEach((el) => {
+      el.disabled = false;
+    });
+  });
+
+  syncTipo();
+  syncScadenze();
+
+  const prossimoUrl = form?.getAttribute("data-prossimo-numero-url");
+  const dataReg = document.getElementById("id_data_reg");
+  const numeroReg = document.getElementById("id_numero_reg");
+  const dataValuta = document.getElementById("id_data_valuta");
+  const syncCompetenza = form?.hasAttribute("data-sync-competenza");
+  const syncNumeroReg = () => {
+    if (!prossimoUrl || !dataReg || !numeroReg) return;
+    const qs = dataReg.value ? `?data_reg=${encodeURIComponent(dataReg.value)}` : "";
+    fetch(`${prossimoUrl}${qs}`, { headers: { Accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && data.numero_reg != null) numeroReg.value = data.numero_reg;
+      })
+      .catch(() => {});
+  };
+  const syncDataValuta = () => {
+    if (!syncCompetenza || !dataReg || !dataValuta) return;
+    dataValuta.value = dataReg.value;
+  };
+  dataReg?.addEventListener("change", () => {
+    syncNumeroReg();
+    syncDataValuta();
+  });
+
+  const daCausaleUrl = form?.getAttribute("data-da-causale-url");
+  const applyProtocol = form?.hasAttribute("data-protocollo-from-registro");
+  const causaleEl = document.getElementById("id_causale");
+  const ensureOption = (select, value, label) => {
+    if (!select || value == null || value === "") return;
+    const exists = Array.from(select.options).some((o) => o.value === value);
+    if (!exists) select.add(new Option(label || value, value, true, true));
+  };
+  const syncDaCausale = () => {
+    if (!daCausaleUrl || !causaleEl || tipo?.value === "1") return;
+    const code = causaleEl.value;
+    if (!code) {
+      if (registroEl) registroEl.value = "";
+      if (applyProtocol && numeroProt) numeroProt.value = "";
+      return;
+    }
+    fetch(`${daCausaleUrl}?causale=${encodeURIComponent(code)}`, {
+      headers: { Accept: "application/json" },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (registroEl) {
+          if (data.registro) {
+            ensureOption(registroEl, data.registro, data.registro_label);
+            registroEl.value = data.registro;
+          } else {
+            registroEl.value = "";
+          }
+        }
+        if (applyProtocol && numeroProt) {
+          numeroProt.value = data.numero_prot != null ? data.numero_prot : "";
+        }
+      })
+      .catch(() => {});
+  };
+  causaleEl?.addEventListener("change", syncDaCausale);
+})();
+</script>
+{% endblock %}

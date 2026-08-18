@@ -1,0 +1,87 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}{{ page_heading }} · {{ registrazione.numero_registrazione }} · Primanota · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--primanota eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--primanota"><i class="ti ti-list-details"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ registrazione.id }}</span>
+                <span class="badge bg-azure-lt">Reg. {{ registrazione.numero_registrazione }}</span>
+                {% if is_iva %}<span class="badge bg-purple-lt">IVA</span>{% endif %}
+                {% if not is_create and riga_pos_label %}<span class="badge bg-secondary-lt">Pos. {{ riga_pos_label }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'primanota:edit' registrazione.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Modifica registrazione
+        </a>
+        <a href="{% url 'primanota:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" class="eureka-mask-form" data-primanota-riga-form data-linked-lookups data-lookup-url="{{ lookup_url }}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3">
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-arrows-exchange"></i></span>
+                {% if is_iva %}Movimento IVA{% else %}Movimento contabile{% endif %}
+            </h3>
+        </div>
+        <div class="card-body py-3">
+            {% if is_iva %}
+            <div class="row g-compact">
+                {% include "partials/mask_linked_code.html" with field=form.conto_partita label=labels.conto_partita tipo="pdc" col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.imponibile col="col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.codice_iva label=labels.codice_iva tipo="iva" col="col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.importo_iva col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-sm-8" %}
+                {% include "partials/mask_field.html" with field=form.anno_doc col="col-sm-4" %}
+            </div>
+            <div class="form-hint mt-1">L'importo IVA si ricalcola automaticamente da imponibile e codice IVA (tabella AliquoteIva).</div>
+            {% else %}
+            <div class="row g-compact">
+                {% include "partials/mask_linked_code.html" with field=form.conto_dare label=labels.conto_dare tipo="pdc_clifor" col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.dare col="col-sm-2" %}
+                {% include "partials/mask_linked_code.html" with field=form.conto_avere label=labels.conto_avere tipo="pdc_clifor" col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.avere col="col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-sm-8" %}
+                {% include "partials/mask_field.html" with field=form.anno_doc col="col-sm-4" %}
+                <div class="d-none" aria-hidden="true">{{ form.codice_iva }}{{ form.importo_iva }}</div>
+            </div>
+            {% endif %}
+            {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+        </div>
+    </div>
+
+    <div class="eureka-mask-actions">
+        <a href="{% url 'primanota:edit' registrazione.id %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ti ti-device-floppy"></i> Salva
+        </button>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>window.EUREKA_ALIQUOTE_MAP = {{ aliquote_map_json|default:"{}"|safe }};</script>
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=26"></script>
+<script src="{% static 'eureka/js/primanota-righe.js' %}?v=10"></script>
+{% endblock %}

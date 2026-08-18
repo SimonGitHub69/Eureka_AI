@@ -1,0 +1,25 @@
+{% comment %}
+Campo codice con lookup in cella tabella formset primanota.
+{% endcomment %}
+<div class="eureka-linked-field eureka-linked-field--table{% if label %} is-resolved{% endif %}" data-linked-field data-lookup-tipo="{{ tipo }}">
+    <div class="eureka-combo">
+        {{ field }}
+        <button type="button"
+                class="eureka-combo__toggle"
+                data-combo-toggle
+                tabindex="-1"
+                title="Seleziona dalla lista"
+                aria-label="Seleziona dalla lista">
+            <i class="ti ti-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="eureka-combo__menu" data-combo-menu hidden role="listbox"></div>
+    </div>
+    <div class="eureka-linked-label eureka-linked-label--table"
+         data-linked-label
+         data-lookup-tipo="{{ tipo }}"
+         data-for-input="{{ field.id_for_label }}"
+         {% if not label %}hidden{% endif %}>
+        <span class="eureka-linked-label__text">{{ label|default:"" }}</span>
+    </div>
+    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+</div>

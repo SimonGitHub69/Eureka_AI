@@ -1,0 +1,217 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}Primanota · Eureka AI{% endblock %}
+{% block page_title %}Primanota{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-notebook"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Primanota</h2>
+            <div class="text-secondary mt-1">
+                Registrazioni importate da 4D (<code>Primanota</code>)
+                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
+            </div>
+        </div>
+    </div>
+    <a href="{% url 'primanota:create' %}" class="btn btn-primary">
+        <i class="ti ti-plus"></i>
+        Nuova registrazione
+    </a>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        <form method="get" action="{% url 'primanota:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label" for="primanotaSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="primanotaSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="N. reg., protocollo, documento, causale, partita...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="primanotaCausale">Causale</label>
+                    <input type="text" id="primanotaCausale" name="causale" value="{{ causale }}" class="form-control" placeholder="Codice">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="primanotaRegistro">Registro</label>
+                    <select id="primanotaRegistro" name="registro" class="form-select">
+                        {% for value, label in registri_choices %}
+                        <option value="{{ value }}" {% if registro == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="primanotaTipo">Tipo</label>
+                    <select id="primanotaTipo" name="tipo" class="form-select">
+                        <option value="">Tutti</option>
+                        {% for value, label in tipo_choices %}
+                        <option value="{{ value }}" {% if tipo == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="primanotaDataDa">Data da</label>
+                    <input type="date" id="primanotaDataDa" name="data_da" value="{{ data_da }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="primanotaDataA">Data a</label>
+                    <input type="date" id="primanotaDataA" name="data_a" value="{{ data_a }}" class="form-control">
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'primanota:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "numero_reg" "N. reg." default_dir="desc" %}
+                    {% sort_th "data_reg" "Data" default_dir="desc" %}
+                    {% sort_th "causale" "Causale" default_dir="asc" %}
+                    {% sort_th "tipo" "Tipo" default_dir="asc" %}
+                    {% sort_th "numero_doc" "Documento" default_dir="asc" %}
+                    {% sort_th "registro" "Registro" default_dir="asc" %}
+                    {% sort_th "totale_doc_controllo" "Totale" align="end" default_dir="desc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in registrazioni %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-green-lt text-green">
+                                <i class="ti ti-notebook"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'primanota:detail' r.id %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 180px;">
+                                    {{ r.numero_registrazione }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ r.id }}
+                                    {% if not r.is_generico and r.protocollo != "—" %}
+                                    · Prot. {{ r.protocollo }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if r.data_reg %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-calendar text-azure"></i>
+                            {{ r.data_reg|date:"d/m/Y" }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.causale_contabile %}
+                        <a href="{% url 'causali_contabili:detail' r.causale_contabile.codice %}" class="eureka-tlist-chip text-decoration-none" title="{{ r.causale_contabile.label }}">
+                            {{ r.causale }}
+                        </a>
+                        {% if r.causale_contabile.label %}
+                        <div class="text-secondary small text-truncate" style="max-width: 200px;">{{ r.causale_contabile.label }}</div>
+                        {% endif %}
+                        {% elif r.causale %}
+                        <span class="eureka-tlist-chip">{{ r.causale }}</span>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.tipo_label != "—" %}
+                        <span class="eureka-tlist-chip">{{ r.tipo_label }}</span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.numero_doc %}
+                        <div class="eureka-tlist-name">{{ r.numero_doc }}</div>
+                        {% if r.data_doc %}<span class="text-secondary small">{{ r.data_doc|date:"d/m/Y" }}</span>{% endif %}
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.is_generico %}
+                        <span class="text-secondary">—</span>
+                        {% elif r.registro_iva %}
+                        <a href="{% url 'registri_iva:detail' r.registro_iva.codice %}" class="eureka-tlist-chip text-decoration-none" title="{{ r.registro_iva.label }}">
+                            {{ r.registro }}
+                        </a>
+                        {% if r.registro_iva.label %}
+                        <div class="text-secondary small text-truncate" style="max-width: 200px;">{{ r.registro_iva.label }}</div>
+                        {% endif %}
+                        {% elif r.registro %}
+                        {{ r.registro }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if r.totale_doc_controllo != None %}€ {{ r.totale_doc_controllo|euro }}{% else %}—{% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'primanota:edit' r.id %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                        <a href="{% url 'primanota:detail' r.id %}" class="btn btn-icon" title="Dettaglio">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-notebook-off"></i></div>
+                            Nessuna registrazione trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'primanota:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

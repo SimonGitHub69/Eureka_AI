@@ -29,6 +29,72 @@
     }
   }
 
+  function isCliforLookupTipo(tipo) {
+    return tipo === "pdc_clifor" || tipo === "clifor" || tipo === "cliente" || tipo === "fornitore";
+  }
+
+  function uppercaseCliforCode(value, kind) {
+    const code = String(value || "");
+    const k = String(kind || "").toLowerCase();
+    if (k === "cliente" || k === "fornitore" || k === "clifor") {
+      return code.toUpperCase();
+    }
+    const trimmed = code.trim();
+    if (trimmed && /^[A-Za-z]/.test(trimmed)) {
+      return code.toUpperCase();
+    }
+    return code;
+  }
+
+  function forceUppercaseCliforInput(input, tipo) {
+    if (!input || !isCliforLookupTipo(tipo)) return;
+    const next = uppercaseCliforCode(input.value || "", tipo);
+    if (input.value === next) return;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = next;
+    try {
+      if (typeof start === "number") input.setSelectionRange(start, end);
+    } catch (e) {}
+  }
+
+  function cliforDetailPath(tipo, codice, kind) {
+    const code = String(codice || "").trim();
+    if (!code) return "";
+    let which = String(kind || tipo || "").toLowerCase();
+    if (which === "clifor") {
+      const letter = code.replace(/\s/g, "").charAt(0).toUpperCase();
+      which = letter === "F" ? "fornitore" : "cliente";
+    }
+    if (which === "fornitore") {
+      return "/fornitori/" + encodeURIComponent(code) + "/";
+    }
+    if (which === "cliente") {
+      return "/clienti/" + encodeURIComponent(code) + "/";
+    }
+    return "";
+  }
+
+  function updateLinkedOpen(field, data) {
+    const a = field && field.querySelector("[data-linked-open]");
+    if (!a) return;
+    const tipo = (field.dataset.lookupTipo || "").trim();
+    const codice = String((data && data.codice) || "").trim();
+    const found = Boolean(
+      data && (data.found || data.descrizione || data.url)
+    );
+    const path =
+      (data && data.url) ||
+      (found ? cliforDetailPath(tipo, codice, data.kind) : "");
+    if (!path) {
+      a.hidden = true;
+      a.setAttribute("href", "#");
+      return;
+    }
+    a.setAttribute("href", path);
+    a.hidden = false;
+  }
+
   const ANAGRAFICA_FIELDS = [
     ["id_destinatario", "destinatario"],
     ["id_indirizzo", "indirizzo"],
@@ -197,6 +263,7 @@
     const codice = (input.value || "").trim();
     if (!codice) {
       setLabel(label, "", false);
+      updateLinkedOpen(label.closest("[data-linked-field]"), {});
       if (tipo === "cliente" || tipo === "fornitore") fillAnagraficaPanel({});
       if (tipo === "sconto") applyScontoTestata("");
       return;
@@ -218,6 +285,7 @@
       .then((r) => r.json())
       .then((data) => {
         setLabel(label, data.descrizione || "", false);
+        updateLinkedOpen(label.closest("[data-linked-field]"), data);
         if (tipo === "destinazione") {
           fillFromDestinazione(input, data, false);
         } else if (tipo === "sconto") {
@@ -226,7 +294,10 @@
           fillFromAnagrafica(input, data, false);
         }
       })
-      .catch(() => setLabel(label, "", false));
+      .catch(() => {
+        setLabel(label, "", false);
+        updateLinkedOpen(label.closest("[data-linked-field]"), {});
+      });
   }
 
   function layoutMenu(menu, input) {
@@ -288,8 +359,8 @@
   }
 
   function lookupLimit(tipo) {
-    // PDC: molte contropartite; 40 tagliava la lista all'apertura senza ricerca.
-    return tipo === "pdc" ? 400 : 40;
+    // PDC / PDC+clifor: molte voci; 40 tagliava la lista all'apertura senza ricerca.
+    return tipo === "pdc" || tipo === "pdc_clifor" ? 400 : 40;
   }
 
   function renderMenu(menu, results, input, label, opts) {
@@ -313,11 +384,22 @@
         '<span class="eureka-combo__item-code"></span>' +
         '<span class="eureka-combo__item-desc"></span>';
       btn.querySelector(".eureka-combo__item-code").textContent = row.codice || "—";
-      btn.querySelector(".eureka-combo__item-desc").textContent = row.descrizione || "";
+      const kindLabel = ({ cliente: "Cliente", fornitore: "Fornitore", pdc: "PDC" })[
+        String(row.kind || "").toLowerCase()
+      ];
+      const desc = row.descrizione || "";
+      btn.querySelector(".eureka-combo__item-desc").textContent = kindLabel
+        ? kindLabel + " · " + desc
+        : desc;
       btn.addEventListener("mousedown", (ev) => {
         ev.preventDefault();
-        input.value = row.codice || "";
+        const tipoPick = (label.dataset.lookupTipo || "").trim();
+        input.value = uppercaseCliforCode(
+          row.codice || "",
+          row.kind || tipoPick
+        );
         setLabel(label, row.descrizione || "", false);
+        updateLinkedOpen(input.closest("[data-linked-field]"), row);
         const tipo = (label.dataset.lookupTipo || "").trim();
         if (tipo === "destinazione") {
           fillFromDestinazione(input, row, true);
@@ -380,10 +462,8 @@
     }
   }
 
-  window.addEventListener("scroll", onViewportChange, true);
-  window.addEventListener("resize", onViewportChange);
-
-  root.querySelectorAll("[data-linked-field]").forEach((field) => {
+  function bindLinkedField(field) {
+    if (!field || field.dataset.lookupBound === "1") return;
     const label = field.querySelector("[data-linked-label]");
     const combo = field.querySelector(".eureka-combo");
     if (!label || !combo) return;
@@ -392,6 +472,7 @@
     const toggle = combo.querySelector("[data-combo-toggle]");
     if (!input || !menu) return;
 
+    field.dataset.lookupBound = "1";
     menu._combo = combo;
 
     const runResolve = () => resolveLabel(input, label);
@@ -401,6 +482,7 @@
     };
 
     input.addEventListener("input", () => {
+      forceUppercaseCliforInput(input, field.dataset.lookupTipo);
       clearTimeout(timers.get(input));
       timers.set(
         input,
@@ -447,7 +529,22 @@
     }
 
     runResolve();
-  });
+  }
+
+  function bindLinkedFields(scope) {
+    const rootScope = scope || root;
+    if (!rootScope || !rootScope.querySelectorAll) return;
+    rootScope.querySelectorAll("[data-linked-field]").forEach(bindLinkedField);
+    if (rootScope.matches && rootScope.matches("[data-linked-field]")) {
+      bindLinkedField(rootScope);
+    }
+  }
+
+  window.addEventListener("scroll", onViewportChange, true);
+  window.addEventListener("resize", onViewportChange);
+
+  bindLinkedFields(root);
+  window.EurekaLinkedLookups = { bind: bindLinkedFields };
 
   // Cambio Cli/For: azzera il selettore destinazione (lista dipende dal codice).
   // Timer dedicato: non riusare WeakMap su #id_codice_clifor, altrimenti
