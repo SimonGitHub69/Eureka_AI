@@ -1,50 +1,50 @@
 {% extends "base/layout.html" %}
 
 {% block title %}Clienti · Eureka AI{% endblock %}
-
 {% block page_title %}Clienti{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-users"></i></span>
         <div>
-            <h2 class="page-title">Clienti</h2>
-            <div class="text-secondary">
-                Anagrafica importata da 4D
-                {% if totale %}· {{ totale }} totali{% endif %}
+            <h2 class="page-title mb-0">Clienti</h2>
+            <div class="text-secondary mt-1">
+                Anagrafica importata da 4D (<code>Clienti</code>)
+                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
+                {% if ai_filter_count %}· <strong>{{ ai_filter_count }}</strong> risultati AI{% endif %}
             </div>
         </div>
     </div>
+    <a href="{% url 'anagrafiche:cliente_create' %}" class="btn btn-primary">
+        <i class="ti ti-plus"></i>
+        Nuovo cliente
+    </a>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
         <form method="get" action="{% url 'anagrafiche:clienti_list' %}">
-            <div class="row g-2 align-items-end">
-                <div class="col-lg-5">
-                    <label class="form-label" for="clientiSearch">Ricerca</label>
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
                     <div class="input-icon">
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
-                        <input
-                            type="text"
-                            id="clientiSearch"
-                            name="q"
-                            value="{{ q }}"
-                            class="form-control"
-                            placeholder="Codice, ragione sociale, P.IVA, città, email...">
+                        <input type="text" id="clientiSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, ragione sociale, P.IVA, città, email...">
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label" for="clientiStato">Stato</label>
+                <div class="col-auto" style="min-width: 160px;">
                     <select id="clientiStato" name="stato" class="form-select">
                         <option value="" {% if not stato %}selected{% endif %}>Tutti</option>
                         <option value="attivi" {% if stato == "attivi" %}selected{% endif %}>Solo attivi</option>
                         <option value="disattivi" {% if stato == "disattivi" %}selected{% endif %}>Solo disattivati</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
                         <i class="ti ti-filter"></i>
                         Filtra
                     </button>
@@ -61,68 +61,111 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
                 <tr>
-                    <th>Codice</th>
-                    <th>Ragione sociale</th>
-                    <th>Città</th>
-                    <th>P. IVA</th>
-                    <th>Telefono</th>
-                    <th>Email</th>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "ragione_sociale1" "Cliente" default_dir="asc" %}
+                    {% sort_th "localita" "Località" default_dir="asc" %}
+                    {% sort_th "partita_iva" "P. IVA" default_dir="asc" %}
+                    {% sort_th "email" "Contatti" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for cliente in clienti %}
                 <tr{% if cliente.fl_disattivato %} class="text-secondary"{% endif %}>
-                    <td>
-                        <a href="{% url 'anagrafiche:cliente_detail' cliente.codice %}" class="fw-semibold text-decoration-none">
-                            {{ cliente.codice }}
-                        </a>
-                        {% if cliente.fl_disattivato %}
-                        <div class="small"><span class="badge bg-secondary-lt">Disattivato</span></div>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 260px;" title="{{ cliente.ragione_sociale }}">
-                            {{ cliente.ragione_sociale|default:"—" }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if cliente.localita %}
-                            {{ cliente.localita }}{% if cliente.provincia %} ({{ cliente.provincia }}){% endif %}
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
                         {% else %}
-                            —
+                        {{ forloop.counter }}
                         {% endif %}
                     </td>
-                    <td>{{ cliente.partita_iva|default:"—" }}</td>
-                    <td>{{ cliente.telefono|default:"—" }}</td>
                     <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 180px;" title="{{ cliente.email }}">
-                            {{ cliente.email|default:"—" }}
-                        </span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-azure-lt text-azure">
+                                <i class="ti ti-building"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'anagrafiche:cliente_detail' cliente.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 380px;" title="{{ cliente.ragione_sociale }}">
+                                    {{ cliente.ragione_sociale|default:cliente.codice }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ cliente.codice }}
+                                    {% if cliente.fl_disattivato %}
+                                    <span class="badge bg-secondary-lt ms-1">Disattivato</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
                     </td>
                     <td>
-                        <a href="{% url 'anagrafiche:cliente_detail' cliente.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
+                        {% if cliente.localita or cliente.provincia %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-map-pin text-azure"></i>
+                            {{ cliente.localita|default:"" }}{% if cliente.provincia %} ({{ cliente.provincia|cut:" " }}){% endif %}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if cliente.partita_iva %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-receipt text-green"></i>
+                            {{ cliente.partita_iva }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% if cliente.telefono %}
+                            <span class="eureka-tlist-chip">
+                                <i class="ti ti-phone text-azure"></i>
+                                {{ cliente.telefono }}
+                            </span>
+                            {% endif %}
+                            {% if cliente.email %}
+                            <span class="eureka-tlist-chip text-truncate" style="max-width: 180px;" title="{{ cliente.email }}">
+                                <i class="ti ti-mail text-orange"></i>
+                                {{ cliente.email }}
+                            </span>
+                            {% endif %}
+                            {% if not cliente.telefono and not cliente.email %}
+                            <span class="text-secondary">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'anagrafiche:cliente_edit' cliente.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-secondary py-5">
-                        <i class="ti ti-users-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
-                        Nessun cliente trovato
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'anagrafiche:clienti_list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="6">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-users-off"></i></div>
+                            Nessun cliente trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'anagrafiche:clienti_list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
     {% include "partials/pagination.html" %}
+</div>
+
 </div>
 
 {% endblock %}

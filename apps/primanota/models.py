@@ -42,7 +42,10 @@ class Primanota(models.Model):
     codice_paga = models.TextField(null=True, blank=True, db_column="CodicePaga")
     valuta = models.TextField(null=True, blank=True, db_column="Valuta")
     codice_agente = models.TextField(null=True, blank=True, db_column="CodiceAgente")
+    fornitore_cee = models.TextField(null=True, blank=True, db_column="FornitoreCEE")
     data_valuta = models.DateTimeField(null=True, blank=True, db_column="DataValuta")
+    data_modifica = models.DateTimeField(null=True, blank=True, db_column="DataModifica")
+    ora_modifica = models.TimeField(null=True, blank=True, db_column="OraModifica")
     totale_doc_controllo = models.FloatField(
         null=True, blank=True, db_column="TotaleDoc_Controllo"
     )
@@ -108,6 +111,20 @@ class Primanota(models.Model):
             return False
 
     @property
+    def is_corrispettivi(self) -> bool:
+        try:
+            return int(self.tipo) == self.TIPO_CORRISPETTIVI
+        except (TypeError, ValueError):
+            return False
+
+    @property
+    def is_iva_autofattura(self) -> bool:
+        try:
+            return int(self.tipo) == self.TIPO_IVA_AUTOFATTURA
+        except (TypeError, ValueError):
+            return False
+
+    @property
     def protocollo(self) -> str:
         numero = self.numero_prot
         serie = (self.alfa_prot or "").strip()
@@ -156,11 +173,14 @@ class PrimanotaDettaglio(models.Model):
     des_conto_dare = models.TextField(null=True, blank=True, db_column="DesContoDare")
     des_conto_avere = models.TextField(null=True, blank=True, db_column="DesContoAvere")
     dare = models.FloatField(null=True, blank=True, db_column="Dare")
-    avere = models.FloatField(null=True, blank=True, db_column="Avere")
+    avere = models.FloatField(null=True, blank=True, db_column="Avere_Imponibile")
+    imp_val = models.FloatField(null=True, blank=True, db_column="Imp_Val")
     codice_iva = models.TextField(null=True, blank=True, db_column="CodiceIva")
     importo_iva = models.FloatField(null=True, blank=True, db_column="ImportoIva")
     descrizione = models.TextField(null=True, blank=True, db_column="Descrizione")
     anno_doc = models.TextField(null=True, blank=True, db_column="AnnoDoc")
+    data_modifica = models.DateTimeField(null=True, blank=True, db_column="DataModifica")
+    ora_modifica = models.TimeField(null=True, blank=True, db_column="OraModifica")
     dummy = models.BooleanField(null=True, blank=True, db_column="dummy")
     synced_at = models.DateTimeField(null=True, blank=True)
 
@@ -183,3 +203,8 @@ class PrimanotaDettaglio(models.Model):
         if (self.conto_avere or "").strip():
             return float(self.avere or 0)
         return float(self.dare or 0)
+
+    @property
+    def imponibile_valuta(self) -> float:
+        val = float(self.imp_val or 0)
+        return val if val else self.imponibile

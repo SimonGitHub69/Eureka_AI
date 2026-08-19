@@ -1,0 +1,4 @@
+{% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+{% if dir %}<input type="hidden" name="dir" value="{{ dir }}">{% endif %}
+{% if request.GET.ai %}<input type="hidden" name="ai" value="{{ request.GET.ai }}">{% endif %}
+{% if request.GET.ai_token %}<input type="hidden" name="ai_token" value="{{ request.GET.ai_token }}">{% endif %}

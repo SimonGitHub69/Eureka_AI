@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.core.views import (
+    AiAssistantView,
     ComandiVocaliListView,
     ComandoVocaleDeleteView,
     ComandoVocaleDuplicateView,
@@ -15,8 +16,11 @@ from apps.core.views import (
     OfflineHubView,
     OfflineSyncApiView,
     Parametri4DView,
+    ParametriContabiliView,
+    ParametriMailView,
     ParametriProgrammaView,
     ServiceWorkerView,
+    Sync4DCancelView,
     Sync4DClearView,
     Sync4DStartView,
     Sync4DStatusView,
@@ -30,6 +34,16 @@ urlpatterns = [
         "parametri/programma/",
         ParametriProgrammaView.as_view(),
         name="parametri_programma",
+    ),
+    path(
+        "parametri/contabili/",
+        ParametriContabiliView.as_view(),
+        name="parametri_contabili",
+    ),
+    path(
+        "parametri/mail/",
+        ParametriMailView.as_view(),
+        name="parametri_mail",
     ),
     path(
         "parametri/pc/",
@@ -64,6 +78,7 @@ urlpatterns = [
         name="sync_4d_status",
     ),
     path("parametri/4d/sync-all/clear/", Sync4DClearView.as_view(), name="sync_4d_clear"),
+    path("parametri/4d/sync-all/cancel/", Sync4DCancelView.as_view(), name="sync_4d_cancel"),
     path(
         "parametri/4d/sync-anagrafiche/",
         SyncAnagraficheView.as_view(),
@@ -90,5 +105,6 @@ urlpatterns = [
     path("api/offline/sync/", OfflineSyncApiView.as_view(), name="offline_sync"),
     path("api/helper/open/", HelperOpenApiView.as_view(), name="helper_open"),
     path("api/helper/share/", HelperShareApiView.as_view(), name="helper_share"),
+    path("api/ai/ask/", AiAssistantView.as_view(), name="ai_ask"),
     path("sw.js", ServiceWorkerView.as_view(), name="service_worker"),
 ]

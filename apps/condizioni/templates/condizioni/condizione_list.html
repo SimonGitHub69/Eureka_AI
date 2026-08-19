@@ -1,37 +1,54 @@
 {% extends "base/layout.html" %}
+{% load format_tags %}
 
-{% block title %}Condizioni · Eureka AI{% endblock %}
-{% block page_title %}Condizioni{% endblock %}
+{% block title %}Condizioni di Pagamento · Eureka AI{% endblock %}
+{% block page_title %}Condizioni di Pagamento{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-cash"></i></span>
         <div>
-            <h2 class="page-title">Condizioni</h2>
-            <div class="text-secondary">
-                Condizioni di pagamento importate da 4D (<code>CondizioniPag</code>)
-                {% if totale %}· {{ totale }} totali{% endif %}
+            <h2 class="page-title mb-0">Condizioni di Pagamento</h2>
+            <div class="text-secondary mt-1">
+                Catalogo scadenze e modalità SDI
+                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
             </div>
         </div>
     </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="condizioni:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="condizioni:export_list" %}
+        <a href="{% url 'condizioni:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuova condizione
+        </a>
+    </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
         <form method="get" action="{% url 'condizioni:list' %}">
-            <div class="row g-2 align-items-end">
-                <div class="col-lg-8">
-                    <label class="form-label" for="condizioniSearch">Ricerca</label>
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
                     <div class="input-icon">
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
-                        <input type="text" id="condizioniSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, tipo pagamento...">
+                        <input type="text" id="condizioniSearch" name="q" value="{{ q }}" class="form-control" placeholder="Cerca per codice, descrizione, tipo o MP05...">
                     </div>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
                     {% if has_filters %}
-                    <a href="{% url 'condizioni:list' %}" class="btn btn-outline-secondary" title="Reset"><i class="ti ti-x"></i></a>
+                    <a href="{% url 'condizioni:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
                     {% endif %}
                 </div>
             </div>
@@ -41,42 +58,96 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
                 <tr>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
-                    <th>Tipo pagamento</th>
-                    <th>N. rate</th>
-                    <th>Prima rata</th>
-                    <th>Intervallo</th>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    {% sort_th "tipo_pagamento" "Tipo" default_dir="asc" %}
+                    {% sort_th "pag_fatt_elett_pa" "Modalità SDI" default_dir="asc" %}
+                    {% sort_th "numero_rate" "Tempistiche" align="center" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for c in condizioni %}
                 <tr>
-                    <td>
-                        <a href="{% url 'condizioni:detail' c.codice %}" class="fw-semibold text-decoration-none">{{ c.codice }}</a>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
                     </td>
                     <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 320px;" title="{{ c.descrizione }}">{{ c.descrizione|default:"—" }}</span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar {{ c.pag_fatt_elett_pa|mp_sdi_color }}" title="{{ c.pag_fatt_elett_pa_label|default:'Nessuna modalità SDI' }}">
+                                <i class="ti {{ c.pag_fatt_elett_pa|mp_sdi_icon }}"></i>
+                            </span>
+                            <a href="{% url 'condizioni:detail' c.codice %}" class="eureka-tlist-name">{{ c.codice }}</a>
+                        </div>
                     </td>
-                    <td>{{ c.tipo_pagamento|default:"—" }}</td>
-                    <td>{% if c.numero_rate is not None %}{{ c.numero_rate }}{% else %}—{% endif %}</td>
-                    <td>{% if c.prima_rata is not None %}{{ c.prima_rata }}{% else %}—{% endif %}</td>
-                    <td>{% if c.intervallo is not None %}{{ c.intervallo }}{% else %}—{% endif %}</td>
                     <td>
-                        <a href="{% url 'condizioni:detail' c.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
+                        <a href="{% url 'condizioni:detail' c.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 380px;" title="{{ c.descrizione|default:c.codice }}">
+                            {{ c.descrizione|default:"—" }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if c.tipo_pagamento %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-wallet text-azure"></i>
+                            {{ c.tipo_pagamento }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if c.pag_fatt_elett_pa %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge {{ c.pag_fatt_elett_pa|mp_sdi_color }}" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;">{{ c.pag_fatt_elett_pa }}</span>
+                            {% if c.pag_fatt_elett_pa_descrizione %}
+                            <span class="text-secondary small text-truncate" style="max-width:160px;" title="{{ c.pag_fatt_elett_pa_descrizione }}">{{ c.pag_fatt_elett_pa_descrizione }}</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                            <div class="eureka-tlist-metric" title="Numero rate">
+                                <div class="eureka-tlist-metric__value">{% if c.numero_rate is not None %}{{ c.numero_rate }}{% else %}—{% endif %}</div>
+                                <div class="eureka-tlist-metric__label">Rate</div>
+                            </div>
+                            <div class="eureka-tlist-metric" title="Prima rata">
+                                <div class="eureka-tlist-metric__value">{% if c.prima_rata is not None %}{{ c.prima_rata }}{% else %}—{% endif %}</div>
+                                <div class="eureka-tlist-metric__label">gg 1ª</div>
+                            </div>
+                            <div class="eureka-tlist-metric" title="Intervallo">
+                                <div class="eureka-tlist-metric__value">{% if c.intervallo is not None %}{{ c.intervallo }}{% else %}—{% endif %}</div>
+                                <div class="eureka-tlist-metric__label">Interv.</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'condizioni:edit' c.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-secondary py-5">
-                        Nessuna condizione trovata
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'condizioni:list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="7">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-cash"></i></div>
+                            Nessuna condizione trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'condizioni:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -84,6 +155,8 @@
         </table>
     </div>
     {% include "partials/pagination.html" %}
+</div>
+
 </div>
 
 {% endblock %}

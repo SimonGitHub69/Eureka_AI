@@ -1,50 +1,62 @@
 {% extends "base/layout.html" %}
 
 {% block title %}Articoli · Eureka AI{% endblock %}
-
 {% block page_title %}Articoli{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-package"></i></span>
         <div>
-            <h2 class="page-title">Articoli</h2>
-            <div class="text-secondary">
-                Catalogo importato da 4D
-                {% if totale %}· {{ totale }} totali{% endif %}
+            <h2 class="page-title mb-0">Articoli</h2>
+            <div class="text-secondary mt-1">
+                Catalogo articoli
+                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
             </div>
         </div>
     </div>
+    <a href="{% url 'articoli:create' %}" class="btn btn-primary">
+        <i class="ti ti-plus"></i>
+        Nuovo articolo
+    </a>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
         <form method="get" action="{% url 'articoli:list' %}">
-            <div class="row g-2 align-items-end">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
                 <div class="col-lg-5">
-                    <label class="form-label" for="articoliSearch">Ricerca</label>
                     <div class="input-icon">
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
-                        <input
-                            type="text"
-                            id="articoliSearch"
-                            name="q"
-                            value="{{ q }}"
-                            class="form-control"
-                            placeholder="Codice, descrizione, categoria, fornitore, cod. alternativo...">
+                        <input type="text"
+                               id="articoliSearch"
+                               name="q"
+                               value="{{ q }}"
+                               class="form-control"
+                               placeholder="{% if campo == 'codice' %}Cerca per codice...{% elif campo == 'descrizione' %}Cerca per descrizione...{% else %}Codice, descrizione, categoria, fornitore...{% endif %}"
+                               autocomplete="off">
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label" for="articoliStato">Stato</label>
+                <div class="col-md-2" style="min-width: 140px;">
+                    <select id="articoliCampo" name="campo" class="form-select" title="Campo di ricerca">
+                        <option value="tutto" {% if campo == "tutto" or not campo %}selected{% endif %}>Tutto</option>
+                        <option value="codice" {% if campo == "codice" %}selected{% endif %}>Codice</option>
+                        <option value="descrizione" {% if campo == "descrizione" %}selected{% endif %}>Descrizione</option>
+                    </select>
+                </div>
+                <div class="col-md-2" style="min-width: 140px;">
                     <select id="articoliStato" name="stato" class="form-select">
-                        <option value="" {% if not stato %}selected{% endif %}>Tutti</option>
+                        <option value="" {% if not stato %}selected{% endif %}>Tutti gli stati</option>
                         <option value="attivi" {% if stato == "attivi" %}selected{% endif %}>Solo attivi</option>
                         <option value="disattivi" {% if stato == "disattivi" %}selected{% endif %}>Solo disattivati</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
                         <i class="ti ti-filter"></i>
                         Filtra
                     </button>
@@ -59,66 +71,127 @@
     </div>
 </div>
 
+<div class="eureka-tlist-body">
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
                 <tr>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
-                    <th>Categoria</th>
-                    <th>U.M.</th>
-                    <th>Fornitore</th>
-                    <th class="text-end">Listino 1</th>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "descrizione" "Articolo" default_dir="asc" %}
+                    {% sort_th "cat_omogenea" "Categoria" default_dir="asc" %}
+                    {% sort_th "unita_misura" "U.M." default_dir="asc" %}
+                    {% sort_th "cod_fornitore" "Fornitore" default_dir="asc" %}
+                    {% sort_th "listino1" "Listino 1" align="end" default_dir="desc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for articolo in articoli %}
                 <tr{% if articolo.fl_disattivato %} class="text-secondary"{% endif %}>
-                    <td>
-                        <a href="{% url 'articoli:detail' articolo.codice %}" class="fw-semibold text-decoration-none">
-                            {{ articolo.codice }}
-                        </a>
-                        {% if articolo.fl_disattivato %}
-                        <div class="small"><span class="badge bg-secondary-lt">Disattivato</span></div>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
                         {% endif %}
                     </td>
                     <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 320px;" title="{{ articolo.descrizione }}">
-                            {{ articolo.descrizione|default:"—" }}
-                        </span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-azure-lt text-azure">
+                                <i class="ti ti-package"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'articoli:detail' articolo.codice %}" class="eureka-tlist-name text-truncate d-block" title="{{ articolo.descrizione }}">
+                                    {{ articolo.descrizione|default:articolo.codice }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ articolo.codice }}
+                                    {% if articolo.fl_disattivato %}
+                                    <span class="badge bg-secondary-lt ms-1">Disattivato</span>
+                                    {% elif articolo.disponibile %}
+                                    <span class="badge bg-success-lt ms-1">Disponibile</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
                     </td>
-                    <td>{{ articolo.cat_omogenea|default:"—" }}</td>
-                    <td>{{ articolo.unita_misura|default:"—" }}</td>
-                    <td>{{ articolo.cod_fornitore|default:"—" }}</td>
-                    <td class="text-end">
+                    <td>
+                        {% if articolo.cat_omogenea %}
+                        <div class="overflow-hidden">
+                            <span class="eureka-tlist-chip">
+                                <i class="ti ti-folder text-azure"></i>
+                                {{ articolo.cat_omogenea }}
+                            </span>
+                            {% if articolo.categoria_label %}
+                            <div class="eureka-linked-label text-truncate" style="max-width: 180px;" title="{{ articolo.categoria_label }}">
+                                {{ articolo.categoria_label }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if articolo.unita_misura %}
+                        <span class="eureka-tlist-chip">{{ articolo.unita_misura }}</span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if articolo.cod_fornitore %}
+                        <div class="overflow-hidden">
+                            <span class="eureka-tlist-code"><i class="ti ti-truck" style="font-size:.85em;"></i> {{ articolo.cod_fornitore }}</span>
+                            {% if articolo.fornitore_ragione_sociale %}
+                            <div class="eureka-linked-label text-truncate" style="max-width: 220px;" title="{{ articolo.fornitore_ragione_sociale }}">
+                                {{ articolo.fornitore_ragione_sociale }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-semibold">
                         {% if articolo.listino1 is not None %}
                             {{ articolo.listino1|floatformat:2 }}
                         {% else %}
-                            —
+                            <span class="text-secondary">—</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="{% url 'articoli:detail' articolo.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'articoli:detail' articolo.codice %}" class="btn btn-icon" title="Dettaglio">
+                            <i class="ti ti-eye"></i>
+                        </a>
+                        <a href="{% url 'articoli:edit' articolo.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-secondary py-5">
-                        <i class="ti ti-package-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
-                        Nessun articolo trovato
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'articoli:list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="7">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-package-off"></i></div>
+                            Nessun articolo trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'articoli:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
     {% include "partials/pagination.html" %}
+</div>
+</div>
+
 </div>
 
 {% endblock %}

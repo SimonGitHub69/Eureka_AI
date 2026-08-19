@@ -40,14 +40,15 @@
     <link rel="stylesheet" href="{% static 'vendor/tabler/css/tabler.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/variables.css' %}">
-    <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}?v=compact-2">
-    <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}?v=bar-2">
+    <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}?v=compact-9">
+    <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}?v=bar-3">
     <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-3">
     <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-16">
-    <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-17">
+    <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-34">
     {% if user.is_authenticated and eureka_voice_enabled %}
     <link rel="stylesheet" href="{% static 'eureka/css/voice-assistant.css' %}">
     {% endif %}
+    <link rel="stylesheet" href="{% static 'eureka/css/ai-assistant-modal.css' %}?v=1">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -110,7 +111,7 @@
                     </div>
 
                     <div class="eureka-navbar__title-wrap">
-                        <span class="eureka-navbar__eyebrow">Eureka AI</span>
+                        <span class="eureka-navbar__eyebrow">Eureka! AI</span>
                         <h1 class="eureka-navbar__title">
                             {% block page_title %}Dashboard{% endblock %}
                         </h1>
@@ -129,6 +130,16 @@
                             <i class="ti ti-microphone"></i>
                         </button>
                         {% endif %}
+
+                        <button
+                            type="button"
+                            class="eureka-navbar__btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#eurekaAiPromptModal"
+                            aria-label="Assistente AI"
+                            title="Assistente AI">
+                            <i class="ti ti-wand"></i>
+                        </button>
 
                         <button
                             type="button"
@@ -189,9 +200,9 @@
 <script src="{% static 'vendor/tabler/js/tabler.min.js' %}"></script>
 <script defer src="{% static 'vendor/alpinejs/cdn.min.js' %}"></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
-<script src="{% static 'eureka/js/disable-autocomplete.js' %}"></script>
+<script src="{% static 'eureka/js/disable-autocomplete.js' %}?v=2"></script>
 <script>window.EUREKA_SW_URL = "{% url 'core:service_worker' %}";</script>
-<script src="{% static 'eureka/js/app.js' %}?v=share-helper-10"></script>
+<script src="{% static 'eureka/js/app.js' %}?v=share-helper-11"></script>
 <script>
     window.EUREKA_ERROR_SOUND_ENABLED = {% if eureka_error_sound_enabled %}true{% else %}false{% endif %};
     window.EUREKA_ERROR_SOUND_URL = "{{ eureka_error_sound_url|default:''|escapejs }}";
@@ -209,6 +220,14 @@
         articoli: "{% url 'articoli:list' %}",
         distinte_base: "{% url 'distinte_base:list' %}",
         fatture: "{% url 'fatture:list' %}",
+        preventivi: "{% url 'documenti:list' tipo_doc='PRV' %}",
+        ordini_vendita: "{% url 'documenti:list' tipo_doc='ORV' %}",
+        ordini_acquisto: "{% url 'documenti:list' tipo_doc='ORA' %}",
+        ddt: "{% url 'documenti:list' tipo_doc='DDT' %}",
+        bolle: "{% url 'documenti:list' tipo_doc='DDT' %}",
+        note_credito: "{% url 'documenti:list' tipo_doc='NCR' %}",
+        note_debito: "{% url 'documenti:list' tipo_doc='NDB' %}",
+        documenti: "{% url 'documenti:index' %}",
         analisi_fatturato: "{% url 'fatture:analisi' %}",
         fatturato_regioni: "{% url 'fatture:analisi_regioni' %}",
         classifica_clienti: "{% url 'fatture:classifica' %}",
@@ -216,8 +235,16 @@
         condizioni: "{% url 'condizioni:list' %}",
         aliquote: "{% url 'aliquote:list' %}",
         banche: "{% url 'banche:list' %}",
+        zone: "{% url 'zone:list' %}",
+        vettori: "{% url 'vettori:list' %}",
+        spedizionieri: "{% url 'vettori:list' %}",
+        causali_trasp: "{% url 'causali_trasp:list' %}",
+        causali_trasporto: "{% url 'causali_trasp:list' %}",
+        destinazioni: "{% url 'destinazioni:list' %}",
         pdc: "{% url 'pdc:list' %}",
         piano_conti: "{% url 'pdc:list' %}",
+        primanota: "{% url 'primanota:list' %}",
+        prima_nota: "{% url 'primanota:list' %}",
         causali_contabili: "{% url 'causali_contabili:list' %}",
         causali: "{% url 'causali_contabili:list' %}",
         raggruppamento_conti: "{% url 'raggruppamento_conti:list' %}",
@@ -226,6 +253,8 @@
         gruppi_articoli: "{% url 'gruppi_articoli:list' %}",
         gruppi_magazzini: "{% url 'gruppi_magazzini:list' %}",
         magazzini: "{% url 'magazzini:list' %}",
+        causali_magazzino: "{% url 'causali_magazzino:list' %}",
+        causali_maga: "{% url 'causali_magazzino:list' %}",
         stampi: "{% url 'stampi:list' %}",
         operatori: "{% url 'operatori:list' %}",
         timbrature: "{% url 'timbrature:list' %}",
@@ -233,6 +262,7 @@
         province: "{% url 'geografia:province_list' %}",
         citta: "{% url 'geografia:citta_list' %}",
         parametri_programma: "{% url 'core:parametri_programma' %}",
+        parametri_contabili: "{% url 'core:parametri_contabili' %}",
         parametri_4d: "{% url 'core:parametri_4d' %}",
         parametri4d: "{% url 'core:parametri_4d' %}",
         sistema: "{% url 'dashboard:sistema' %}",
@@ -243,7 +273,15 @@
         sync_condizioni: "{% url 'condizioni:sync' %}",
         sync_aliquote: "{% url 'aliquote:sync' %}",
         sync_banche: "{% url 'banche:sync' %}",
+        sync_zone: "{% url 'zone:sync' %}",
+        sync_vettori: "{% url 'vettori:sync' %}",
+        sync_spedizionieri: "{% url 'vettori:sync' %}",
+        sync_causali_trasp: "{% url 'causali_trasp:sync' %}",
+        sync_causali_trasporto: "{% url 'causali_trasp:sync' %}",
+        sync_destinazioni: "{% url 'destinazioni:sync' %}",
         sync_pdc: "{% url 'pdc:sync' %}",
+        sync_primanota: "{% url 'primanota:sync' %}",
+        sync_prima_nota: "{% url 'primanota:sync' %}",
         sync_causali_contabili: "{% url 'causali_contabili:sync' %}",
         sync_raggruppamento_conti: "{% url 'raggruppamento_conti:sync' %}",
         sync_raggruppamento_clifor: "{% url 'raggruppamento_clifor:sync' %}",
@@ -251,6 +289,8 @@
         sync_gruppi_articoli: "{% url 'gruppi_articoli:sync' %}",
         sync_gruppi_magazzini: "{% url 'gruppi_magazzini:sync' %}",
         sync_magazzini: "{% url 'magazzini:sync' %}",
+        sync_causali_magazzino: "{% url 'causali_magazzino:sync' %}",
+        sync_causali_maga: "{% url 'causali_magazzino:sync' %}",
         sync_stampi: "{% url 'stampi:sync' %}",
         sync_carbon: "{% url 'carbon:sync' %}",
         sync_lavorazioni_extra: "{% url 'lavorazioni_extra:sync' %}",
@@ -263,6 +303,439 @@
 {% endif %}
 
 {% block extra_js %}{% endblock %}
+
+<!-- Modale Assistente AI -->
+<div class="modal modal-blur fade" id="eurekaAiPromptModal" tabindex="-1" aria-labelledby="eurekaAiPromptLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content eureka-ai-modal">
+      <div class="eureka-ai-modal__accent" aria-hidden="true"></div>
+      <div class="modal-header eureka-ai-modal__header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="eureka-ai-modal__header-icon" aria-hidden="true">
+            <i class="ti ti-wand fs-3"></i>
+          </span>
+          <div>
+            <h5 class="modal-title mb-0" id="eurekaAiPromptLabel">Assistente AI</h5>
+            <div class="eureka-ai-modal__subtitle">Cerca ed elabora dati in linguaggio naturale</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body eureka-ai-modal__body">
+        <div class="eureka-ai-modal__hint">
+          <i class="ti ti-bulb eureka-ai-modal__hint-icon" aria-hidden="true"></i>
+          <div>
+            Descrivi cosa vuoi cercare o elaborare. Ad esempio:
+            <em>"{{ eureka_ai_example_prompt }}"</em>
+          </div>
+        </div>
+
+        <div id="eurekaAiHistoryControls" class="eureka-ai-modal__history d-none">
+          <div class="eureka-ai-modal__history-header">
+            <div class="eureka-ai-modal__history-title">
+              <i class="ti ti-history" aria-hidden="true"></i>
+              Ricerche recenti
+            </div>
+            <button type="button" class="eureka-ai-modal__history-clear" id="eurekaAiClearHistory"
+                    title="Cancella tutte le ricerche recenti">
+              Cancella tutto
+            </button>
+          </div>
+          <div class="dropdown eureka-ai-modal__history-dropdown">
+            <button type="button" class="eureka-ai-modal__history-toggle dropdown-toggle w-100"
+                    id="eurekaAiPromptHistoryToggle"
+                    data-bs-toggle="dropdown" data-bs-display="static"
+                    aria-expanded="false" aria-label="Apri elenco ricerche recenti">
+              <i class="ti ti-list-search" aria-hidden="true"></i>
+              <span id="eurekaAiHistoryToggleLabel">Apri elenco</span>
+            </button>
+            <div class="dropdown-menu eureka-ai-modal__history-menu" id="eurekaAiPromptHistoryMenu"
+                 role="menu" aria-label="Elenco ricerche recenti"></div>
+          </div>
+        </div>
+
+        <div class="eureka-ai-modal__prompt">
+          <label for="eurekaAiPromptInput" class="eureka-ai-modal__prompt-label">La tua richiesta</label>
+          <div class="eureka-ai-modal__input-wrap">
+            <textarea class="form-control eureka-ai-modal__textarea" id="eurekaAiPromptInput" rows="4"
+                      placeholder="Scrivi o detta la tua richiesta…" autofocus></textarea>
+            <button type="button" class="btn btn-ghost-primary eureka-ai-modal__voice-btn" id="eurekaAiVoiceBtn"
+                    title="Dettatura vocale" aria-label="Dettatura vocale">
+              <i class="ti ti-microphone fs-3" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="eurekaAiPromptResult" class="eureka-ai-modal__result d-none">
+          <div class="eureka-ai-modal__result-label">
+            <i class="ti ti-sparkles" aria-hidden="true"></i>
+            Risposta
+          </div>
+          <div class="eureka-ai-modal__output" id="eurekaAiPromptOutput"></div>
+        </div>
+      </div>
+      <div class="modal-footer eureka-ai-modal__footer">
+        <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Chiudi</button>
+        <button type="button" class="btn btn-primary" id="eurekaAiPromptSend">
+          <i class="ti ti-send me-1"></i> Invia
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  const modal = document.getElementById("eurekaAiPromptModal");
+  if (!modal) return;
+  const input = document.getElementById("eurekaAiPromptInput");
+  const sendBtn = document.getElementById("eurekaAiPromptSend");
+  const resultBox = document.getElementById("eurekaAiPromptResult");
+  const output = document.getElementById("eurekaAiPromptOutput");
+  const historyControls = document.getElementById("eurekaAiHistoryControls");
+  const historyMenu = document.getElementById("eurekaAiPromptHistoryMenu");
+  const historyToggle = document.getElementById("eurekaAiPromptHistoryToggle");
+  const historyToggleLabel = document.getElementById("eurekaAiHistoryToggleLabel");
+  const clearHistoryBtn = document.getElementById("eurekaAiClearHistory");
+  const historyStorageKey = "eureka-ai-prompt-history";
+  const configuredHistoryLimit = Number("{{ eureka_ai_recent_searches_limit|default:10|escapejs }}");
+  const historyLimit = Number.isFinite(configuredHistoryLimit) && configuredHistoryLimit > 0
+    ? Math.min(Math.trunc(configuredHistoryLimit), 100)
+    : 10;
+
+  function readPromptHistory() {
+    try {
+      const raw = window.localStorage.getItem(historyStorageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter(item => typeof item === "string" && item.trim()) : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writePromptHistory(history) {
+    try {
+      window.localStorage.setItem(historyStorageKey, JSON.stringify(history.slice(0, historyLimit)));
+    } catch (error) {
+      // Ignore storage failures and keep current behavior.
+    }
+  }
+
+  function renderPromptHistory() {
+    if (!historyMenu || !historyControls) return;
+    const history = readPromptHistory().slice(0, historyLimit);
+    historyMenu.innerHTML = "";
+    if (!history.length) {
+      historyControls.classList.add("d-none");
+      if (historyToggleLabel) historyToggleLabel.textContent = "Apri elenco";
+      return;
+    }
+    history.forEach((prompt, index) => {
+      const row = document.createElement("div");
+      row.className = "eureka-ai-modal__history-item";
+
+      const itemBtn = document.createElement("button");
+      itemBtn.type = "button";
+      itemBtn.className = "eureka-ai-modal__history-text eureka-ai-history-item";
+      itemBtn.dataset.index = String(index);
+      itemBtn.setAttribute("role", "menuitem");
+
+      const numSpan = document.createElement("span");
+      numSpan.className = "eureka-ai-modal__history-num";
+      numSpan.textContent = String(index + 1) + ".";
+
+      const textSpan = document.createElement("span");
+      textSpan.className = "eureka-ai-modal__history-prompt";
+      textSpan.textContent = prompt;
+
+      itemBtn.appendChild(numSpan);
+      itemBtn.appendChild(textSpan);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "eureka-ai-modal__history-remove eureka-ai-history-remove";
+      removeBtn.dataset.index = String(index);
+      removeBtn.setAttribute("aria-label", "Rimuovi ricerca");
+      removeBtn.title = "Rimuovi";
+      removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+
+      row.appendChild(itemBtn);
+      row.appendChild(removeBtn);
+      historyMenu.appendChild(row);
+    });
+    historyControls.classList.remove("d-none");
+    if (historyToggleLabel) {
+      historyToggleLabel.textContent = history.length === 1
+        ? "Apri elenco (1 ricerca)"
+        : "Apri elenco (" + history.length + " ricerche)";
+    }
+  }
+  function applyPromptToInput(prompt) {
+    if (!input || !prompt) return;
+    input.value = prompt;
+    input.focus();
+    const textLength = input.value.length;
+    input.setSelectionRange(textLength, textLength);
+  }
+
+  function removePromptAtIndex(index) {
+    const history = readPromptHistory();
+    if (index < 0 || index >= history.length) return;
+    history.splice(index, 1);
+    writePromptHistory(history);
+    renderPromptHistory();
+  }
+
+  function savePromptToHistory(prompt) {
+    const normalizedPrompt = (prompt || "").trim();
+    if (!normalizedPrompt) return;
+    const history = readPromptHistory().filter(item => item !== normalizedPrompt);
+    history.unshift(normalizedPrompt);
+    writePromptHistory(history);
+    renderPromptHistory();
+  }
+
+  modal.addEventListener("shown.bs.modal", () => {
+    renderPromptHistory();
+    if (input) input.focus();
+  });
+  modal.addEventListener("hidden.bs.modal", () => {
+    if (input) input.value = "";
+    if (resultBox) resultBox.classList.add("d-none");
+    if (output) output.textContent = "";
+  });
+
+  function renderTable(rows, detailUrls, detailPkCol) {
+    if (!rows || !rows.length) return "<p class='text-secondary'>Nessun risultato.</p>";
+    const cols = Object.keys(rows[0]);
+    let h = '<div class="table-responsive"><table class="table table-sm table-striped table-hover mb-0"><thead><tr>';
+    if (detailUrls) h += "<th></th>";
+    cols.forEach(c => h += "<th>" + c.replace(/_/g, " ") + "</th>");
+    h += "</tr></thead><tbody>";
+    rows.forEach(r => {
+      const pk = detailPkCol ? String(r[detailPkCol] ?? "").trim() : "";
+      const url = detailUrls && pk ? detailUrls[pk] : null;
+      h += url ? '<tr style="cursor:pointer" onclick="window.open(\'' + url + "','_blank')\">" : "<tr>";
+      if (detailUrls) {
+        h += "<td>" + (url ? '<i class="ti ti-external-link text-primary"></i>' : "") + "</td>";
+      }
+      cols.forEach(c => {
+        let v = r[c]; if (v == null) v = "—";
+        if (typeof v === "number") v = v.toLocaleString("it-IT");
+        h += "<td>" + String(v) + "</td>";
+      });
+      h += "</tr>";
+    });
+    h += "</tbody></table></div>";
+    return h;
+  }
+
+  let lastPrompt = "";
+
+  function send(limit, openListDirect) {
+    const text = (input?.value || "").trim();
+    if (!text) return;
+    lastPrompt = text;
+    savePromptToHistory(text);
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Elaborazione…';
+    resultBox.classList.remove("d-none");
+    output.innerHTML = '<div class="eureka-ai-modal__loading"><span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span><div class="eureka-ai-modal__loading-text"><strong>Elaborazione in corso…</strong><p class="text-secondary mb-0">L\'assistente sta analizzando la tua richiesta.</p></div></div>';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+                || document.querySelector("[name=csrfmiddlewaretoken]")?.value
+                || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "";
+    const payload = {prompt: text};
+    if (limit) payload.limit = limit;
+    fetch("{% url 'core:ai_ask' %}", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": csrf},
+      body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+      // Se richiesto esplicitamente (es. click su "Tutti"), apri subito la lista.
+      if (openListDirect && data?.list_url) {
+        window.location.href = data.list_url;
+        return;
+      }
+
+      // Se la richiesta AI corrisponde a una lista (clienti/fornitori/etc),
+      // evitiamo la tabella nel modale: facciamo scegliere "200" vs "Tutti".
+      if (data?.list_url && data?.risultati && data.risultati.length) {
+{% if not eureka_ai_debug_sql %}
+        // Se i risultati stanno gia' nel limite (<=200), apri direttamente la lista.
+        if (!data.has_more) {
+          window.location.href = data.list_url;
+          return;
+        }
+{% endif %}
+        let html = "";
+        if (data.errore) {
+          html += '<div class="alert alert-danger py-1 mb-2">' + data.errore + "</div>";
+        } else {
+          html += "<p class='text-secondary mb-2'>Nel limite mostro: <strong>" + (data.conteggio ?? 0) + "</strong> risultati.</p>";
+          if (data.has_more) {
+            html += "<p class='text-secondary mb-2'>Ci sono altri risultati: puoi aprire la lista completa con <strong>Tutti</strong>.</p>";
+          }
+        }
+
+{% if eureka_ai_debug_sql %}
+        if (data.spiegazione) html += "<p><strong>Spiegazione:</strong> " + data.spiegazione + "</p>";
+        if (data.sql) html += '<details class="mb-2"><summary class="text-secondary" style="cursor:pointer">Query SQL</summary><pre class="bg-dark text-light p-2 rounded mt-1" style="font-size:.95rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-height:320px;overflow:auto">' + data.sql + "</pre></details>";
+{% endif %}
+
+        html += '<div class="text-center mt-2">';
+        const openListLabel = data.has_more
+          ? "Apri lista (200)"
+          : ("Apri lista (" + (data.conteggio ?? 0) + ")");
+        html += '<a href="' + data.list_url + '" class="btn btn-primary btn-sm"><i class="ti ti-external-link me-1"></i>' + openListLabel + '</a>';
+        if (data.has_more) {
+          const totalCountPart = (data.total_count !== undefined && data.total_count !== null)
+            ? (" " + data.total_count)
+            : "";
+          html += ' <button type="button" class="btn btn-outline-primary btn-sm ms-2" id="eurekaAiLoadAll"><i class="ti ti-list me-1"></i>Tutti' + totalCountPart + '</button>';
+        }
+        html += "</div>";
+
+        output.innerHTML = html || "<p>Risposta vuota.</p>";
+
+        const loadAllBtn = document.getElementById("eurekaAiLoadAll");
+        if (loadAllBtn) loadAllBtn.addEventListener("click", () => send(999999, true));
+        return;
+      }
+      let html = "";
+{% if eureka_ai_debug_sql %}
+      if (data.spiegazione) html += "<p><strong>Spiegazione:</strong> " + data.spiegazione + "</p>";
+      if (data.sql) html += '<details class="mb-2"><summary class="text-secondary" style="cursor:pointer">Query SQL</summary><pre class="bg-dark text-light p-2 rounded mt-1" style="font-size:.95rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-height:320px;overflow:auto">' + data.sql + "</pre></details>";
+{% endif %}
+      if (data.errore) html += '<div class="alert alert-danger py-1 mb-2">' + data.errore + "</div>";
+      if (data.risultati && data.risultati.length) {
+        html += "<p class='text-secondary mb-1'>" + data.conteggio + " risultat" + (data.conteggio === 1 ? "o" : "i") + "</p>";
+        html += renderTable(data.risultati, data.detail_urls, data.detail_pk_column);
+        let btns = "";
+        if (data.has_more) {
+          btns += '<button type="button" class="btn btn-outline-primary btn-sm me-2" id="eurekaAiLoadAll"><i class="ti ti-list me-1"></i>Tutte</button>';
+        }
+        if (data.list_url) {
+          btns += '<a href="' + data.list_url + '" class="btn btn-primary btn-sm"><i class="ti ti-external-link me-1"></i>Apri nella lista</a>';
+        }
+        if (btns) html += '<div class="text-center mt-2">' + btns + '</div>';
+      } else if (data.ok && !data.errore && !data.risultati) {
+        html += "<p class='text-secondary'>Nessun risultato trovato.</p>";
+      }
+      output.innerHTML = html || "<p>Risposta vuota.</p>";
+      const loadAllBtn = document.getElementById("eurekaAiLoadAll");
+      if (loadAllBtn) {
+        loadAllBtn.addEventListener("click", () => send(999999, true));
+      }
+    })
+    .catch(err => {
+      output.innerHTML = '<div class="alert alert-danger py-1">Errore di comunicazione: ' + err.message + "</div>";
+    })
+    .finally(() => {
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = '<i class="ti ti-send me-1"></i> Invia';
+    });
+  }
+
+  sendBtn?.addEventListener("click", send);
+  input?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  historyMenu?.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest(".eureka-ai-history-remove");
+    if (removeBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      removePromptAtIndex(Number(removeBtn.dataset.index));
+      if (input) input.focus();
+      return;
+    }
+    const itemBtn = e.target.closest(".eureka-ai-history-item");
+    if (!itemBtn) return;
+    e.preventDefault();
+    const history = readPromptHistory();
+    const prompt = history[Number(itemBtn.dataset.index)];
+    applyPromptToInput(prompt);
+    if (historyToggle && window.bootstrap?.Dropdown) {
+      window.bootstrap.Dropdown.getInstance(historyToggle)?.hide();
+    }
+  });
+  clearHistoryBtn?.addEventListener("click", () => {
+    try {
+      window.localStorage.removeItem(historyStorageKey);
+    } catch (error) {
+      // Ignore storage failures and keep current behavior.
+    }
+    if (historyToggle && window.bootstrap?.Dropdown) {
+      window.bootstrap.Dropdown.getInstance(historyToggle)?.hide();
+    }
+    renderPromptHistory();
+    if (input) input.focus();
+  });
+  renderPromptHistory();
+
+  // --- Dettatura vocale ---
+  const voiceBtn = document.getElementById("eurekaAiVoiceBtn");
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (voiceBtn && SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.lang = "it-IT";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    let listening = false;
+    let finalText = "";
+
+    function startListening() {
+      finalText = input.value;
+      recognition.start();
+      listening = true;
+      voiceBtn.classList.add("is-listening");
+      voiceBtn.title = "Sto ascoltando… clicca per fermare";
+    }
+
+    function stopListening() {
+      recognition.stop();
+      listening = false;
+      voiceBtn.classList.remove("is-listening");
+      voiceBtn.title = "Dettatura vocale";
+    }
+
+    voiceBtn.addEventListener("click", () => {
+      if (listening) stopListening();
+      else startListening();
+    });
+
+    recognition.addEventListener("result", (e) => {
+      let interim = "";
+      let final_ = "";
+      for (let i = 0; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final_ += t;
+        else interim += t;
+      }
+      input.value = (finalText ? finalText + " " : "") + final_ + interim;
+    });
+
+    recognition.addEventListener("end", () => {
+      if (listening) {
+        finalText = input.value;
+      }
+      listening = false;
+      voiceBtn.classList.remove("is-listening");
+      voiceBtn.title = "Dettatura vocale";
+    });
+
+    recognition.addEventListener("error", () => stopListening());
+
+    modal.addEventListener("hidden.bs.modal", () => {
+      if (listening) stopListening();
+    });
+  } else if (voiceBtn) {
+    voiceBtn.disabled = true;
+    voiceBtn.title = "Dettatura vocale non supportata dal browser";
+  }
+})();
+</script>
 
 </body>
 </html>

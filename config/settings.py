@@ -31,12 +31,19 @@ INSTALLED_APPS = [
     "apps.categorie",
     "apps.condizioni",
     "apps.aliquote",
+    "apps.registri_iva",
     "apps.banche",
     "apps.sconti",
+    "apps.valute",
+    "apps.zone",
+    "apps.vettori",
+    "apps.causali_trasp",
+    "apps.destinazioni",
     "apps.aziende",
     "apps.gruppi_articoli",
     "apps.gruppi_magazzini",
     "apps.magazzini",
+    "apps.causali_magazzino",
     "apps.stampi",
     "apps.operatori",
     "apps.timbrature",
@@ -46,6 +53,7 @@ INSTALLED_APPS = [
     "apps.lavorazioni_extra",
     "apps.geografia",
     "apps.pdc",
+    "apps.primanota",
     "apps.causali_contabili",
     "apps.raggruppamento_conti",
     "apps.raggruppamento_clifor",
@@ -77,6 +85,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.voice_commands",
                 "apps.core.context_processors.integrations",
+                "apps.core.context_processors.programma_documenti",
+                "apps.core.context_processors.ai_debug_flags",
             ],
         },
     },
@@ -124,6 +134,20 @@ SERVE_MEDIA = env.bool("SERVE_MEDIA", default=True)
 
 # Dashboard produzione CARBON (app separata)
 CARBON_URL = env("CARBON_URL", default="http://127.0.0.1:8001/").strip()
+
+# AI Assistant — "ollama" (locale, gratuito), "openai" oppure "groq"
+AI_BACKEND = env("AI_BACKEND", default="groq")
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
+OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
+OLLAMA_URL = env("OLLAMA_URL", default="http://localhost:11434")
+OLLAMA_MODEL = env("OLLAMA_MODEL", default="qwen2.5:3b")
+
+# Groq (solo se AI_BACKEND=groq) — API key gratuita da https://console.groq.com/
+GROQ_API_KEY = env("GROQ_API_KEY", default="")
+GROQ_MODEL = env("GROQ_MODEL", default="groq/compound-mini")
+# Cap massimo dei token in uscita per velocizzare le risposte Groq e risparmiare quota TPD.
+# Puoi sovrascriverlo via env var GROQ_MAX_TOKENS.
+GROQ_MAX_TOKENS = env("GROQ_MAX_TOKENS", default=550)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

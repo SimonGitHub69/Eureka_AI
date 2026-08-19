@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% load static %}
 
 {% block title %}Parametri programma · Eureka AI{% endblock %}
 
@@ -11,7 +12,8 @@
         <div>
             <h2 class="page-title">Parametri programma</h2>
             <div class="text-secondary">
-                Opzioni generali dell’applicazione
+                Opzioni generali dell’applicazione.
+                Assistente vocale, barra e liste fisse si impostano in Parametri PC.
             </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -34,7 +36,7 @@
             Opzioni
         </h3>
     </div>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
         <div class="card-body">
@@ -44,33 +46,226 @@
 
             <div class="mb-3">
                 <label class="form-check form-switch">
-                    {{ form.assistente_vocale_attivo }}
+                    {{ form.suono_errore_attivo }}
                     <span class="form-check-label">
-                        <span class="fw-semibold">{{ form.assistente_vocale_attivo.label }}</span>
+                        <span class="fw-semibold">{{ form.suono_errore_attivo.label }}</span>
                         <span class="d-block text-secondary small">
-                            {{ form.assistente_vocale_attivo.help_text }}
+                            {{ form.suono_errore_attivo.help_text }}
                         </span>
                     </span>
                 </label>
-                {% if form.assistente_vocale_attivo.errors %}
-                    <div class="invalid-feedback d-block">{{ form.assistente_vocale_attivo.errors|join:", " }}</div>
+                {% if form.suono_errore_attivo.errors %}
+                    <div class="invalid-feedback d-block">{{ form.suono_errore_attivo.errors|join:", " }}</div>
                 {% endif %}
             </div>
 
             <div class="mb-3">
                 <label class="form-check form-switch">
-                    {{ form.navbar_fissa }}
-                    <span class="form-check-label">
-                        <span class="fw-semibold">{{ form.navbar_fissa.label }}</span>
-                        <span class="d-block text-secondary small">
-                            {{ form.navbar_fissa.help_text }}
-                        </span>
-                    </span>
-                </label>
-                {% if form.navbar_fissa.errors %}
-                    <div class="invalid-feedback d-block">{{ form.navbar_fissa.errors|join:", " }}</div>
+                <label class="form-label" for="{{ form.suono_errore_wav.id_for_label }}">{{ form.suono_errore_wav.label }}</label>
+                {{ form.suono_errore_wav }}
+                <div class="form-hint">{{ form.suono_errore_wav.help_text }}</div>
+                {% if form.instance.suono_errore_wav %}
+                <div class="text-secondary small mt-1">
+                    File attuale: <code>{{ form.instance.suono_errore_wav.name }}</code>
+                </div>
+                {% else %}
+                <div class="text-secondary small mt-1">
+                    Suono predefinito: <code>static/eureka/sounds/error.wav</code>
+                </div>
                 {% endif %}
+                {% if form.suono_errore_wav.errors %}
+                    <div class="invalid-feedback d-block">{{ form.suono_errore_wav.errors|join:", " }}</div>
+                {% endif %}
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm mt-2"
+                    data-test-error-sound
+                    data-sound-url="{% if form.instance.suono_errore_wav %}{{ form.instance.suono_errore_wav.url }}{% else %}{% static 'eureka/sounds/error.wav' %}{% endif %}">
+                    <i class="ti ti-volume"></i>
+                    Prova suono
+                </button>
             </div>
+
+            <hr class="my-4">
+
+            <h4 class="mb-3">
+                <i class="ti ti-wand me-1"></i>
+                AI / Bacchetta magica
+            </h4>
+            <p class="text-secondary small mb-3">
+                Impostazioni del modale AI e della cronologia ricerche recente salvata nel browser per ogni utente.
+            </p>
+
+            <div class="row g-3 align-items-start mb-3">
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.ai_example_prompt.id_for_label }}">
+                        {{ form.ai_example_prompt.label }}
+                    </label>
+                    {{ form.ai_example_prompt }}
+                    <div class="form-hint">{{ form.ai_example_prompt.help_text }}</div>
+                    {% if form.ai_example_prompt.errors %}
+                        <div class="invalid-feedback d-block">{{ form.ai_example_prompt.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row g-3 align-items-start">
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.ai_recent_searches_limit.id_for_label }}">
+                        {{ form.ai_recent_searches_limit.label }}
+                    </label>
+                    {{ form.ai_recent_searches_limit }}
+                    <div class="form-hint">{{ form.ai_recent_searches_limit.help_text }}</div>
+                    {% if form.ai_recent_searches_limit.errors %}
+                        <div class="invalid-feedback d-block">{{ form.ai_recent_searches_limit.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-check form-switch mt-md-4">
+                        {{ form.debug_ai_sql }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.debug_ai_sql.label }}</span>
+                            <span class="d-block text-secondary small">
+                                {{ form.debug_ai_sql.help_text }}
+                            </span>
+                        </span>
+                    </label>
+                    {% if form.debug_ai_sql.errors %}
+                        <div class="invalid-feedback d-block">{{ form.debug_ai_sql.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <h4 class="mb-3">
+                <i class="ti ti-file-invoice me-1"></i>
+                Documenti / Fatturazione
+            </h4>
+            <p class="text-secondary small mb-3">
+                Scegli quali tipi documento mostrare nel menu <strong>Fatturazione Magazzino</strong>.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.doc_prv }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.doc_prv.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.doc_prv.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.doc_prv.errors %}
+                        <div class="invalid-feedback d-block">{{ form.doc_prv.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.doc_orv }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.doc_orv.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.doc_orv.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.doc_orv.errors %}
+                        <div class="invalid-feedback d-block">{{ form.doc_orv.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.doc_ora }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.doc_ora.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.doc_ora.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.doc_ora.errors %}
+                        <div class="invalid-feedback d-block">{{ form.doc_ora.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.doc_ddt }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.doc_ddt.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.doc_ddt.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.doc_ddt.errors %}
+                        <div class="invalid-feedback d-block">{{ form.doc_ddt.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.doc_fat }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.doc_fat.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.doc_fat.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.doc_fat.errors %}
+                        <div class="invalid-feedback d-block">{{ form.doc_fat.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.doc_ncr }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.doc_ncr.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.doc_ncr.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.doc_ncr.errors %}
+                        <div class="invalid-feedback d-block">{{ form.doc_ncr.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.doc_ndb }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.doc_ndb.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.doc_ndb.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.doc_ndb.errors %}
+                        <div class="invalid-feedback d-block">{{ form.doc_ndb.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <h4 class="mb-3">
+                <i class="ti ti-puzzle me-1"></i>
+                Personalizzazione Extra
+            </h4>
+            <p class="text-secondary small mb-3">
+                Attiva o disattiva i moduli verticali. Se una personalizzazione è spenta,
+                scompare dal menu laterale con tutte le sottovoci.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-check form-switch">
+                        {{ form.extra_carbon }}
+                        <span class="form-check-label">
+                            <span class="fw-semibold">{{ form.extra_carbon.label }}</span>
+                            <span class="d-block text-secondary small">{{ form.extra_carbon.help_text }}</span>
+                        </span>
+                    </label>
+                    {% if form.extra_carbon.errors %}
+                        <div class="invalid-feedback d-block">{{ form.extra_carbon.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
 
             <div class="mb-0">
                 <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
@@ -95,7 +290,7 @@
         <div>
             <div class="fw-semibold">Elenco comandi vocali</div>
             <div class="text-secondary small">
-                Frasi riconosciute e destinazioni (attive solo se l’assistente è abilitato)
+                Frasi riconosciute e destinazioni (attive solo se l’assistente è abilitato in Parametri PC)
             </div>
         </div>
         <a href="{% url 'core:comandi_vocali_list' %}" class="btn btn-outline-primary">
@@ -136,4 +331,22 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("id_extra_carbon");
+    if (!input) {
+        return;
+    }
+    function syncCarbonMenu() {
+        document.querySelectorAll("[data-extra-module=\"carbon\"]").forEach(function (el) {
+            el.hidden = !input.checked;
+        });
+    }
+    input.addEventListener("change", syncCarbonMenu);
+    syncCarbonMenu();
+});
+</script>
 {% endblock %}
