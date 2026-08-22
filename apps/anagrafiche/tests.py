@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from apps.anagrafiche.models import Cliente, Fornitore
@@ -54,3 +54,75 @@ class AnagraficheViewsTest(TestCase):
     def test_urls_resolve(self):
         self.assertEqual(reverse("anagrafiche:clienti_list"), "/clienti/")
         self.assertEqual(reverse("anagrafiche:fornitori_list"), "/fornitori/")
+
+
+class PartitarioPdcCassaCorrispettiviTests(SimpleTestCase):
+    def test_fetch_pdc_merges_cassa_corrispettivi_rows(self):
+        from datetime import date
+        from unittest.mock import patch
+
+        from apps.anagrafiche.partitario import _fetch_movimenti_pdc
+
+        dettaglio = [
+            {
+                "fonte": "gen",
+                "id_testa": 1,
+                "numero_reg": 10,
+                "data_reg": date(2026, 2, 1),
+                "tipo": 1,
+                "causale": "13Z",
+                "codice_paga": "",
+                "numero_doc": "",
+                "data_doc": None,
+                "numero_prot": None,
+                "alfa_prot": "",
+                "dare_amt": 100.0,
+                "avere_amt": 0.0,
+                "contro_codice": "C1",
+                "descrizione": "gen",
+                "pos": 10,
+                "id_riga": 1,
+            }
+        ]
+        cassa = [
+            {
+                "fonte": "gen",
+                "id_testa": 2,
+                "numero_reg": 5,
+                "data_reg": date(2026, 1, 15),
+                "tipo": 3,
+                "causale": "105",
+                "codice_paga": "",
+                "numero_doc": "",
+                "data_doc": date(2026, 1, 15),
+                "numero_prot": 1,
+                "alfa_prot": "",
+                "dare_amt": 415.26,
+                "avere_amt": 0.0,
+                "contro_codice": "3.71.11",
+                "descrizione": "",
+                "pos": 0,
+                "id_riga": 0,
+            }
+        ]
+        with (
+            patch(
+                "apps.anagrafiche.partitario._fetch_movimenti_pdc_dettaglio",
+                return_value=dettaglio,
+            ),
+            patch(
+                "apps.anagrafiche.partitario._fetch_movimenti_pdc_cassa_corrispettivi",
+                return_value=cassa,
+            ),
+        ):
+            rows = _fetch_movimenti_pdc("1.10.9")
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["tipo"], 3)
+        self.assertEqual(rows[0]["dare_amt"], 415.26)
+        self.assertEqual(rows[1]["tipo"], 1)
+
+    def test_fetch_cassa_corrispettivi_empty_code(self):
+        from apps.anagrafiche.partitario import _fetch_movimenti_pdc_cassa_corrispettivi
+
+        self.assertEqual(_fetch_movimenti_pdc_cassa_corrispettivi(""), [])
+        self.assertEqual(_fetch_movimenti_pdc_cassa_corrispettivi("   "), [])
