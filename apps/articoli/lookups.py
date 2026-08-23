@@ -6,6 +6,7 @@ from __future__ import annotations
 LOOKUP_TIPI = (
     "cliente",
     "fornitore",
+    "clifor",
     "magazzino",
     "categoria",
     "gruppo",
@@ -14,9 +15,11 @@ LOOKUP_TIPI = (
     "articolo",
     "destinazione",
     "pdc",
+    "pdc_clifor",
     "agente",
     "porto",
     "causale_trasp",
+    "causale_contabile",
     "banca",
     "sconto",
 )
@@ -69,6 +72,11 @@ def descrizione_fornitore(codice: str | None) -> str:
         return (obj.ragione_sociale or "").strip()
     except Exception:
         return ""
+
+
+def descrizione_clifor(codice: str | None) -> str:
+    """Ragione sociale cliente o fornitore (codici C… / F…)."""
+    return resolve_clifor("clifor", codice).get("descrizione") or ""
 
 
 def descrizione_magazzino(codice: str | None) -> str:
@@ -189,6 +197,25 @@ def descrizione_causale_trasp(codice: str | None) -> str:
         return ""
 
 
+def descrizione_causale_contabile(codice: str | None) -> str:
+    codice = _norm(codice)
+    if not codice:
+        return ""
+    try:
+        from apps.causali_contabili.models import CausaleContabile
+
+        obj = (
+            CausaleContabile.objects.filter(codice__iexact=codice)
+            .only("descrizione", "desc_pn")
+            .first()
+        )
+        if obj is None:
+            return ""
+        return (obj.descrizione or obj.desc_pn or "").strip()
+    except Exception:
+        return ""
+
+
 def descrizione_banca(codice: str | None) -> str:
     codice = _norm(codice)
     if not codice:
@@ -258,6 +285,11 @@ def descrizione_pdc(codice: str | None) -> str:
         return ((obj.descrizione if obj else "") or "").strip()
     except Exception:
         return ""
+
+
+def descrizione_pdc_clifor(codice: str | None) -> str:
+    """Contropartita PDC, oppure ragione sociale cliente/fornitore."""
+    return descrizione_pdc(codice) or descrizione_clifor(codice)
 
 
 def descrizione_articolo(codice: str | None) -> str:
@@ -350,12 +382,26 @@ def _clifor_from_obj(
 
 
 def resolve_clifor(tipo: str, codice: str | None) -> dict:
-    """Cliente/fornitore: ragione sociale, sede e condizione di pagamento."""
+    """Cliente/fornitore: ragione sociale, sede e condizione di pagamento.
+
+    ``tipo=clifor`` risolve C… su Clienti, F… su Fornitori; senza prefisso
+    prova prima il cliente poi il fornitore (come Primanota CodicePartita).
+    """
     empty = _clifor_empty(codice)
     code = _norm(codice)
     tipo = (tipo or "").strip().lower()
-    if not code or tipo not in ("cliente", "fornitore"):
+    if not code or tipo not in ("cliente", "fornitore", "clifor"):
         return empty
+    if tipo == "clifor":
+        from apps.destinazioni.models import tipo_clifor
+
+        kind = tipo_clifor(code)
+        if kind == "F":
+            return resolve_clifor("fornitore", code)
+        info = resolve_clifor("cliente", code)
+        if info.get("found") or kind == "C":
+            return info
+        return resolve_clifor("fornitore", code)
     try:
         from apps.anagrafiche.models import Cliente, Fornitore, get_by_codice
 
@@ -365,7 +411,9 @@ def resolve_clifor(tipo: str, codice: str | None) -> dict:
         return empty
     if obj is None:
         return empty
-    return _clifor_from_obj(obj)
+    info = _clifor_from_obj(obj)
+    info["kind"] = tipo
+    return info
 
 
 def resolve_articolo(codice: str | None) -> dict:
@@ -412,6 +460,7 @@ def resolve_articolo(codice: str | None) -> dict:
 _RESOLVERS = {
     "cliente": descrizione_cliente,
     "fornitore": descrizione_fornitore,
+    "clifor": descrizione_clifor,
     "magazzino": descrizione_magazzino,
     "categoria": descrizione_categoria,
     "gruppo": descrizione_gruppo,
@@ -419,9 +468,11 @@ _RESOLVERS = {
     "condizione": descrizione_condizione,
     "articolo": descrizione_articolo,
     "pdc": descrizione_pdc,
+    "pdc_clifor": descrizione_pdc_clifor,
     "agente": descrizione_agente,
     "porto": descrizione_porto,
     "causale_trasp": descrizione_causale_trasp,
+    "causale_contabile": descrizione_causale_contabile,
     "banca": descrizione_banca,
     "sconto": descrizione_sconto,
 }
@@ -452,13 +503,14 @@ def search_opzioni(
 
     Per ``tipo=articolo`` include anche ``iva``, ``unita_misura``, ``prezzo_unitario``.
     Per ``tipo=cliente`` / ``fornitore`` include sede, ``cond_paga`` e ``agente``.
+    Per ``tipo=clifor`` cerca in Clienti e Fornitori.
     Per ``tipo=destinazione`` richiede ``codice_clifor`` (DestCliFor).
     """
     tipo = (tipo or "").strip().lower()
     q = _norm(q)
-    # PDC ha centinaia di contropartite: limite più alto degli altri lookup.
-    max_limit = 500 if tipo == "pdc" else 100
-    default_limit = 400 if tipo == "pdc" else 40
+    # PDC e PDC+clifor hanno centinaia di voci: limite più alto degli altri lookup.
+    max_limit = 500 if tipo in ("pdc", "pdc_clifor") else 100
+    default_limit = 400 if tipo in ("pdc", "pdc_clifor") else 40
     try:
         limit = int(limit or default_limit)
     except (TypeError, ValueError):
@@ -470,6 +522,40 @@ def search_opzioni(
             from apps.destinazioni.lookups import search_destinazioni
 
             return search_destinazioni(codice_clifor, q, limit=limit)
+
+        if tipo == "clifor":
+            clienti = [
+                {**row, "kind": "cliente"}
+                for row in search_opzioni("cliente", q, limit=limit)
+            ]
+            fornitori = [
+                {**row, "kind": "fornitore"}
+                for row in search_opzioni("fornitore", q, limit=limit)
+            ]
+            merged = clienti + fornitori
+            merged.sort(
+                key=lambda r: (
+                    (r.get("descrizione") or "").casefold(),
+                    (r.get("codice") or "").casefold(),
+                )
+            )
+            return merged[:limit]
+
+        if tipo == "pdc_clifor":
+            per = max(limit, 40)
+            pdc_rows = [
+                {**row, "kind": "pdc"}
+                for row in search_opzioni("pdc", q, limit=per)
+            ]
+            clifor_rows = search_opzioni("clifor", q, limit=per)
+            merged = pdc_rows + list(clifor_rows)
+            merged.sort(
+                key=lambda r: (
+                    (r.get("descrizione") or "").casefold(),
+                    (r.get("codice") or "").casefold(),
+                )
+            )
+            return merged[:limit]
 
         if tipo == "magazzino":
             from apps.magazzini.models import Magazzino
@@ -631,6 +717,22 @@ def search_opzioni(
                 for o in qs.order_by("descrizione", "codice")[:limit]
             ]
 
+        if tipo == "causale_contabile":
+            from apps.causali_contabili.models import CausaleContabile
+            from django.db.models import Q
+
+            qs = CausaleContabile.objects.all().only("codice", "descrizione", "desc_pn")
+            if q:
+                qs = qs.filter(
+                    Q(codice__icontains=q)
+                    | Q(descrizione__icontains=q)
+                    | Q(desc_pn__icontains=q)
+                )
+            rows = []
+            for o in qs.order_by("codice")[:limit]:
+                rows.append(_row(o.codice, (o.descrizione or o.desc_pn or "").strip()))
+            return rows
+
         if tipo == "banca":
             from apps.banche.models import Banca
             from django.db.models import Q
@@ -729,6 +831,8 @@ def linked_labels_for_articolo(articolo) -> dict[str, str]:
         "gruppo": descrizione_gruppo(getattr(articolo, "cod_gruppo", None)),
         "fornitore": descrizione_fornitore(getattr(articolo, "cod_fornitore", None)),
         "iva": descrizione_iva(getattr(articolo, "cod_iva", None)),
+        "c_partita_vend": descrizione_pdc(getattr(articolo, "c_partita_vend", None)),
+        "c_partita_acq": descrizione_pdc(getattr(articolo, "c_partita_acq", None)),
     }
 
 

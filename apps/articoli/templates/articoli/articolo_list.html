@@ -79,9 +79,11 @@
                 <tr>
                     {% load pagination_tags %}
                     <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
                     {% sort_th "descrizione" "Articolo" default_dir="asc" %}
                     {% sort_th "cat_omogenea" "Categoria" default_dir="asc" %}
                     {% sort_th "unita_misura" "U.M." default_dir="asc" %}
+                    <th class="text-end">Giacenza</th>
                     {% sort_th "cod_fornitore" "Fornitore" default_dir="asc" %}
                     {% sort_th "listino1" "Listino 1" align="end" default_dir="desc" %}
                     <th class="w-1"></th>
@@ -98,24 +100,29 @@
                         {% endif %}
                     </td>
                     <td>
-                        <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-2">
                             <span class="eureka-tlist-avatar bg-azure-lt text-azure">
                                 <i class="ti ti-package"></i>
                             </span>
-                            <div class="overflow-hidden">
-                                <a href="{% url 'articoli:detail' articolo.codice %}" class="eureka-tlist-name text-truncate d-block" title="{{ articolo.descrizione }}">
-                                    {{ articolo.descrizione|default:articolo.codice }}
-                                </a>
-                                <span class="eureka-tlist-code">
-                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
-                                    {{ articolo.codice }}
-                                    {% if articolo.fl_disattivato %}
-                                    <span class="badge bg-secondary-lt ms-1">Disattivato</span>
-                                    {% elif articolo.disponibile %}
-                                    <span class="badge bg-success-lt ms-1">Disponibile</span>
-                                    {% endif %}
-                                </span>
-                            </div>
+                            <a href="{% url 'articoli:detail' articolo.codice %}" class="eureka-tlist-name text-truncate text-decoration-none" title="{{ articolo.codice }}">
+                                {{ articolo.codice }}
+                            </a>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="overflow-hidden">
+                            <a href="{% url 'articoli:detail' articolo.codice %}" class="eureka-tlist-name text-truncate d-block" title="{{ articolo.descrizione }}">
+                                {{ articolo.descrizione|default:articolo.codice }}
+                            </a>
+                            {% if articolo.fl_disattivato or articolo.disponibile %}
+                            <span class="eureka-tlist-code">
+                                {% if articolo.fl_disattivato %}
+                                <span class="badge bg-secondary-lt">Disattivato</span>
+                                {% elif articolo.disponibile %}
+                                <span class="badge bg-success-lt">Disponibile</span>
+                                {% endif %}
+                            </span>
+                            {% endif %}
                         </div>
                     </td>
                     <td>
@@ -141,6 +148,9 @@
                         {% else %}
                         <span class="text-secondary">—</span>
                         {% endif %}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        {{ articolo.giacenza_quantita|default:0|floatformat:0 }}
                     </td>
                     <td>
                         {% if articolo.cod_fornitore %}
@@ -174,7 +184,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="eureka-tlist-empty text-center text-secondary">
                             <div class="eureka-tlist-empty__icon"><i class="ti ti-package-off"></i></div>
                             Nessun articolo trovato

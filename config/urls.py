@@ -27,6 +27,7 @@ urlpatterns = [
     path("", include("apps.gruppi_articoli.urls")),
     path("", include("apps.gruppi_magazzini.urls")),
     path("", include("apps.magazzini.urls")),
+    path("", include("apps.depositi.urls")),
     path("", include("apps.stampi.urls")),
     path("", include("apps.operatori.urls")),
     path("", include("apps.timbrature.urls")),

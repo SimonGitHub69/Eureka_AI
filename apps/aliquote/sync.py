@@ -4,18 +4,18 @@ from apps.core.sync_4d import SyncResult, sync_tables
 
 TABLES = (
     {
-        "source": "Articoli",
-        "target": "articoli",
+        "source": "AliquoteIva",
+        "target": "aliquote",
         "pk": "Codice",
     },
 )
 
 
-def sync_articoli(batch_size: int = 2000, only: str | None = None, full: bool = False) -> SyncResult:
+def sync_aliquote(batch_size: int = 2000, only: str | None = None, full: bool = False) -> SyncResult:
     return sync_tables(
         TABLES,
         batch_size=batch_size,
         only=only,
         full=full,
-        success_message="Sincronizzazione Articoli completata.",
+        success_message="Sincronizzazione Aliquote IVA (AliquoteIva) completata.",
     )

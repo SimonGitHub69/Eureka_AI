@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.gruppi_articoli",
     "apps.gruppi_magazzini",
     "apps.magazzini",
+    "apps.depositi",
     "apps.causali_magazzino",
     "apps.stampi",
     "apps.operatori",

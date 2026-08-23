@@ -1,0 +1,83 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Aliquote IVA · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-receipt-tax"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if is_create %}Nuova aliquota IVA{% else %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ aliquota.codice }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'aliquote:detail' aliquota.codice %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-notebook"></i> {{ back_label }}
+        </a>
+        {% else %}
+        <a href="{% url 'aliquote:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<form method="post" autocomplete="off">
+    {% csrf_token %}
+    {% if back_url %}<input type="hidden" name="next" value="{{ back_url }}">{% endif %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card eureka-mask-card">
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-8 col-sm-10" %}
+                {% include "partials/mask_field.html" with field=form.percentuale col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.percentuale_ind col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.riferimento col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.natura_cod_ese_edi col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.tipo_esigibilita col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.cod_reparto col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.des_ese_edi col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.desc_fattura1 col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.desc_fattura2 col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.desc_fattura_corpo col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.fl_reverse_charge col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.flag_omaggio col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.calc_spese_bolli col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.flag_certificaz_esp col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.disabilitato col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.non_visibile col="col-sm-4" check=1 %}
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2 py-2">
+            {% if is_create %}
+            <a href="{% url 'aliquote:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% else %}
+            <a href="{% url 'aliquote:detail' aliquota.codice %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="ti ti-device-floppy"></i> Salva
+            </button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}

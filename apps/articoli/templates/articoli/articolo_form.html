@@ -1,0 +1,417 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Articoli · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--article"><i class="ti ti-package"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                {% if is_create %}
+                Nuovo articolo
+                {% else %}
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ articolo.codice }}</span>
+                {% if articolo.descrizione %}
+                <span class="text-truncate" style="max-width: 28rem;">{{ articolo.descrizione }}</span>
+                {% endif %}
+                {% if articolo.fl_disattivato %}
+                <span class="badge bg-secondary-lt">Disattivato</span>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'articoli:detail' articolo.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        <a href="{% url 'articoli:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" class="eureka-mask-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="eureka-mask-form__body">
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="identificazione" data-mask-view="articolo-form" data-mask-default="open">
+        <div class="card-header eureka-mask-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloIdentBody" title="Comprimi identificazione">
+                <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                <span class="eureka-mask-card__icon"><i class="ti ti-id"></i></span>
+                <h3 class="card-title mb-0">Identificazione</h3>
+                <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                    <span class="eureka-mask-collapse__chip" data-summary-from="{{ form.codice.id_for_label }}"></span>
+                    <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--name" data-summary-from="{{ form.descrizione.id_for_label }}"></span>
+                </span>
+            </button>
+            <label class="eureka-status-flag" for="{{ form.fl_disattivato.id_for_label }}" title="Stato articolo">
+                {{ form.fl_disattivato }}
+                <span class="eureka-status-flag__dot" aria-hidden="true"></span>
+                <span class="eureka-status-flag__text">
+                    <span class="eureka-status-flag__on">Attivo</span>
+                    <span class="eureka-status-flag__off">Disattivato</span>
+                </span>
+                <span class="eureka-status-flag__knob" aria-hidden="true"></span>
+            </label>
+            {% if form.fl_disattivato.errors %}
+            <div class="invalid-feedback d-block w-100">{{ form.fl_disattivato.errors|striptags }}</div>
+            {% endif %}
+        </div>
+        <div class="eureka-mask-collapse__body" id="articoloIdentBody">
+        <div class="card-body">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-8 col-sm-10" %}
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <div class="row g-1">
+        <div class="col-lg-8">
+            <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="classificazione" data-mask-view="articolo-form" data-mask-default="open">
+                <div class="card-header py-2 d-flex align-items-center">
+                    <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloFormClassBody" title="Comprimi classificazione">
+                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                        <span class="eureka-mask-card__icon"><i class="ti ti-folders"></i></span>
+                        <h3 class="card-title mb-0">Classificazione</h3>
+                        <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                            <span class="eureka-mask-collapse__chip" data-summary-from="{{ form.cat_omogenea.id_for_label }}"></span>
+                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--name" data-summary-from="{{ form.cat_omogenea.id_for_label }}" data-summary-kind="linked-label"></span>
+                        </span>
+                    </button>
+                </div>
+                <div class="eureka-mask-collapse__body" id="articoloFormClassBody">
+                <div class="card-body" data-linked-lookups data-lookup-url="{{ lookup_url }}">
+                    <div class="row g-compact">
+                        {% include "partials/mask_linked_code.html" with field=form.cod_magazzino label=labels.magazzino tipo="magazzino" col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_linked_code.html" with field=form.cat_omogenea label=labels.categoria tipo="categoria" col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_linked_code.html" with field=form.cod_gruppo label=labels.gruppo tipo="gruppo" col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_linked_code.html" with field=form.cod_fornitore label=labels.fornitore tipo="fornitore" col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_linked_code.html" with field=form.cod_iva label=labels.iva tipo="iva" col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_field.html" with field=form.unita_misura col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_field.html" with field=form.codice_alternativo1 col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_field.html" with field=form.cod_breve_art col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_field.html" with field=form.colli col="col-6 col-sm-4 col-lg-3" %}
+                        {% include "partials/mask_field.html" with field=form.codice_alternativo2 col="col-6 col-sm-4 col-lg-3" %}
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="opzioni" data-mask-view="articolo-form" data-mask-default="open">
+                <div class="card-header py-2 d-flex align-items-center">
+                    <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloFormOpzBody" title="Comprimi opzioni">
+                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                        <span class="eureka-mask-card__icon"><i class="ti ti-adjustments"></i></span>
+                        <h3 class="card-title mb-0">Opzioni</h3>
+                    </button>
+                </div>
+                <div class="eureka-mask-collapse__body" id="articoloFormOpzBody">
+                <div class="card-body">
+                    <div class="eureka-option-chips eureka-option-chips--2">
+                        {% include "partials/mask_option_chip.html" with field=form.descr_express icon="ti-file-text" hint="In DDT" %}
+                        {% include "partials/mask_option_chip.html" with field=form.gest_lotti icon="ti-stack-2" hint="Lotti" %}
+                        {% include "partials/mask_option_chip.html" with field=form.kit icon="ti-box-multiple" hint="Kit" %}
+                        {% include "partials/mask_option_chip.html" with field=form.no_magazzino icon="ti-building-warehouse" hint="No mag." %}
+                        {% include "partials/mask_option_chip.html" with field=form.confezionato icon="ti-package" hint="Conf." %}
+                        {% include "partials/mask_option_chip.html" with field=form.articolo_tag icon="ti-tag" hint="TAG" %}
+                        {% include "partials/mask_option_chip.html" with field=form.richiesta_patentino icon="ti-certificate" hint="Patentino" %}
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-1">
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="logistica" data-mask-view="articolo-form" data-mask-default="open">
+                <div class="card-header py-2 d-flex align-items-center">
+                    <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloFormLogBody" title="Comprimi logistica">
+                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                        <span class="eureka-mask-card__icon"><i class="ti ti-truck-delivery"></i></span>
+                        <h3 class="card-title mb-0">Logistica e contabilità</h3>
+                    </button>
+                </div>
+                <div class="eureka-mask-collapse__body" id="articoloFormLogBody">
+                <div class="card-body">
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.scorta_min col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.volume col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.peso_netto col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.peso_lordo_manodopera col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.origine col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.chi1_natura col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.c_partita_vend col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.c_partita_acq col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.nomenclatura col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.bene_servizio col="col-sm-6" %}
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="listini" data-mask-view="articolo-form" data-mask-default="open">
+                <div class="card-header py-2 d-flex align-items-center">
+                    <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloFormListBody" title="Comprimi listini">
+                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                        <span class="eureka-mask-card__icon"><i class="ti ti-currency-euro"></i></span>
+                        <h3 class="card-title mb-0">Listini e prezzi</h3>
+                        <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong" data-summary-from="{{ form.listino1.id_for_label }}"></span>
+                        </span>
+                    </button>
+                </div>
+                <div class="eureka-mask-collapse__body" id="articoloFormListBody">
+                <div class="card-body">
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.listino1 col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.sconto1 col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.listino2 col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.sconto2 col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.listino3 col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.sconto3 col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.prezzo_ult_car col="col-6 col-sm-3" %}
+                        {% include "partials/mask_field.html" with field=form.prezzo_medio_acquisto col="col-6 col-sm-3" %}
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="magazzino" data-mask-view="articolo-form" data-mask-default="open">
+        <div class="card-header py-2 d-flex align-items-center">
+            <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloFormMagBody" title="Comprimi magazzino">
+                <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                <span class="eureka-mask-card__icon"><i class="ti ti-building-warehouse"></i></span>
+                <h3 class="card-title mb-0">Magazzino</h3>
+            </button>
+        </div>
+        <div class="eureka-mask-collapse__body" id="articoloFormMagBody">
+        <div class="card-body">
+            <div class="eureka-option-chips eureka-option-chips--2">
+                {% include "partials/mask_option_chip.html" with field=form.giacenza icon="ti-packages" hint="Giacenza" %}
+                {% include "partials/mask_option_chip.html" with field=form.disponibile icon="ti-circle-check" hint="Disponibile" %}
+            </div>
+        </div>
+        </div>
+    </div>
+
+    </div>
+
+    <div class="eureka-mask-actions">
+        {% if is_create %}
+        <a href="{% url 'articoli:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% else %}
+        <a href="{% url 'articoli:detail' articolo.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ti ti-device-floppy"></i> Salva
+        </button>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'eureka/js/mask-collapse.js' %}?v=5"></script>
+<script>
+(() => {
+  const root = document.querySelector("[data-linked-lookups]");
+  if (!root) return;
+  const url = root.dataset.lookupUrl;
+  const timers = new WeakMap();
+  let openMenu = null;
+
+  function setLabel(el, text, loading) {
+    const field = el.closest("[data-linked-field]");
+    const textEl = el.querySelector(".eureka-linked-label__text") || el;
+    const value = (text || "").trim();
+
+    if (loading) {
+      if (!(textEl.textContent || "").trim()) {
+        textEl.textContent = "…";
+      }
+      el.hidden = false;
+      if (field) {
+        field.classList.add("is-resolved", "is-loading");
+      }
+      return;
+    }
+
+    textEl.textContent = value;
+    el.hidden = !value;
+    if (field) {
+      field.classList.toggle("is-resolved", Boolean(value));
+      field.classList.remove("is-loading");
+    }
+  }
+
+  function resolveLabel(input, label) {
+    const tipo = label.dataset.lookupTipo;
+    const codice = (input.value || "").trim();
+    if (!codice) {
+      setLabel(label, "", false);
+      return;
+    }
+    setLabel(label, "", true);
+    fetch(url + "?tipo=" + encodeURIComponent(tipo) + "&codice=" + encodeURIComponent(codice), {
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    })
+      .then((r) => r.json())
+      .then((data) => setLabel(label, data.descrizione || "", false))
+      .catch(() => setLabel(label, "", false));
+  }
+
+  function closeMenu(menu) {
+    if (!menu) return;
+    menu.hidden = true;
+    menu.innerHTML = "";
+    if (openMenu === menu) openMenu = null;
+  }
+
+  function closeAllMenus(except) {
+    root.querySelectorAll("[data-combo-menu]").forEach((menu) => {
+      if (menu !== except) closeMenu(menu);
+    });
+  }
+
+  function renderMenu(menu, results, input, label) {
+    menu.innerHTML = "";
+    if (!results.length) {
+      const empty = document.createElement("div");
+      empty.className = "eureka-combo__empty";
+      empty.textContent = "Nessun risultato";
+      menu.appendChild(empty);
+      return;
+    }
+    results.forEach((row, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "eureka-combo__item" + (idx === 0 ? " is-active" : "");
+      btn.setAttribute("role", "option");
+      btn.dataset.codice = row.codice || "";
+      btn.dataset.descrizione = row.descrizione || "";
+      btn.innerHTML =
+        '<span class="eureka-combo__item-code"></span>' +
+        '<span class="eureka-combo__item-desc"></span>';
+      btn.querySelector(".eureka-combo__item-code").textContent = row.codice || "—";
+      btn.querySelector(".eureka-combo__item-desc").textContent = row.descrizione || "";
+      btn.addEventListener("mousedown", (ev) => {
+        ev.preventDefault();
+        input.value = row.codice || "";
+        setLabel(label, row.descrizione || "", false);
+        closeMenu(menu);
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        input.focus();
+      });
+      menu.appendChild(btn);
+    });
+  }
+
+  function searchList(field, input, label, menu, q) {
+    const tipo = field.dataset.lookupTipo;
+    menu.hidden = false;
+    openMenu = menu;
+    menu.innerHTML = '<div class="eureka-combo__loading">Caricamento…</div>';
+    const qs =
+      "?tipo=" + encodeURIComponent(tipo) +
+      "&q=" + encodeURIComponent(q || "") +
+      "&limit=40";
+    fetch(url + qs, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then((r) => r.json())
+      .then((data) => renderMenu(menu, data.results || [], input, label))
+      .catch(() => {
+        menu.innerHTML = '<div class="eureka-combo__empty">Errore di ricerca</div>';
+      });
+  }
+
+  root.querySelectorAll("[data-linked-field]").forEach((field) => {
+    const label = field.querySelector("[data-linked-label]");
+    const combo = field.querySelector(".eureka-combo");
+    if (!label || !combo) return;
+    const input = document.getElementById(label.dataset.forInput) || combo.querySelector(".form-control, input");
+    const menu = combo.querySelector("[data-combo-menu]");
+    const toggle = combo.querySelector("[data-combo-toggle]");
+    if (!input || !menu) return;
+
+    const runResolve = () => resolveLabel(input, label);
+    const runSearch = () => {
+      closeAllMenus(menu);
+      searchList(field, input, label, menu, (input.value || "").trim());
+    };
+
+    input.addEventListener("input", () => {
+      clearTimeout(timers.get(input));
+      timers.set(
+        input,
+        setTimeout(() => {
+          runResolve();
+          if (!menu.hidden) runSearch();
+        }, 220)
+      );
+    });
+    input.addEventListener("change", runResolve);
+    input.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (!menu.contains(document.activeElement)) closeMenu(menu);
+      }, 120);
+      runResolve();
+    });
+    input.addEventListener("keydown", (ev) => {
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        runSearch();
+      } else if (ev.key === "Escape") {
+        closeMenu(menu);
+      } else if (ev.key === "Enter" && !menu.hidden) {
+        const active = menu.querySelector(".eureka-combo__item.is-active");
+        if (active) {
+          ev.preventDefault();
+          active.dispatchEvent(new Event("mousedown"));
+        }
+      }
+    });
+
+    if (toggle) {
+      toggle.addEventListener("mousedown", (ev) => {
+        ev.preventDefault();
+        if (menu.hidden) {
+          closeAllMenus(menu);
+          searchList(field, input, label, menu, "");
+          input.focus();
+        } else {
+          closeMenu(menu);
+        }
+      });
+    }
+  });
+
+  document.addEventListener("mousedown", (ev) => {
+    if (!openMenu) return;
+    if (openMenu.contains(ev.target) || openMenu.parentElement.contains(ev.target)) return;
+    closeMenu(openMenu);
+  });
+})();
+</script>
+{% endblock %}

@@ -1,104 +1,575 @@
 {% extends "base/layout.html" %}
+{% load format_tags %}
 
 {% block title %}{{ articolo.descrizione|default:articolo.codice }} · Articoli · Eureka AI{% endblock %}
-
 {% block page_title %}Articolo{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ articolo.descrizione|default:articolo.codice }}</h2>
-            <div class="text-secondary">
-                Codice {{ articolo.codice }}
-                {% if articolo.fl_disattivato %}· <span class="badge bg-secondary">Disattivato</span>{% endif %}
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--article"><i class="ti ti-package"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ articolo.descrizione|default:articolo.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ articolo.codice }}</span>
+                {% if articolo.fl_disattivato %}
+                <span class="badge bg-secondary-lt">Disattivato</span>
+                {% else %}
+                <span class="badge bg-success-lt">Attivo</span>
+                {% endif %}
+                {% if articolo.cat_omogenea %}<span class="badge bg-azure-lt">{{ articolo.cat_omogenea }}</span>{% endif %}
+                {% if articolo.unita_misura %}<span class="badge bg-secondary-lt">{{ articolo.unita_misura }}</span>{% endif %}
+                {% if articolo.articolo_tag %}<span class="badge bg-orange-lt">TAG</span>{% endif %}
             </div>
         </div>
-        <div class="btn-list">
-            {% if distinta_selection_back_url %}
-            <a href="{{ distinta_selection_back_url }}" class="btn btn-outline-primary">
-                <i class="ti ti-arrow-left"></i>
-                Torna alla selezione
-            </a>
-            {% endif %}
-            {% if distinta_articolo_back_url %}
-            <a href="{{ distinta_articolo_back_url }}" class="btn btn-outline-primary">
-                <i class="ti ti-arrow-left"></i>
-                Torna alle righe distinta
-            </a>
-            {% endif %}
-            <a href="{% url 'articoli:list' %}" class="btn btn-outline-secondary">
-                <i class="ti ti-arrow-left"></i>
-                Elenco
-            </a>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if distinta_selection_back_url %}
+        <a href="{{ distinta_selection_back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-arrow-left"></i> Torna alla selezione
+        </a>
+        {% endif %}
+        {% if distinta_articolo_back_url %}
+        <a href="{{ distinta_articolo_back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-arrow-left"></i> Torna alle righe distinta
+        </a>
+        {% endif %}
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-arrow-left"></i> {{ back_label }}
+        </a>
+        {% endif %}
+        <a href="{% url 'articoli:edit' articolo.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'articoli:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-shopping-cart"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Ordini acquisto</div>
+            <div class="eureka-mask-kpi__value">{% if articolo.prog_ord_a %}Sì{% elif articolo.prog_ord_a is False %}No{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-receipt"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Ordini vendita</div>
+            <div class="eureka-mask-kpi__value">{% if articolo.prog_ord_v %}Sì{% elif articolo.prog_ord_v is False %}No{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-arrow-down"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Ult. carico</div>
+            <div class="eureka-mask-kpi__value" style="font-size:.82rem;">{% if data_ult_carico %}{{ data_ult_carico|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-arrow-up"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Ult. scarico</div>
+            <div class="eureka-mask-kpi__value" style="font-size:.82rem;">{% if data_ult_scarico %}{{ data_ult_scarico|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-purple-lt text-purple"><i class="ti ti-packages"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Giacenza</div>
+            <div class="eureka-mask-kpi__value">{{ giacenza_quantita|floatformat:0 }}{% if articolo.unita_misura %} <span class="text-secondary" style="font-size:.75rem;">{{ articolo.unita_misura }}</span>{% endif %}</div>
         </div>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Dati principali</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="datagrid-title">Codice</div>
-                <div class="datagrid-content">{{ articolo.codice }}</div>
+<div class="row g-1">
+    <div class="col-lg-8">
+        <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="classificazione" data-mask-view="articolo-detail" data-mask-default="open">
+            <div class="card-header py-2 d-flex align-items-center">
+                <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloClassificazioneBody" title="Comprimi classificazione">
+                    <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                    <span class="eureka-mask-card__icon"><i class="ti ti-folders"></i></span>
+                    <h3 class="card-title mb-0">Classificazione</h3>
+                    <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                        {% if articolo.cat_omogenea %}<span class="eureka-mask-collapse__chip">{{ articolo.cat_omogenea }}</span>{% endif %}
+                        {% if labels.categoria %}<span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--name">{{ labels.categoria }}</span>{% endif %}
+                        {% if articolo.cod_fornitore %}<span class="eureka-mask-collapse__chip">{{ articolo.cod_fornitore }}</span>{% endif %}
+                    </span>
+                </button>
             </div>
-            <div class="col-md-6">
-                <div class="datagrid-title">Descrizione</div>
-                <div class="datagrid-content">{{ articolo.descrizione|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Categoria omogenea</div>
-                <div class="datagrid-content">{{ articolo.cat_omogenea|default:"—" }}</div>
-            </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">U.M.</div>
-                <div class="datagrid-content">{{ articolo.unita_misura|default:"—" }}</div>
-            </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Cod. IVA</div>
-                <div class="datagrid-content">{{ articolo.cod_iva|default:"—" }}</div>
-            </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Fornitore</div>
-                <div class="datagrid-content">{{ articolo.cod_fornitore|default:"—" }}</div>
-            </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Magazzino</div>
-                <div class="datagrid-content">{{ articolo.cod_magazzino|default:"—" }}</div>
-            </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Listino 1</div>
-                <div class="datagrid-content">
-                    {% if articolo.listino1 is not None %}{{ articolo.listino1|floatformat:2 }}{% else %}—{% endif %}
+            <div class="eureka-mask-collapse__body" id="articoloClassificazioneBody">
+            <div class="card-body">
+                <div class="eureka-mask-grid eureka-mask-grid--4 eureka-mask-grid--compact">
+                    <div class="eureka-mask-field" style="grid-column: 1 / -1;">
+                        <div class="eureka-mask-field__label">Descrizione</div>
+                        <div class="eureka-mask-field__value">{{ articolo.descrizione|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Cod. magazzino</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.cod_magazzino %}
+                            <span class="eureka-mask-code">{{ articolo.cod_magazzino }}</span>
+                            {% if labels.magazzino %}
+                            <div class="eureka-linked-label eureka-linked-label--magazzino">
+                                <i class="ti ti-building-warehouse eureka-linked-label__icon" aria-hidden="true"></i>
+                                <span class="eureka-linked-label__text">{{ labels.magazzino }}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Categ. merceologica</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.cat_omogenea %}
+                            <span class="eureka-mask-code">{{ articolo.cat_omogenea }}</span>
+                            {% if labels.categoria %}
+                            <div class="eureka-linked-label eureka-linked-label--categoria">
+                                <i class="ti ti-folders eureka-linked-label__icon" aria-hidden="true"></i>
+                                <span class="eureka-linked-label__text">{{ labels.categoria }}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Gruppo articolo</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.cod_gruppo %}
+                            <span class="eureka-mask-code">{{ articolo.cod_gruppo }}</span>
+                            {% if labels.gruppo %}
+                            <div class="eureka-linked-label eureka-linked-label--gruppo">
+                                <i class="ti ti-layers-intersect eureka-linked-label__icon" aria-hidden="true"></i>
+                                <span class="eureka-linked-label__text">{{ labels.gruppo }}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Cod. fornitore</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.cod_fornitore %}
+                            <span class="eureka-mask-code">{{ articolo.cod_fornitore }}</span>
+                            {% if labels.fornitore %}
+                            <div class="eureka-linked-label eureka-linked-label--fornitore">
+                                <i class="ti ti-truck eureka-linked-label__icon" aria-hidden="true"></i>
+                                <span class="eureka-linked-label__text">{{ labels.fornitore }}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Cod. IVA</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.cod_iva %}
+                            <span class="eureka-mask-code">{{ articolo.cod_iva }}</span>
+                            {% if labels.iva %}
+                            <div class="eureka-linked-label eureka-linked-label--iva">
+                                <i class="ti ti-receipt-tax eureka-linked-label__icon" aria-hidden="true"></i>
+                                <span class="eureka-linked-label__text">{{ labels.iva }}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">U.M.</div>
+                        <div class="eureka-mask-field__value">{{ articolo.unita_misura|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Cod. art. fornitore</div>
+                        <div class="eureka-mask-field__value">{{ articolo.codice_alternativo1|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Cod. breve</div>
+                        <div class="eureka-mask-field__value">{{ articolo.cod_breve_art|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Colli</div>
+                        <div class="eureka-mask-field__value">{% if articolo.colli is not None %}{{ articolo.colli|floatformat:0 }}{% else %}—{% endif %}</div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Ultimo carico</div>
-                <div class="datagrid-content">
-                    {% if articolo.prezzo_ult_car is not None %}{{ articolo.prezzo_ult_car|floatformat:2 }}{% else %}—{% endif %}
-                </div>
             </div>
         </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="flag" data-mask-view="articolo-detail" data-mask-default="open">
+            <div class="card-header py-2 d-flex align-items-center">
+                <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloFlagBody" title="Comprimi flag">
+                    <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                    <span class="eureka-mask-card__icon"><i class="ti ti-adjustments"></i></span>
+                    <h3 class="card-title mb-0">Flag</h3>
+                </button>
+            </div>
+            <div class="eureka-mask-collapse__body" id="articoloFlagBody">
+            <div class="card-body">
+                <div class="eureka-mask-grid eureka-mask-grid--compact" style="grid-template-columns: 1fr;">
+                    {% for label, value in articolo_flags %}
+                    <div class="eureka-mask-field d-flex justify-content-between align-items-center gap-2 py-0">
+                        <div class="eureka-mask-field__label mb-0">{{ label }}</div>
+                        <div class="eureka-mask-field__value">
+                            {% if value %}<span class="badge bg-success-lt">Sì</span>{% elif value is False %}<span class="badge bg-secondary-lt">No</span>{% else %}—{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-1">
+    <div class="col-lg-6">
+        <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="logistica" data-mask-view="articolo-detail" data-mask-default="open">
+            <div class="card-header py-2 d-flex align-items-center">
+                <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloLogisticaBody" title="Comprimi logistica">
+                    <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                    <span class="eureka-mask-card__icon"><i class="ti ti-truck-delivery"></i></span>
+                    <h3 class="card-title mb-0">Logistica / contabilità</h3>
+                    <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                        <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong">Giac. {{ giacenza_quantita|floatformat:0 }}{% if articolo.unita_misura %} {{ articolo.unita_misura }}{% endif %}</span>
+                    </span>
+                </button>
+            </div>
+            <div class="eureka-mask-collapse__body" id="articoloLogisticaBody">
+            <div class="card-body">
+                <div class="eureka-mask-grid eureka-mask-grid--compact eureka-mask-grid--4">
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Giacenza</div>
+                        <div class="eureka-mask-field__value">{{ giacenza_quantita|floatformat:0 }}{% if articolo.unita_misura %} {{ articolo.unita_misura }}{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Scorta minima</div>
+                        <div class="eureka-mask-field__value">{% if articolo.scorta_min is not None %}{{ articolo.scorta_min|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Volume m³</div>
+                        <div class="eureka-mask-field__value">{% if articolo.volume is not None %}{{ articolo.volume|floatformat:3 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Peso netto kg</div>
+                        <div class="eureka-mask-field__value">{% if articolo.peso_netto is not None %}{{ articolo.peso_netto|floatformat:3 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Peso lordo kg</div>
+                        <div class="eureka-mask-field__value">{% if articolo.peso_lordo_manodopera is not None %}{{ articolo.peso_lordo_manodopera|floatformat:3 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Origine</div>
+                        <div class="eureka-mask-field__value">{{ articolo.origine|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Natura</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.chi1_natura %}
+                            <span class="badge bg-blue-lt me-1" title="{{ articolo.chi1_natura_sdi_label }}">{{ articolo.chi1_natura }}</span>
+                            <span class="text-secondary">{{ articolo.chi1_natura_sdi_descrizione|default:"" }}</span>
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">C/Partita vendita</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.c_partita_vend %}
+                            <span class="eureka-mask-code">{{ articolo.c_partita_vend }}</span>
+                            {% if labels.c_partita_vend %}
+                            <div class="eureka-linked-label eureka-linked-label--pdc">
+                                <i class="ti ti-calculator eureka-linked-label__icon" aria-hidden="true"></i>
+                                <span class="eureka-linked-label__text">{{ labels.c_partita_vend }}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">C/Partita acquisto</div>
+                        <div class="eureka-mask-field__value">
+                            {% if articolo.c_partita_acq %}
+                            <span class="eureka-mask-code">{{ articolo.c_partita_acq }}</span>
+                            {% if labels.c_partita_acq %}
+                            <div class="eureka-linked-label eureka-linked-label--pdc">
+                                <i class="ti ti-calculator eureka-linked-label__icon" aria-hidden="true"></i>
+                                <span class="eureka-linked-label__text">{{ labels.c_partita_acq }}</span>
+                            </div>
+                            {% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Intrastat</div>
+                        <div class="eureka-mask-field__value">{{ articolo.nomenclatura|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Bene/Servizio</div>
+                        <div class="eureka-mask-field__value">{{ articolo.bene_servizio|default:"—" }}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Data creazione</div>
+                        <div class="eureka-mask-field__value">{% if articolo.data_creazione %}{{ articolo.data_creazione|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card eureka-mask-card eureka-mask-card--compact h-100 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="listini" data-mask-view="articolo-detail" data-mask-default="open">
+            <div class="card-header py-2 d-flex align-items-center">
+                <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloListiniBody" title="Comprimi listini">
+                    <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                    <span class="eureka-mask-card__icon"><i class="ti ti-currency-euro"></i></span>
+                    <h3 class="card-title mb-0">Listini</h3>
+                    <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                        {% if articolo.listino1 is not None %}<span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong">{{ articolo.listino1|floatformat:2 }}</span>{% endif %}
+                    </span>
+                </button>
+            </div>
+            <div class="eureka-mask-collapse__body" id="articoloListiniBody">
+            <div class="card-body">
+                <div class="eureka-mask-grid eureka-mask-grid--compact eureka-mask-grid--4">
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Listino attuale</div>
+                        <div class="eureka-mask-field__value">{% if articolo.listino1 is not None %}{{ articolo.listino1|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Sconto 1 %</div>
+                        <div class="eureka-mask-field__value">{% if articolo.sconto1 is not None %}{{ articolo.sconto1|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Listino futuro</div>
+                        <div class="eureka-mask-field__value">{% if articolo.listino2 is not None %}{{ articolo.listino2|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Sconto 2 %</div>
+                        <div class="eureka-mask-field__value">{% if articolo.sconto2 is not None %}{{ articolo.sconto2|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Prezzo negozio</div>
+                        <div class="eureka-mask-field__value">{% if articolo.listino3 is not None %}{{ articolo.listino3|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Sconto 3 %</div>
+                        <div class="eureka-mask-field__value">{% if articolo.sconto3 is not None %}{{ articolo.sconto3|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Ultimo carico</div>
+                        <div class="eureka-mask-field__value">{% if articolo.prezzo_ult_car is not None %}{{ articolo.prezzo_ult_car|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="eureka-mask-field">
+                        <div class="eureka-mask-field__label">Medio acquisto</div>
+                        <div class="eureka-mask-field__value">{% if articolo.prezzo_medio_acquisto is not None %}{{ articolo.prezzo_medio_acquisto|floatformat:2 }}{% else %}—{% endif %}</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="articolo-movimenti" class="card eureka-mask-card eureka-mask-card--compact mb-3 eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="movimenti" data-mask-view="articolo-detail" data-mask-default="open">
+    <div class="card-header eureka-mask-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="articoloMovimentiBody" title="Comprimi movimenti">
+            <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+            <span class="eureka-mask-card__icon"><i class="ti ti-transfer"></i></span>
+            <h3 class="card-title mb-0">Movimenti di magazzino</h3>
+            <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong">{{ movimenti_magazzino.esistenza_attuale|intit }}{% if articolo.unita_misura %} {{ articolo.unita_misura }}{% endif %}</span>
+            </span>
+        </button>
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-secondary small">Esistenza attuale</span>
+            <span class="badge bg-azure-lt fs-5 px-3 py-2">{{ movimenti_magazzino.esistenza_attuale|intit }}{% if articolo.unita_misura %} {{ articolo.unita_misura }}{% endif %}</span>
+        </div>
+    </div>
+    <div class="eureka-mask-collapse__body" id="articoloMovimentiBody">
+    <div class="card-body py-3 border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            {% if request.GET.from %}<input type="hidden" name="from" value="{{ request.GET.from }}">{% endif %}
+            {% if request.GET.distinta_back %}<input type="hidden" name="distinta_back" value="{{ request.GET.distinta_back }}">{% endif %}
+            {% if request.GET.list_back %}<input type="hidden" name="list_back" value="{{ request.GET.list_back }}">{% endif %}
+            {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+            {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+            {% if dir %}<input type="hidden" name="dir" value="{{ dir }}">{% endif %}
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label" for="id_mov_data_da">Da data</label>
+                <input type="date" class="form-control" id="id_mov_data_da" name="mov_data_da" value="{{ mov_data_da }}">
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label" for="id_mov_data_a">A data</label>
+                <input type="date" class="form-control" id="id_mov_data_a" name="mov_data_a" value="{{ mov_data_a }}">
+            </div>
+            <div class="col-sm-8 col-md-6 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="ti ti-filter"></i> Applica
+                </button>
+                <a
+                    class="btn btn-outline-secondary btn-sm"
+                    href="?mov_data_da={{ mov_data_da_default }}&amp;mov_data_a={{ mov_data_a_default }}{% if movimenti_query %}&amp;{{ movimenti_query }}{% endif %}"
+                    title="Da inizio anno a oggi"
+                >
+                    <i class="ti ti-calendar"></i> Anno corrente
+                </a>
+                <a
+                    class="btn btn-outline-secondary btn-sm"
+                    href="?mov_tutti=1{% if movimenti_query %}&amp;{{ movimenti_query }}{% endif %}"
+                    title="Mostra tutti i movimenti"
+                >
+                    <i class="ti ti-list"></i> Tutti
+                </a>
+                <a
+                    class="btn btn-outline-secondary btn-sm"
+                    href="{% url 'articoli:movimenti_print' articolo.codice %}{% if mov_print_query %}?{{ mov_print_query }}{% endif %}"
+                    target="_blank"
+                    rel="noopener"
+                    title="Stampa movimenti"
+                >
+                    <i class="ti ti-printer"></i> Stampa
+                </a>
+            </div>
+        </form>
+        <div class="text-secondary small mt-2">
+            {% if mov_filtro_attivo and movimenti_magazzino.data_da %}
+            Periodo {{ movimenti_magazzino.data_da|date:"d/m/Y" }} – {{ movimenti_magazzino.data_a|date:"d/m/Y" }}
+            {% if movimenti_magazzino.giacenza_precedente %}
+            · giacenza precedente: <strong>{{ movimenti_magazzino.giacenza_precedente|intit }}</strong>
+            {% endif %}
+            {% else %}
+            Tutti i movimenti
+            {% endif %}
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-sm table-hover mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "num_registraz" "Rif" default_dir="asc" %}
+                    {% sort_th "data_registraz" "Data" default_dir="asc" %}
+                    {% sort_th "causale" "Causale" default_dir="asc" %}
+                    {% sort_th "dep_entrata" "Dep. E." default_dir="asc" %}
+                    {% sort_th "dep_uscita" "Dep. U." default_dir="asc" %}
+                    {% sort_th "cli_for_codice" "Cli/For" default_dir="asc" %}
+                    {% sort_th "cli_for_ragione" "Rag. soc. Cli/For" default_dir="asc" %}
+                    {% sort_th "num_doc" "N. doc." default_dir="asc" %}
+                    {% sort_th "data_doc" "Data doc." default_dir="asc" %}
+                    {% sort_th "carico" "Carico" align="end" default_dir="desc" %}
+                    {% sort_th "scarico" "Scarico" align="end" default_dir="desc" %}
+                    {% sort_th "valore" "Valore" align="end" default_dir="desc" %}
+                    {% sort_th "giacenza" "Giacenza" align="end" default_dir="desc" %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in movimenti_magazzino.righe %}
+                <tr class="{% if r.is_totale %}table-active fw-semibold{% elif r.is_giacenza_precedente %}table-light fw-semibold{% endif %}">
+                    <td class="text-nowrap">
+                        {% if r.id_testa and not r.is_totale and not r.is_giacenza_precedente %}
+                        <a href="{% url 'movimenti:detail' r.id_testa %}?next={{ request.get_full_path|urlencode }}">{{ r.num_registraz }}</a>
+                        {% elif r.num_registraz %}{{ r.num_registraz }}{% endif %}
+                    </td>
+                    <td class="text-nowrap">{% if r.data_registraz %}{{ r.data_registraz|date:"d/m/Y" }}{% endif %}</td>
+                    <td>
+                        {% if r.is_totale %}
+                        <span class="text-secondary">Totali</span>
+                        {% elif r.is_giacenza_precedente %}
+                        <span class="text-secondary">{{ r.causale_descrizione }}</span>
+                        {% elif r.causale %}
+                        <div class="text-truncate" style="max-width: 220px;" title="{% if r.causale_descrizione %}{{ r.causale }} — {{ r.causale_descrizione }}{% else %}{{ r.causale }}{% endif %}">
+                            {% if r.causale_descrizione %}
+                            <a href="{% url 'causali_magazzino:detail' r.causale %}?next={{ request.get_full_path|urlencode }}" class="text-decoration-none">{{ r.causale_descrizione }}</a>
+                            {% else %}
+                            <a href="{% url 'causali_magazzino:detail' r.causale %}?next={{ request.get_full_path|urlencode }}" class="text-decoration-none">{{ r.causale }}</a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        {% if r.dep_entrata %}
+                            {% if r.dep_entrata_link %}
+                        <a href="{% url 'depositi:detail' r.dep_entrata_link %}?next={{ request.get_full_path|urlencode }}">{{ r.dep_entrata }}</a>
+                            {% else %}
+                        {{ r.dep_entrata }}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        {% if r.dep_uscita %}
+                            {% if r.dep_uscita_link %}
+                        <a href="{% url 'depositi:detail' r.dep_uscita_link %}?next={{ request.get_full_path|urlencode }}">{{ r.dep_uscita }}</a>
+                            {% else %}
+                        {{ r.dep_uscita }}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        {% if r.cli_for_codice %}
+                            {% if r.cli_for_kind == 'F' %}
+                            <a href="{% url 'anagrafiche:fornitore_detail' r.cli_for_codice %}?next={{ request.get_full_path|urlencode }}">{{ r.cli_for_codice }}</a>
+                            {% elif r.cli_for_kind == 'C' %}
+                            <a href="{% url 'anagrafiche:cliente_detail' r.cli_for_codice %}?next={{ request.get_full_path|urlencode }}">{{ r.cli_for_codice }}</a>
+                            {% else %}
+                            {{ r.cli_for_codice }}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.cli_for_ragione %}
+                        <div class="text-truncate" style="max-width: 260px;" title="{{ r.cli_for_ragione }}">{{ r.cli_for_ragione }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        <div class="text-truncate" style="max-width: 120px;" title="{{ r.num_doc }}">{{ r.num_doc }}</div>
+                    </td>
+                    <td class="text-nowrap">{% if r.data_doc %}{{ r.data_doc|date:"d/m/Y" }}{% endif %}</td>
+                    <td class="text-end text-nowrap">{% if r.carico %}{{ r.carico|intit }}{% endif %}</td>
+                    <td class="text-end text-nowrap">{% if r.scarico %}{{ r.scarico|intit }}{% endif %}</td>
+                    <td class="text-end text-nowrap">{% if r.valore %}{{ r.valore|euro }}{% endif %}</td>
+                    <td class="text-end text-nowrap fw-semibold">{% if r.giacenza or r.is_totale or r.is_giacenza_precedente %}{{ r.giacenza|intit }}{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="13" class="text-center text-secondary py-4">
+                        Nessun movimento nel periodo selezionato.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     </div>
 </div>
 
 {% if distinta_count %}
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">Distinta base ({{ distinta_count }})</h3>
+<div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="distinta" data-mask-view="articolo-detail" data-mask-default="collapsed">
+    <div class="card-header eureka-mask-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="false" aria-controls="articoloDistintaBody" title="Comprimi distinta base">
+            <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+            <span class="eureka-mask-card__icon"><i class="ti ti-list-tree"></i></span>
+            <h3 class="card-title mb-0">Distinta base ({{ distinta_count }})</h3>
+            <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong">{{ distinta_count }} righe</span>
+            </span>
+        </button>
         <a href="{% url 'distinte_base:list' %}?codice_db={{ articolo.codice|urlencode }}" class="btn btn-sm btn-outline-secondary">
             Vedi tutte
         </a>
     </div>
+    <div class="eureka-mask-collapse__body" id="articoloDistintaBody">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table mb-0">
+        <table class="table table-vcenter card-table table-sm mb-0">
             <thead>
                 <tr>
-                    <th>Codice_Art</th>
+                    <th>Codice art.</th>
                     <th>Descrizione</th>
                     <th class="text-end">Qta</th>
                     <th>UM</th>
@@ -122,28 +593,49 @@
             </tbody>
         </table>
     </div>
+    </div>
 </div>
 {% endif %}
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            {% for nome, valore in campi %}
-            <div class="col-md-4 col-lg-3">
-                <div class="datagrid-title">{{ nome }}</div>
-                <div class="datagrid-content">{{ valore }}</div>
+<div class="eureka-mask-delete" id="eliminaArticoloWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaArticolo">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaArticolo" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ articolo.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaArticolo">Annulla</button>
+                        <button type="submit" form="formEliminaArticolo" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
             </div>
-            {% empty %}
-            <div class="col-12 text-secondary">Nessun dato disponibile.</div>
-            {% endfor %}
         </div>
-        {% if articolo.synced_at %}
-        <div class="text-secondary small mt-3">Ultimo sync: {{ articolo.synced_at|date:"d/m/Y H:i" }}</div>
-        {% endif %}
     </div>
 </div>
 
+<form id="formEliminaArticolo" method="post" action="{% url 'articoli:delete' articolo.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'eureka/js/mask-collapse.js' %}?v=5"></script>
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaArticolo");
+  document.getElementById("btnApriEliminaArticolo")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaArticolo")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
 {% endblock %}

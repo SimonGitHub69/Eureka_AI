@@ -1,0 +1,186 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ aliquota.descrizione|default:aliquota.codice }} · Aliquote IVA · Eureka AI{% endblock %}
+{% block page_title %}Aliquota IVA{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-percentage"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ aliquota.descrizione|default:aliquota.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ aliquota.codice }}</span>
+                {% if aliquota.percentuale is not None %}<span class="badge bg-azure-lt">{{ aliquota.percentuale|floatformat:2 }}%</span>{% endif %}
+                {% if aliquota.natura_cod_ese_edi %}<span class="badge bg-blue-lt" title="{{ aliquota.natura_sdi_label }}">{{ aliquota.natura_cod_ese_edi }}</span>{% endif %}
+                {% if aliquota.disabilitato %}<span class="badge bg-secondary-lt">Disabilitata</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'aliquote:edit' aliquota.codice %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-notebook"></i> {{ back_label }}
+        </a>
+        {% else %}
+        <a href="{% url 'aliquote:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-percentage"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Percentuale</div>
+            <div class="eureka-mask-kpi__value">{% if aliquota.percentuale is not None %}{{ aliquota.percentuale|floatformat:2 }}%{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-decimal"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">% indetraibile</div>
+            <div class="eureka-mask-kpi__value">{% if aliquota.percentuale_ind is not None %}{{ aliquota.percentuale_ind|floatformat:2 }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-arrows-exchange"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Reverse charge</div>
+            <div class="eureka-mask-kpi__value">{% if aliquota.fl_reverse_charge %}Sì{% elif aliquota.fl_reverse_charge is False %}No{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-file-invoice"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Esigibilità</div>
+            <div class="eureka-mask-kpi__value">{{ aliquota.tipo_esigibilita|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione</div>
+                <div class="eureka-mask-field__value">{{ aliquota.descrizione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Riferimento</div>
+                <div class="eureka-mask-field__value">{{ aliquota.riferimento|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Natura SDI</div>
+                <div class="eureka-mask-field__value">
+                    {% if aliquota.natura_cod_ese_edi %}
+                    <span class="badge bg-blue-lt me-1">{{ aliquota.natura_cod_ese_edi }}</span>
+                    <span class="text-secondary">{{ aliquota.natura_sdi_descrizione|default:"" }}</span>
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cod. reparto</div>
+                <div class="eureka-mask-field__value">{{ aliquota.cod_reparto|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Desc. esenzione EDI</div>
+                <div class="eureka-mask-field__value">{{ aliquota.des_ese_edi|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Desc. fattura 1</div>
+                <div class="eureka-mask-field__value">{{ aliquota.desc_fattura1|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Desc. fattura 2</div>
+                <div class="eureka-mask-field__value">{{ aliquota.desc_fattura2|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Desc. fattura corpo</div>
+                <div class="eureka-mask-field__value">{{ aliquota.desc_fattura_corpo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Omaggio</div>
+                <div class="eureka-mask-field__value">{% if aliquota.flag_omaggio %}Sì{% elif aliquota.flag_omaggio is False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Calc. spese bolli</div>
+                <div class="eureka-mask-field__value">{% if aliquota.calc_spese_bolli %}Sì{% elif aliquota.calc_spese_bolli is False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Certif. esportatore</div>
+                <div class="eureka-mask-field__value">{% if aliquota.flag_certificaz_esp %}Sì{% elif aliquota.flag_certificaz_esp is False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Disabilitato</div>
+                <div class="eureka-mask-field__value">{% if aliquota.disabilitato %}Sì{% elif aliquota.disabilitato is False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Non visibile</div>
+                <div class="eureka-mask-field__value">{% if aliquota.non_visibile %}Sì{% elif aliquota.non_visibile is False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultima modifica</div>
+                <div class="eureka-mask-field__value">
+                    {% if aliquota.data_modifica %}{{ aliquota.data_modifica|date:"d/m/Y" }}{% else %}—{% endif %}
+                    {% if aliquota.ora_modifica %} {{ aliquota.ora_modifica|time:"H:i" }}{% endif %}
+                </div>
+            </div>
+            {% if aliquota.synced_at %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ aliquota.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaAliquotaWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaAliquota">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaAliquota" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ aliquota.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaAliquota">Annulla</button>
+                        <button type="submit" form="formEliminaAliquota" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaAliquota" method="post" action="{% url 'aliquote:delete' aliquota.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaAliquota");
+  document.getElementById("btnApriEliminaAliquota")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaAliquota")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

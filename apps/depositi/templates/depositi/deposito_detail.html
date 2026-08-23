@@ -1,0 +1,65 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ deposito.descrizione|default:deposito.codice }} · Depositi · Eureka AI{% endblock %}
+{% block page_title %}Deposito{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-box"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ deposito.descrizione|default:deposito.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ deposito.codice }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-arrow-left"></i> {{ back_label }}
+        </a>
+        {% endif %}
+        <a href="{% url 'depositi:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice</div>
+                <div class="eureka-mask-field__value">{{ deposito.codice }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione</div>
+                <div class="eureka-mask-field__value">{{ deposito.descrizione|default:"—" }}</div>
+            </div>
+            {% if deposito.synced_at %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ deposito.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% if campi %}
+            {% for name, value in campi %}
+            {% if name != "Numero" and name != "Descrizione" %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+</div>
+
+{% endblock %}

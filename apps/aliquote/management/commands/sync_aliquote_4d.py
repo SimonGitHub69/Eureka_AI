@@ -1,12 +1,11 @@
 from django.core.management.base import BaseCommand
 
+from apps.aliquote.sync import sync_aliquote
 from apps.core.sync_incremental import add_sync_mode_arguments, sync_full_from_options
-
-from apps.articoli.sync import sync_articoli
 
 
 class Command(BaseCommand):
-    help = "Importa la tabella 4D Articoli in PostgreSQL."
+    help = "Importa la tabella 4D AliquoteIva (aliquote IVA) in PostgreSQL."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -19,17 +18,17 @@ class Command(BaseCommand):
             "--only",
             type=str,
             default="",
-            help="Sincronizza solo Articoli (source/target name).",
+            help="Sincronizza solo AliquoteIva/aliquote (source/target name).",
         )
         add_sync_mode_arguments(parser)
 
     def handle(self, *args, **options):
-        full = sync_full_from_options(options)
         batch_size = options["batch_size"]
         only = (options.get("only") or "").strip() or None
+        full = sync_full_from_options(options)
         self.stdout.write(self.style.WARNING("Avvio sync 4D -> PostgreSQL..."))
 
-        result = sync_articoli(batch_size=batch_size, only=only, full=full)
+        result = sync_aliquote(batch_size=batch_size, only=only, full=full)
 
         for table in result.tables:
             style = self.style.SUCCESS if table.ok else self.style.ERROR

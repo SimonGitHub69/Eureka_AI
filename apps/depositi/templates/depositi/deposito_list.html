@@ -1,0 +1,106 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Depositi · Eureka AI{% endblock %}
+{% block page_title %}Depositi{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-box"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Depositi</h2>
+            <div class="text-secondary mt-1">
+                Depositi importati da 4D (<code>Depositi</code>)
+                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        <form method="get" action="{% url 'depositi:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="depositiSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione...">
+                    </div>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'depositi:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for deposito in depositi %}
+                <tr>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-orange-lt text-orange">
+                                <i class="ti ti-box"></i>
+                            </span>
+                            <a href="{% url 'depositi:detail' deposito.codice %}" class="eureka-tlist-name">{{ deposito.codice }}</a>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'depositi:detail' deposito.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 420px;" title="{{ deposito.descrizione|default:deposito.codice }}">
+                            {{ deposito.descrizione|default:"—" }}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-box"></i></div>
+                            Nessun deposito trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'depositi:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

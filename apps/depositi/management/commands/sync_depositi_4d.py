@@ -1,12 +1,11 @@
 from django.core.management.base import BaseCommand
 
 from apps.core.sync_incremental import add_sync_mode_arguments, sync_full_from_options
-
-from apps.articoli.sync import sync_articoli
+from apps.depositi.sync import sync_depositi
 
 
 class Command(BaseCommand):
-    help = "Importa la tabella 4D Articoli in PostgreSQL."
+    help = "Importa la tabella 4D Depositi in PostgreSQL."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -19,7 +18,7 @@ class Command(BaseCommand):
             "--only",
             type=str,
             default="",
-            help="Sincronizza solo Articoli (source/target name).",
+            help="Sincronizza solo Depositi/depositi (source/target name).",
         )
         add_sync_mode_arguments(parser)
 
@@ -29,7 +28,7 @@ class Command(BaseCommand):
         only = (options.get("only") or "").strip() or None
         self.stdout.write(self.style.WARNING("Avvio sync 4D -> PostgreSQL..."))
 
-        result = sync_articoli(batch_size=batch_size, only=only, full=full)
+        result = sync_depositi(batch_size=batch_size, only=only, full=full)
 
         for table in result.tables:
             style = self.style.SUCCESS if table.ok else self.style.ERROR
