@@ -138,8 +138,12 @@ def programma_documenti(request):
 
 def ai_debug_flags(request):
     # Toggle UI e limiti per il modale dell'assistente AI.
+    from apps.core.prezzi import get_prezzo_decimali, prezzo_input_step
+
     return {
         "eureka_ai_debug_sql": get_debug_ai_sql(),
         "eureka_ai_recent_searches_limit": get_ai_recent_searches_limit(),
         "eureka_ai_example_prompt": get_ai_example_prompt(),
+        "eureka_prezzo_decimali": get_prezzo_decimali(),
+        "eureka_prezzo_step": prezzo_input_step(),
     }

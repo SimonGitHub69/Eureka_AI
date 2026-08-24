@@ -1,0 +1,1013 @@
+/* Stampa lista tabelle — A4 verticale, multipagina */
+
+:root {
+    --eureka-print-blue: #1e40af;
+    --eureka-print-blue-light: #dbeafe;
+    --eureka-print-text: #1e293b;
+    --eureka-print-muted: #64748b;
+    --eureka-print-border: #cbd5e1;
+    --eureka-print-zebra: #f8fafc;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body.eureka-print-body {
+    font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 10pt;
+    line-height: 1.35;
+    color: var(--eureka-print-text);
+    background: #e2e8f0;
+}
+
+/* Toolbar anteprima (non stampata) */
+.eureka-print-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+    border-bottom: 1px solid var(--eureka-print-border);
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+}
+
+.eureka-print-toolbar__inner {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 0.85rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.eureka-print-toolbar__inner--wide {
+    max-width: min(100%, 68rem);
+}
+
+.eureka-print-toolbar__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+}
+
+.eureka-print-toolbar__title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--eureka-print-text);
+    letter-spacing: -0.01em;
+}
+
+.eureka-print-toolbar__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+    color: var(--eureka-print-muted);
+}
+
+.eureka-print-toolbar__count strong {
+    color: var(--eureka-print-blue);
+    font-weight: 700;
+}
+
+.eureka-print-toolbar__summary {
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--eureka-print-border);
+}
+
+.eureka-print-toolbar__panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    background: #fff;
+    border: 1px solid var(--eureka-print-border);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.eureka-print-filters {
+    flex: 1 1 28rem;
+    min-width: 0;
+}
+
+.eureka-print-filters__grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1rem;
+}
+
+.eureka-print-filters__group {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.eureka-print-filters__legend {
+    padding: 0;
+    margin: 0 0 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--eureka-print-blue);
+}
+
+.eureka-print-filters__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.55rem 0.65rem;
+}
+
+.eureka-print-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.eureka-print-field--grow {
+    flex: 1 1 12rem;
+}
+
+.eureka-print-field--narrow {
+    flex: 0 0 4.75rem;
+}
+
+.eureka-print-field--presets {
+    flex: 1 1 auto;
+}
+
+.eureka-print-field__label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--eureka-print-muted);
+    line-height: 1.1;
+}
+
+.eureka-print-input {
+    width: 100%;
+    min-height: 2rem;
+    appearance: none;
+    border: 1px solid var(--eureka-print-border);
+    background: #fff;
+    color: var(--eureka-print-text);
+    border-radius: 7px;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eureka-print-input:hover {
+    border-color: #94a3b8;
+}
+
+.eureka-print-input:focus {
+    outline: none;
+    border-color: var(--eureka-print-blue);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+.eureka-print-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-height: 2rem;
+    align-items: center;
+}
+
+.eureka-print-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--eureka-print-border);
+    border-radius: 999px;
+    background: #f8fafc;
+    color: var(--eureka-print-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.eureka-print-pill:hover {
+    background: var(--eureka-print-blue-light);
+    border-color: #93c5fd;
+    color: var(--eureka-print-blue);
+}
+
+.eureka-print-pill--active {
+    background: var(--eureka-print-blue);
+    border-color: var(--eureka-print-blue);
+    color: #fff;
+}
+
+.eureka-print-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2rem;
+    padding: 0 0.15rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--eureka-print-text);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.eureka-print-check input {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    accent-color: var(--eureka-print-blue);
+}
+
+.eureka-print-filters__row--toggles {
+    margin-top: 0.55rem;
+    align-items: stretch;
+}
+
+.eureka-print-field--toggles {
+    flex: 1 1 100%;
+}
+
+.eureka-print-toggles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.eureka-print-toggle {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    min-height: 3.15rem;
+    margin: 0;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--eureka-print-border);
+    border-radius: 10px;
+    background:
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    color: var(--eureka-print-text);
+    cursor: pointer;
+    user-select: none;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.12s ease;
+}
+
+.eureka-print-toggle:hover {
+    border-color: #93c5fd;
+    background: linear-gradient(180deg, #ffffff 0%, var(--eureka-print-blue-light) 100%);
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+}
+
+.eureka-print-toggle:active:not(.eureka-print-toggle--disabled) {
+    transform: translateY(1px);
+}
+
+.eureka-print-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.eureka-print-toggle__mark {
+    flex: 0 0 auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.12rem;
+    border: 1.5px solid #94a3b8;
+    border-radius: 5px;
+    background: #fff;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eureka-print-toggle__mark::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 8.2 6.4 11l6.1-6.4' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.eureka-print-toggle__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+    min-width: 0;
+}
+
+.eureka-print-toggle__title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+.eureka-print-toggle__hint {
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--eureka-print-muted);
+}
+
+.eureka-print-toggle--on {
+    border-color: #60a5fa;
+    background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow:
+        0 0 0 3px rgba(30, 64, 175, 0.1),
+        0 4px 10px rgba(30, 64, 175, 0.08);
+}
+
+.eureka-print-toggle--on .eureka-print-toggle__mark {
+    border-color: var(--eureka-print-blue);
+    background: var(--eureka-print-blue);
+    box-shadow: none;
+}
+
+.eureka-print-toggle--on .eureka-print-toggle__mark::after {
+    opacity: 1;
+}
+
+.eureka-print-toggle--on .eureka-print-toggle__title {
+    color: var(--eureka-print-blue);
+}
+
+.eureka-print-toggle--warn.eureka-print-toggle--on {
+    border-color: #f59e0b;
+    background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+    box-shadow:
+        0 0 0 3px rgba(245, 158, 11, 0.14),
+        0 4px 10px rgba(180, 83, 9, 0.08);
+}
+
+.eureka-print-toggle--warn.eureka-print-toggle--on .eureka-print-toggle__mark {
+    border-color: #d97706;
+    background: #d97706;
+}
+
+.eureka-print-toggle--warn.eureka-print-toggle--on .eureka-print-toggle__title {
+    color: #b45309;
+}
+
+.eureka-print-toggle--mute.eureka-print-toggle--on {
+    border-color: #94a3b8;
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+    box-shadow:
+        0 0 0 3px rgba(100, 116, 139, 0.12),
+        0 4px 10px rgba(15, 23, 42, 0.06);
+}
+
+.eureka-print-toggle--mute.eureka-print-toggle--on .eureka-print-toggle__mark {
+    border-color: #475569;
+    background: #475569;
+}
+
+.eureka-print-toggle--mute.eureka-print-toggle--on .eureka-print-toggle__title {
+    color: #334155;
+}
+
+.eureka-print-toggle--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.eureka-print-toggle--disabled:hover {
+    border-color: var(--eureka-print-border);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: none;
+}
+
+@media (max-width: 720px) {
+    .eureka-print-toggles {
+        grid-template-columns: 1fr;
+    }
+}
+
+.eureka-print-filters__submit {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-end;
+}
+
+.eureka-print-toolbar__actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-self: flex-start;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--eureka-print-border);
+    position: relative;
+    z-index: 2;
+}
+
+.eureka-print-toolbar__actions--solo {
+    align-self: flex-end;
+    padding-left: 0;
+    border-left: 0;
+}
+
+.eureka-print-zoom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-right: 0.15rem;
+}
+
+.eureka-print-zoom__btn {
+    min-width: 2rem;
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.eureka-print-zoom__value {
+    appearance: none;
+    min-width: 3.4rem;
+    min-height: 2rem;
+    border: 0;
+    background: transparent;
+    color: var(--eureka-print-text);
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.eureka-print-zoom__value:hover {
+    color: var(--eureka-print-blue);
+}
+
+.eureka-print-preview-stage {
+    overflow: auto;
+    padding: 0.5rem 0 1.5rem;
+}
+
+.eureka-print-preview-scaler {
+    zoom: var(--print-preview-zoom, 1);
+    transform-origin: top center;
+}
+
+@supports not (zoom: 1) {
+    .eureka-print-preview-scaler {
+        transform: scale(var(--print-preview-zoom, 1));
+    }
+}
+
+@media (max-width: 860px) {
+    .eureka-print-toolbar__panel {
+        flex-direction: column;
+    }
+
+    .eureka-print-toolbar__actions {
+        width: 100%;
+        padding-left: 0;
+        padding-top: 0.75rem;
+        border-left: 0;
+        border-top: 1px solid var(--eureka-print-border);
+        justify-content: flex-end;
+    }
+}
+
+/* Legacy aliases (liste senza pannello inventario) */
+.eureka-print-period {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin-right: 0.25rem;
+}
+
+.eureka-print-period__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.72rem;
+    color: var(--eureka-print-muted);
+}
+
+.eureka-print-period__field input[type="date"] {
+    appearance: none;
+    border: 1px solid var(--eureka-print-border);
+    background: #fff;
+    color: var(--eureka-print-text);
+    border-radius: 6px;
+    padding: 0.32rem 0.45rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+}
+
+.eureka-print-period__field--short input[type="text"] {
+    width: 4.5rem;
+    appearance: none;
+    border: 1px solid var(--eureka-print-border);
+    background: #fff;
+    color: var(--eureka-print-text);
+    border-radius: 6px;
+    padding: 0.32rem 0.45rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+}
+
+.eureka-print-period__field--search input[type="search"] {
+    width: 11rem;
+    appearance: none;
+    border: 1px solid var(--eureka-print-border);
+    background: #fff;
+    color: var(--eureka-print-text);
+    border-radius: 6px;
+    padding: 0.32rem 0.45rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+}
+
+.eureka-print-period__check {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--eureka-print-text);
+    padding-bottom: 0.35rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.eureka-print-period__check input {
+    margin: 0;
+}
+
+.eureka-print-period__shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+.eureka-print-btn {
+    appearance: none;
+    border: 1px solid var(--eureka-print-border);
+    background: #fff;
+    color: var(--eureka-print-text);
+    border-radius: 7px;
+    padding: 0.45rem 0.9rem;
+    min-height: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.eureka-print-btn--apply {
+    background: var(--eureka-print-blue-light);
+    border-color: #93c5fd;
+    color: var(--eureka-print-blue);
+}
+
+.eureka-print-btn--apply:hover {
+    background: #bfdbfe;
+    border-color: #60a5fa;
+}
+
+.eureka-print-btn--primary {
+    background: var(--eureka-print-blue);
+    border-color: var(--eureka-print-blue);
+    color: #fff;
+}
+
+.eureka-print-btn:hover {
+    filter: brightness(0.97);
+}
+
+.eureka-print-btn--primary:hover {
+    filter: brightness(1.05);
+}
+
+/* Foglio stampa */
+.eureka-print-sheet {
+    max-width: 210mm;
+    margin: 1rem auto 2rem;
+    padding: 12mm 10mm 14mm;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12);
+}
+
+.eureka-print-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 2px solid var(--eureka-print-blue);
+}
+
+.eureka-print-company {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    max-width: 65%;
+}
+
+.eureka-print-company__logo {
+    display: block;
+    max-width: 140px;
+    max-height: 48px;
+    object-fit: contain;
+}
+
+.eureka-print-company__initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 0.35rem;
+    border-radius: 6px;
+    border: 1px solid var(--eureka-print-border);
+    background: #f8fafc;
+    color: var(--eureka-print-text);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+}
+
+.eureka-print-company__name {
+    font-weight: 600;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: var(--eureka-print-text);
+}
+
+.eureka-print-header__meta {
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--eureka-print-muted);
+    flex-shrink: 0;
+}
+
+.eureka-print-header__date {
+    font-weight: 600;
+    color: var(--eureka-print-text);
+}
+
+.eureka-print-title-block {
+    margin-bottom: 0.85rem;
+}
+
+.eureka-print-title {
+    margin: 0 0 0.2rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.eureka-print-subtitle {
+    margin: 0 0 0.35rem;
+    color: var(--eureka-print-muted);
+    font-size: 0.85rem;
+}
+
+.eureka-print-stats {
+    font-size: 0.8rem;
+    color: var(--eureka-print-muted);
+}
+
+.eureka-print-stats__filter {
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid var(--eureka-print-border);
+}
+
+/* Tabella dati */
+.eureka-print-table-wrap {
+    overflow: visible;
+}
+
+.eureka-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+}
+
+.eureka-print-table thead {
+    display: table-header-group;
+}
+
+.eureka-print-table th {
+    background: var(--eureka-print-blue);
+    color: #fff;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.35rem 0.4rem;
+    border: 1px solid #1e3a8a;
+    white-space: normal;
+    line-height: 1.15;
+    font-size: 8pt;
+    vertical-align: bottom;
+    hyphens: auto;
+}
+
+.eureka-print-table th.eureka-print-align-end {
+    text-align: right;
+}
+
+.eureka-print-table--compact {
+    font-size: 7pt;
+}
+
+.eureka-print-table--compact th {
+    font-size: 6.5pt;
+    padding: 0.2rem 0.25rem;
+    line-height: 1.1;
+}
+
+.eureka-print-table--compact td {
+    padding: 0.18rem 0.25rem;
+}
+
+.eureka-print-table td {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--eureka-print-border);
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.eureka-print-table .eureka-print-align-end {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.eureka-print-table .eureka-print-nowrap {
+    white-space: nowrap;
+    word-break: normal;
+}
+
+.eureka-print-table tbody tr:nth-child(even) td {
+    background: var(--eureka-print-zebra);
+}
+
+.eureka-print-table tr.eureka-print-row--totale td {
+    background: #dbeafe !important;
+    border-top: 2px solid var(--eureka-print-blue);
+    font-weight: 700;
+    color: var(--eureka-print-text);
+}
+
+.eureka-print-table tr.eureka-print-row--subtotale td {
+    background: #eef2ff !important;
+    border-top: 1px solid var(--eureka-print-border);
+    font-weight: 600;
+    color: var(--eureka-print-text);
+}
+
+.eureka-print-table tr.eureka-print-row--giacenza-negativa td:nth-child(5) {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+.eureka-print-table tr.eureka-print-row--giacenza-negativa td:nth-child(7),
+.eureka-print-table tr.eureka-print-row--giacenza-negativa td:nth-child(9) {
+    color: #94a3b8;
+}
+
+.eureka-print-table tr.eureka-print-row--prezzo-zero-ultimo,
+.eureka-print-table tr.eureka-print-row--prezzo-zero-medio,
+.eureka-print-table tr.eureka-print-row--prezzo-discrepanza {
+    background: #fff7ed !important;
+}
+
+.eureka-print-table .eureka-print-cell--anomalia-zero {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    font-weight: 700;
+}
+
+.eureka-print-table .eureka-print-cell--anomalia-discrepanza {
+    background: #ffedd5 !important;
+    color: #9a3412 !important;
+    font-weight: 700;
+}
+
+.eureka-print-anomalie {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+    align-items: center;
+    margin-top: 0.55rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.45rem;
+    border: 1px solid #fdba74;
+    background: #fff7ed;
+    font-size: 0.78rem;
+    color: #9a3412;
+}
+
+.eureka-print-anomalie__title {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.7rem;
+}
+
+.eureka-print-anomalie__item--zero::before,
+.eureka-print-anomalie__item--discrepanza::before,
+.eureka-print-anomalie__item--negativa::before {
+    content: "";
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 0.15rem;
+    margin-right: 0.3rem;
+    vertical-align: -0.05rem;
+}
+
+.eureka-print-anomalie__item--zero::before {
+    background: #fef3c7;
+    border: 1px solid #d97706;
+}
+
+.eureka-print-anomalie__item--discrepanza::before {
+    background: #ffedd5;
+    border: 1px solid #ea580c;
+}
+
+.eureka-print-anomalie__item--negativa::before {
+    background: #fee2e2;
+    border: 1px solid #dc2626;
+}
+
+@media print {
+    .eureka-print-anomalie {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .eureka-print-table .eureka-print-cell--anomalia-zero,
+    .eureka-print-table .eureka-print-cell--anomalia-discrepanza,
+    .eureka-print-table tr.eureka-print-row--prezzo-zero-ultimo,
+    .eureka-print-table tr.eureka-print-row--prezzo-zero-medio,
+    .eureka-print-table tr.eureka-print-row--prezzo-discrepanza {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+.eureka-print-empty {
+    text-align: center;
+    color: var(--eureka-print-muted);
+    padding: 1.5rem !important;
+}
+
+.eureka-print-footer {
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--eureka-print-border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--eureka-print-muted);
+}
+
+body.eureka-print-body--landscape .eureka-print-toolbar__inner,
+body.eureka-print-body--landscape .eureka-print-toolbar__inner--wide,
+body.eureka-print-body--landscape .eureka-print-sheet {
+    max-width: 297mm;
+}
+
+body.eureka-print-body--landscape .eureka-print-toolbar__inner--wide {
+    max-width: min(100%, 80rem);
+}
+
+body.eureka-print-body--landscape .eureka-print-table {
+    font-size: 8pt;
+}
+
+body.eureka-print-body--landscape .eureka-print-table th,
+body.eureka-print-body--landscape .eureka-print-table td {
+    padding: 0.3rem 0.35rem;
+}
+
+/* Regole stampa A4 */
+@media print {
+    /*
+     * Page numbers must live in @page margin boxes.
+     * counter(page)/counter(pages) on in-flow elements (e.g. footer ::after)
+     * resolve to 0 in Chromium — the special page counters are only reliable
+     * in @page margin boxes (Chrome/Edge when printing). On-screen preview
+     * before the print dialog may not show the total; that is OK.
+     */
+    @page eureka-print-portrait {
+        size: A4 portrait;
+        margin: 12mm 10mm 16mm;
+
+        @bottom-right {
+            content: "Pagina " counter(page) " di " counter(pages);
+            font-family: "Segoe UI", system-ui, sans-serif;
+            font-size: 8pt;
+            color: #64748b;
+            vertical-align: middle;
+        }
+    }
+
+    @page eureka-print-landscape {
+        size: A4 landscape;
+        margin: 10mm 12mm 14mm;
+
+        @bottom-right {
+            content: "Pagina " counter(page) " di " counter(pages);
+            font-family: "Segoe UI", system-ui, sans-serif;
+            font-size: 8pt;
+            color: #64748b;
+            vertical-align: middle;
+        }
+    }
+
+    body.eureka-print-body {
+        page: eureka-print-portrait;
+        background: #fff;
+    }
+
+    body.eureka-print-body--landscape {
+        page: eureka-print-landscape;
+    }
+
+    .d-print-none,
+    .eureka-print-toolbar {
+        display: none !important;
+    }
+
+    .eureka-print-preview-stage,
+    .eureka-print-preview-scaler {
+        overflow: visible;
+        padding: 0;
+        zoom: 1 !important;
+        transform: none !important;
+    }
+
+    .eureka-print-sheet {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+
+    .eureka-print-table {
+        page-break-inside: auto;
+    }
+
+    .eureka-print-table tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    .eureka-print-table thead {
+        display: table-header-group;
+    }
+
+    .eureka-print-table tfoot {
+        display: table-footer-group;
+    }
+
+    /* In-flow page slot removed: counter(page) here showed "Pagina 0". */
+    .eureka-print-footer__pages {
+        display: none;
+    }
+}

@@ -33,6 +33,8 @@ class ConfigurazioneProgrammaAdmin(admin.ModelAdmin):
                     "liste_fisse",
                     "suono_errore_attivo",
                     "debug_ai_sql",
+                    "inventario_discrepanza_pct",
+                    "prezzo_decimali",
                     "suono_errore_wav",
                     "doc_prv",
                     "doc_orv",

@@ -331,7 +331,7 @@
                     <span class="eureka-mask-card__icon"><i class="ti ti-currency-euro"></i></span>
                     <h3 class="card-title mb-0">Listini</h3>
                     <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
-                        {% if articolo.listino1 is not None %}<span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong">{{ articolo.listino1|floatformat:2 }}</span>{% endif %}
+                        {% if articolo.listino1 is not None %}<span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong">{{ articolo.listino1|prezzo }}</span>{% endif %}
                     </span>
                 </button>
             </div>
@@ -340,7 +340,7 @@
                 <div class="eureka-mask-grid eureka-mask-grid--compact eureka-mask-grid--4">
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Listino attuale</div>
-                        <div class="eureka-mask-field__value">{% if articolo.listino1 is not None %}{{ articolo.listino1|floatformat:2 }}{% else %}—{% endif %}</div>
+                        <div class="eureka-mask-field__value">{% if articolo.listino1 is not None %}{{ articolo.listino1|prezzo }}{% else %}—{% endif %}</div>
                     </div>
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Sconto 1 %</div>
@@ -348,7 +348,7 @@
                     </div>
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Listino futuro</div>
-                        <div class="eureka-mask-field__value">{% if articolo.listino2 is not None %}{{ articolo.listino2|floatformat:2 }}{% else %}—{% endif %}</div>
+                        <div class="eureka-mask-field__value">{% if articolo.listino2 is not None %}{{ articolo.listino2|prezzo }}{% else %}—{% endif %}</div>
                     </div>
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Sconto 2 %</div>
@@ -356,7 +356,7 @@
                     </div>
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Prezzo negozio</div>
-                        <div class="eureka-mask-field__value">{% if articolo.listino3 is not None %}{{ articolo.listino3|floatformat:2 }}{% else %}—{% endif %}</div>
+                        <div class="eureka-mask-field__value">{% if articolo.listino3 is not None %}{{ articolo.listino3|prezzo }}{% else %}—{% endif %}</div>
                     </div>
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Sconto 3 %</div>
@@ -364,11 +364,11 @@
                     </div>
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Ultimo carico</div>
-                        <div class="eureka-mask-field__value">{% if articolo.prezzo_ult_car is not None %}{{ articolo.prezzo_ult_car|floatformat:2 }}{% else %}—{% endif %}</div>
+                        <div class="eureka-mask-field__value">{% if prezzo_ultimo_acquisto is not None %}{{ prezzo_ultimo_acquisto|prezzo }}{% else %}—{% endif %}</div>
                     </div>
                     <div class="eureka-mask-field">
                         <div class="eureka-mask-field__label">Medio acquisto</div>
-                        <div class="eureka-mask-field__value">{% if articolo.prezzo_medio_acquisto is not None %}{{ articolo.prezzo_medio_acquisto|floatformat:2 }}{% else %}—{% endif %}</div>
+                        <div class="eureka-mask-field__value">{% if articolo.prezzo_medio_acquisto is not None %}{{ articolo.prezzo_medio_acquisto|prezzo }}{% else %}—{% endif %}</div>
                     </div>
                 </div>
             </div>
@@ -422,6 +422,13 @@
                 </a>
                 <a
                     class="btn btn-outline-secondary btn-sm"
+                    href="?mov_data_da={{ mov_data_da_prev }}&amp;mov_data_a={{ mov_data_a_prev }}{% if movimenti_query %}&amp;{{ movimenti_query }}{% endif %}"
+                    title="Anno solare precedente (1 gen – 31 dic)"
+                >
+                    <i class="ti ti-calendar-event"></i> Anno precedente
+                </a>
+                <a
+                    class="btn btn-outline-secondary btn-sm"
                     href="?mov_tutti=1{% if movimenti_query %}&amp;{{ movimenti_query }}{% endif %}"
                     title="Mostra tutti i movimenti"
                 >
@@ -465,23 +472,24 @@
                     {% sort_th "data_doc" "Data doc." default_dir="asc" %}
                     {% sort_th "carico" "Carico" align="end" default_dir="desc" %}
                     {% sort_th "scarico" "Scarico" align="end" default_dir="desc" %}
-                    {% sort_th "valore" "Valore" align="end" default_dir="desc" %}
+                    {% sort_th "prezzo_lordo" "P. lordo" align="end" default_dir="desc" %}
+                    <th scope="col" class="text-end">Sconto</th>
+                    {% sort_th "prezzo_unitario" "P. netto" align="end" default_dir="desc" %}
                     {% sort_th "giacenza" "Giacenza" align="end" default_dir="desc" %}
                 </tr>
             </thead>
             <tbody>
                 {% for r in movimenti_magazzino.righe %}
-                <tr class="{% if r.is_totale %}table-active fw-semibold{% elif r.is_giacenza_precedente %}table-light fw-semibold{% endif %}">
+                {% if not r.is_totale %}
+                <tr class="{% if r.is_giacenza_precedente %}table-light fw-semibold{% endif %}">
                     <td class="text-nowrap">
-                        {% if r.id_testa and not r.is_totale and not r.is_giacenza_precedente %}
+                        {% if r.id_testa and not r.is_giacenza_precedente %}
                         <a href="{% url 'movimenti:detail' r.id_testa %}?next={{ request.get_full_path|urlencode }}">{{ r.num_registraz }}</a>
                         {% elif r.num_registraz %}{{ r.num_registraz }}{% endif %}
                     </td>
                     <td class="text-nowrap">{% if r.data_registraz %}{{ r.data_registraz|date:"d/m/Y" }}{% endif %}</td>
                     <td>
-                        {% if r.is_totale %}
-                        <span class="text-secondary">Totali</span>
-                        {% elif r.is_giacenza_precedente %}
+                        {% if r.is_giacenza_precedente %}
                         <span class="text-secondary">{{ r.causale_descrizione }}</span>
                         {% elif r.causale %}
                         <div class="text-truncate" style="max-width: 220px;" title="{% if r.causale_descrizione %}{{ r.causale }} — {{ r.causale_descrizione }}{% else %}{{ r.causale }}{% endif %}">
@@ -533,12 +541,15 @@
                     <td class="text-nowrap">{% if r.data_doc %}{{ r.data_doc|date:"d/m/Y" }}{% endif %}</td>
                     <td class="text-end text-nowrap">{% if r.carico %}{{ r.carico|intit }}{% endif %}</td>
                     <td class="text-end text-nowrap">{% if r.scarico %}{{ r.scarico|intit }}{% endif %}</td>
-                    <td class="text-end text-nowrap">{% if r.valore %}{{ r.valore|euro }}{% endif %}</td>
-                    <td class="text-end text-nowrap fw-semibold">{% if r.giacenza or r.is_totale or r.is_giacenza_precedente %}{{ r.giacenza|intit }}{% endif %}</td>
+                    <td class="text-end text-nowrap">{% if r.prezzo_lordo %}{{ r.prezzo_lordo|prezzo }}{% endif %}</td>
+                    <td class="text-end text-nowrap text-secondary">{% if r.sconto %}{{ r.sconto }}{% endif %}</td>
+                    <td class="text-end text-nowrap">{% if r.prezzo_unitario %}{{ r.prezzo_unitario|prezzo }}{% endif %}</td>
+                    <td class="text-end text-nowrap fw-semibold">{% if r.giacenza or r.is_giacenza_precedente %}{{ r.giacenza|intit }}{% endif %}</td>
                 </tr>
+                {% endif %}
                 {% empty %}
                 <tr>
-                    <td colspan="13" class="text-center text-secondary py-4">
+                    <td colspan="15" class="text-center text-secondary py-4">
                         Nessun movimento nel periodo selezionato.
                     </td>
                 </tr>
@@ -546,6 +557,62 @@
             </tbody>
         </table>
     </div>
+    {% if movimenti_magazzino.righe %}
+    <div class="eureka-mov-totali">
+        <div class="eureka-mov-totali__head">
+            <div class="eureka-mov-totali__title">
+                <span class="eureka-mov-totali__icon"><i class="ti ti-sum"></i></span>
+                <div>
+                    <div class="eureka-mov-totali__label">Totali periodo</div>
+                    <div class="eureka-mov-totali__period">
+                        {% if mov_filtro_attivo and movimenti_magazzino.data_da %}
+                        {{ movimenti_magazzino.data_da|date:"d/m/Y" }} – {{ movimenti_magazzino.data_a|date:"d/m/Y" }}
+                        {% else %}
+                        Tutti i movimenti
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="eureka-mov-totali__grid">
+            <div class="eureka-mask-kpi eureka-mov-totali__kpi">
+                <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-arrow-down-left"></i></span>
+                <div>
+                    <div class="eureka-mask-kpi__label">Carico</div>
+                    <div class="eureka-mask-kpi__value">{{ movimenti_magazzino.totale_carico|intit }}</div>
+                </div>
+            </div>
+            <div class="eureka-mask-kpi eureka-mov-totali__kpi">
+                <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-arrow-up-right"></i></span>
+                <div>
+                    <div class="eureka-mask-kpi__label">Scarico</div>
+                    <div class="eureka-mask-kpi__value">{{ movimenti_magazzino.totale_scarico|intit }}</div>
+                </div>
+            </div>
+            <div class="eureka-mask-kpi eureka-mov-totali__kpi eureka-mov-totali__kpi--accent">
+                <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-packages"></i></span>
+                <div>
+                    <div class="eureka-mask-kpi__label">Giacenza</div>
+                    <div class="eureka-mask-kpi__value">{{ movimenti_magazzino.giacenza_finale|intit }}{% if articolo.unita_misura %} <span class="eureka-mov-totali__unit">{{ articolo.unita_misura }}</span>{% endif %}</div>
+                </div>
+            </div>
+            <div class="eureka-mask-kpi eureka-mov-totali__kpi">
+                <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-coin"></i></span>
+                <div>
+                    <div class="eureka-mask-kpi__label">Ultimo prezzo</div>
+                    <div class="eureka-mask-kpi__value">{% if movimenti_magazzino.prezzo_ultimo_acquisto is not None %}{{ movimenti_magazzino.prezzo_ultimo_acquisto|prezzo }}{% else %}—{% endif %}</div>
+                </div>
+            </div>
+            <div class="eureka-mask-kpi eureka-mov-totali__kpi">
+                <span class="eureka-mask-kpi__icon bg-purple-lt text-purple"><i class="ti ti-chart-bar"></i></span>
+                <div>
+                    <div class="eureka-mask-kpi__label">Prezzo medio</div>
+                    <div class="eureka-mask-kpi__value">{% if movimenti_magazzino.prezzo_medio is not None %}{{ movimenti_magazzino.prezzo_medio|prezzo }}{% else %}—{% endif %}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     </div>
 </div>
 

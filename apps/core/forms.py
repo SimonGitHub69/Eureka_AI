@@ -125,6 +125,8 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
             "debug_ai_sql",
             "ai_recent_searches_limit",
             "ai_example_prompt",
+            "prezzo_decimali",
+            "inventario_discrepanza_pct",
             "doc_prv",
             "doc_orv",
             "doc_ora",
@@ -155,6 +157,22 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
                     "maxlength": "500",
                 }
             ),
+            "inventario_discrepanza_pct": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "1",
+                    "max": "100",
+                    "step": "1",
+                }
+            ),
+            "prezzo_decimali": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "2",
+                    "max": "6",
+                    "step": "1",
+                }
+            ),
             "doc_prv": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "doc_orv": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "doc_ora": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -176,6 +194,8 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
         for name in (
             "suono_errore_attivo",
             "debug_ai_sql",
+            "prezzo_decimali",
+            "inventario_discrepanza_pct",
             "doc_prv",
             "doc_orv",
             "doc_ora",
@@ -212,6 +232,27 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
         if not value:
             return ConfigurazioneProgramma._meta.get_field("ai_example_prompt").default
         return value
+
+    def clean_inventario_discrepanza_pct(self):
+        value = self.cleaned_data.get("inventario_discrepanza_pct")
+        if value in (None, ""):
+            return 25
+        if value < 1:
+            raise forms.ValidationError("Indicare almeno l'1%.")
+        if value > 100:
+            raise forms.ValidationError("Indicare al massimo il 100%.")
+        return value
+
+    def clean_prezzo_decimali(self):
+        from apps.core.prezzi import PREZZO_DECIMALI_DEFAULT, clamp_prezzo_decimali
+
+        value = self.cleaned_data.get("prezzo_decimali")
+        if value in (None, ""):
+            return PREZZO_DECIMALI_DEFAULT
+        clamped = clamp_prezzo_decimali(value)
+        if clamped != int(value):
+            raise forms.ValidationError("Indicare un valore tra 2 e 6 decimali.")
+        return clamped
 
 
 class ParametriContabiliForm(forms.ModelForm):

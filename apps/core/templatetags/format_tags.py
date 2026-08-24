@@ -19,6 +19,14 @@ def euro(value, decimals=2):
     return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+@register.filter(name="prezzo")
+def prezzo(value):
+    """Prezzo unitario in stile italiano, decimali da Parametri programma."""
+    from apps.core.prezzi import get_prezzo_decimali
+
+    return euro(value, get_prezzo_decimali())
+
+
 @register.filter(name="intit")
 def intit(value):
     """Intero con separatore migliaia italiano: 12.345"""

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.views import View
@@ -9,6 +11,30 @@ from django.views.generic import ListView
 
 from apps.aziende.configurazione import resolve_print_azienda_context
 from apps.core.sorting import SortableListMixin
+
+
+def format_it_number(value, *, decimals: int = 2) -> str:
+    """Formatta un numero in stile italiano (1.234,56) con arrotondamento commerciale."""
+    try:
+        number = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return "—"
+    if not number.is_finite():
+        return "—"
+    quant = Decimal("1").scaleb(-decimals) if decimals else Decimal("1")
+    number = number.quantize(quant, rounding=ROUND_HALF_UP)
+    sign = "-" if number < 0 else ""
+    number = abs(number)
+    text = f"{number:.{decimals}f}" if decimals else f"{int(number)}"
+    intpart, _, frac = text.partition(".")
+    groups: list[str] = []
+    while intpart:
+        groups.append(intpart[-3:])
+        intpart = intpart[:-3]
+    grouped = ".".join(reversed(groups)) or "0"
+    if decimals:
+        return f"{sign}{grouped},{frac}"
+    return f"{sign}{grouped}"
 
 
 def resolve_column_value(obj, column: dict) -> str:
@@ -28,6 +54,11 @@ def resolve_column_value(obj, column: dict) -> str:
                 if val is None:
                     break
                 val = getattr(val, part, None)
+
+    if column.get("decimals") is not None or column.get("number"):
+        if val is None or val == "":
+            return "—"
+        return format_it_number(val, decimals=int(column.get("decimals") or 2))
 
     if val is None or val == "":
         return "—"
@@ -55,19 +86,40 @@ def build_print_rows(object_list, columns) -> tuple[list[str], list[list[str]]]:
 
 def print_header_cells(columns) -> list[dict[str, str]]:
     return [
-        {"label": col["label"], "align": col.get("align", "start")}
+        {
+            "label": col["label"],
+            "align": col.get("align", "start"),
+            "nowrap": bool(col.get("nowrap")),
+        }
         for col in columns
     ]
 
 
-def structured_print_row(cells: list[str], columns, *, row_class: str = "") -> dict:
+def structured_print_row(
+    cells: list[str],
+    columns,
+    *,
+    row_class: str = "",
+    cell_classes: list[str] | None = None,
+    row_title: str = "",
+) -> dict:
     aligns = [col.get("align", "start") for col in columns]
+    nowraps = [bool(col.get("nowrap")) for col in columns]
+    extras = list(cell_classes or [])
+    while len(extras) < len(cells):
+        extras.append("")
     return {
         "cells": [
-            {"text": text, "align": aligns[i]}
+            {
+                "text": text,
+                "align": aligns[i],
+                "nowrap": nowraps[i],
+                "cell_class": extras[i],
+            }
             for i, text in enumerate(cells)
         ],
         "row_class": row_class,
+        "row_title": row_title,
     }
 
 

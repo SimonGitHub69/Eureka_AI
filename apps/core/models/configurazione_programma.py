@@ -96,6 +96,24 @@ class ConfigurazioneProgramma(BaseModel):
             "(dopo «Ad esempio:»)."
         ),
     )
+    inventario_discrepanza_pct = models.PositiveSmallIntegerField(
+        "Soglia discrepanza prezzi inventario (%)",
+        default=25,
+        help_text=(
+            "Nella stampa inventario evidenzia (e filtra) le righe in cui "
+            "|ultimo − medio| / max(ultimo, medio) supera questa percentuale. "
+            "Valori tipici: 15–30."
+        ),
+    )
+    prezzo_decimali = models.PositiveSmallIntegerField(
+        "Decimali prezzi unitari",
+        default=3,
+        help_text=(
+            "Numero massimo di decimali per i prezzi unitari "
+            "(schede articolo, movimenti di magazzino, righe documento, "
+            "stampe inventario, ecc.). Importi e totali restano a 2 decimali."
+        ),
+    )
 
     class Meta:
         verbose_name = "Parametri programma"
@@ -127,6 +145,8 @@ class ConfigurazioneProgramma(BaseModel):
                     "Cerca tutti i movimenti IVA il cui imponibile è compreso tra 1500 e 1750 "
                     "nell'anno in corso"
                 ),
+                "inventario_discrepanza_pct": 25,
+                "prezzo_decimali": 3,
             },
         )
         return obj

@@ -1,5 +1,6 @@
 from django.urls import path
 
+from apps.articoli.views import ArticoloInventarioPrintView
 from apps.core.views import (
     AiAssistantView,
     ComandiVocaliListView,
@@ -30,6 +31,11 @@ from apps.core.views import (
 app_name = "core"
 
 urlpatterns = [
+    path(
+        "stampe/inventario/",
+        ArticoloInventarioPrintView.as_view(),
+        name="stampe_inventario",
+    ),
     path(
         "parametri/programma/",
         ParametriProgrammaView.as_view(),

@@ -168,6 +168,20 @@ class ArticoloForm(forms.ModelForm):
         if current_natura and current_natura not in dict(natura_choices):
             natura_choices.append((current_natura, current_natura))
         self.fields["chi1_natura"].choices = natura_choices
+        from apps.core.prezzi import prezzo_input_step
+
+        prezzo_step = prezzo_input_step()
+        for name in (
+            "listino1",
+            "listino2",
+            "listino3",
+            "prezzo_ult_car",
+            "prezzo_medio_acquisto",
+        ):
+            field = self.fields.get(name)
+            if field is not None:
+                field.widget.attrs["step"] = prezzo_step
+                field.widget.attrs["inputmode"] = "decimal"
 
     def clean_chi1_natura(self):
         return (self.cleaned_data.get("chi1_natura") or "").strip().upper() or None

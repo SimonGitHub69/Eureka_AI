@@ -139,6 +139,39 @@
             <hr class="my-4">
 
             <h4 class="mb-3">
+                <i class="ti ti-packages me-1"></i>
+                Magazzino / Inventario
+            </h4>
+            <p class="text-secondary small mb-3">
+                Parametri usati da schede articolo, movimenti, documenti e stampa inventario.
+            </p>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.prezzo_decimali.id_for_label }}">
+                        {{ form.prezzo_decimali.label }}
+                    </label>
+                    {{ form.prezzo_decimali }}
+                    <div class="form-hint">{{ form.prezzo_decimali.help_text }}</div>
+                    {% if form.prezzo_decimali.errors %}
+                        <div class="invalid-feedback d-block">{{ form.prezzo_decimali.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.inventario_discrepanza_pct.id_for_label }}">
+                        {{ form.inventario_discrepanza_pct.label }}
+                    </label>
+                    {{ form.inventario_discrepanza_pct }}
+                    <div class="form-hint">{{ form.inventario_discrepanza_pct.help_text }}</div>
+                    {% if form.inventario_discrepanza_pct.errors %}
+                        <div class="invalid-feedback d-block">{{ form.inventario_discrepanza_pct.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <h4 class="mb-3">
                 <i class="ti ti-file-invoice me-1"></i>
                 Documenti / Fatturazione
             </h4>

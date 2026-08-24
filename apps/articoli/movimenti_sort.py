@@ -19,7 +19,8 @@ MOVIMENTI_ARTICOLO_SORT_FIELDS = (
     "data_doc",
     "carico",
     "scarico",
-    "valore",
+    "prezzo_lordo",
+    "prezzo_unitario",
     "giacenza",
 )
 
@@ -59,7 +60,8 @@ _SORT_KEYS: dict[str, Callable[[MovimentoArticoloRiga], Any]] = {
     "data_doc": lambda r: _date_key(r.data_doc),
     "carico": lambda r: _num_key(r.carico),
     "scarico": lambda r: _num_key(r.scarico),
-    "valore": lambda r: _num_key(r.valore),
+    "prezzo_lordo": lambda r: _num_key(r.prezzo_lordo),
+    "prezzo_unitario": lambda r: _num_key(r.prezzo_unitario),
     "giacenza": lambda r: _num_key(r.giacenza),
 }
 

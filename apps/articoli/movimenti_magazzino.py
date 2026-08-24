@@ -15,6 +15,7 @@ from apps.articoli.giacenza import (
     _norm_codice,
     flag_cd_sign,
     giacenza_articolo,
+    prezzi_periodo_articolo,
 )
 from apps.depositi.lookups import depositi_by_codes
 from apps.movimenti.lookups import (
@@ -40,7 +41,10 @@ class MovimentoArticoloRiga:
     data_doc: date | None
     carico: float
     scarico: float
+    prezzo_unitario: float
     valore: float
+    prezzo_lordo: float = 0.0
+    sconto: str = ""
     giacenza: float = 0.0
     is_totale: bool = False
     is_giacenza_precedente: bool = False
@@ -59,7 +63,19 @@ class MovimentiArticoloResult:
     data_a: date | None = None
     giacenza_precedente: float = 0.0
     filtro_attivo: bool = False
+    prezzo_ultimo_acquisto: float | None = None
+    prezzo_medio: float | None = None
+    giacenza_finale: float = 0.0
 
+
+def _prezzi_periodo(
+    codice: str,
+    *,
+    data_da: date | None,
+    data_a: date | None,
+) -> tuple[float | None, float | None]:
+    prezzi = prezzi_periodo_articolo(codice, data_da=data_da, data_a=data_a)
+    return prezzi.get("ultimo"), prezzi.get("medio")
 
 def _as_date(value) -> date | None:
     if value is None:
@@ -131,6 +147,57 @@ def ultime_date_movimenti(codice: str | None) -> tuple[date | None, date | None]
     return _as_date(row[0]), _as_date(row[1])
 
 
+def _prezzo_lordo_da_netto(netto: float, sconto_formula: str) -> float:
+    """Ricostruisce il prezzo imponibile lordo prima degli sconti riga."""
+    formula = (sconto_formula or "").strip()
+    if not netto or not formula:
+        return float(netto or 0)
+    from decimal import Decimal
+
+    from apps.documenti.castelletto import parse_sconto_parts, sconto_residuo_factor
+
+    parts = parse_sconto_parts(formula)
+    if not parts:
+        return float(netto)
+    factor = sconto_residuo_factor(parts)
+    if factor <= 0:
+        return float(netto)
+    return float(Decimal(str(netto)) / factor)
+
+
+def _fmt_sconto_movimento(formula: str) -> str:
+    formula = (formula or "").strip()
+    if not formula:
+        return ""
+    return f"{formula}%"
+
+
+def _sconti_by_codes(codes) -> dict[str, str]:
+    """Mappa codice sconto (normalizzato) → formula % (tabella Sconti)."""
+    keys = sorted({_norm_codice(c) for c in codes if _norm_codice(c)})
+    if not keys:
+        return {}
+    from apps.sconti.models import Sconto
+
+    out: dict[str, str] = {}
+    for obj in Sconto.objects.filter(codice__in=keys):
+        code = _norm_codice(obj.codice)
+        if code:
+            out[code] = (obj.sconto or "").strip()
+    missing = [k for k in keys if k not in out]
+    if missing:
+        from django.db.models import Q
+
+        q = Q()
+        for key in missing:
+            q |= Q(codice__iexact=key)
+        for obj in Sconto.objects.filter(q):
+            code = _norm_codice(obj.codice)
+            if code and code not in out:
+                out[code] = (obj.sconto or "").strip()
+    return out
+
+
 def _fetch_rows(
     codice: str,
     *,
@@ -156,7 +223,9 @@ def _fetch_rows(
                 p."DataDoc",
                 pd."Quantita",
                 pd."Flag_CD",
-                pd."ValoreTotale"
+                pd."ValoreUnNetto",
+                pd."ValoreTotale",
+                pd."Sconto_CodArtCliFor"
             FROM movimentit_dettaglio pd
             JOIN movimentit p ON p."ID_Testa" = pd."id_added_by_converter"
             WHERE UPPER(TRIM(BOTH FROM COALESCE(pd."CodiceArt", ''))) = %s
@@ -182,6 +251,7 @@ def _build_riga(
     clienti,
     fornitori,
     magazzini,
+    sconti,
 ) -> tuple[MovimentoArticoloRiga, float, float]:
     qty = float(row.get("Quantita") or 0)
     sign = flag_cd_sign(row.get("Flag_CD"))
@@ -202,6 +272,10 @@ def _build_riga(
     causale = _text(row.get("Causale"))
     dep_entrata = _text(row.get("dep_ent"))
     dep_uscita = _text(row.get("dep_usc"))
+    sconto_cod = _norm_codice(row.get("Sconto_CodArtCliFor"))
+    sconto_formula = sconti.get(sconto_cod, "") if sconto_cod else ""
+    netto = float(row.get("ValoreUnNetto") or 0)
+    lordo = _prezzo_lordo_da_netto(netto, sconto_formula) if netto else 0.0
     riga = MovimentoArticoloRiga(
         id_testa=row.get("ID_Testa"),
         num_registraz=row.get("NumRegistraz"),
@@ -219,6 +293,9 @@ def _build_riga(
         data_doc=_as_date(row.get("DataDoc")),
         carico=carico,
         scarico=scarico,
+        prezzo_unitario=netto,
+        prezzo_lordo=lordo,
+        sconto=_fmt_sconto_movimento(sconto_formula),
         valore=float(row.get("ValoreTotale") or 0),
     )
     return riga, carico, scarico
@@ -240,6 +317,7 @@ def movimenti_articolo(
         giacenza_prec = _giacenza_precedente(key, data_da)
 
     raw_rows = _fetch_rows(key, data_da=data_da, data_a=data_a)
+    prezzo_ultimo, prezzo_medio = _prezzi_periodo(key, data_da=data_da, data_a=data_a)
     if not raw_rows and not (filtro_attivo and giacenza_prec):
         return MovimentiArticoloResult(
             codice=key,
@@ -248,6 +326,9 @@ def movimenti_articolo(
             data_a=data_a,
             giacenza_precedente=giacenza_prec,
             filtro_attivo=filtro_attivo,
+            prezzo_ultimo_acquisto=prezzo_ultimo,
+            prezzo_medio=prezzo_medio,
+            giacenza_finale=giacenza_prec if filtro_attivo else esistenza,
         )
 
     causali = causali_magazzino_by_codes(r.get("Causale") for r in raw_rows)
@@ -258,6 +339,7 @@ def movimenti_articolo(
         for r in raw_rows
         for code in (r.get("dep_ent"), r.get("dep_usc"))
     )
+    sconti = _sconti_by_codes(r.get("Sconto_CodArtCliFor") for r in raw_rows)
 
     righe: list[MovimentoArticoloRiga] = []
     saldo = giacenza_prec
@@ -282,6 +364,7 @@ def movimenti_articolo(
                 data_doc=None,
                 carico=0.0,
                 scarico=0.0,
+                prezzo_unitario=0.0,
                 valore=0.0,
                 giacenza=giacenza_prec,
                 is_giacenza_precedente=True,
@@ -295,6 +378,7 @@ def movimenti_articolo(
             clienti=clienti,
             fornitori=fornitori,
             magazzini=magazzini,
+            sconti=sconti,
         )
         saldo += carico - scarico
         tot_carico += carico
@@ -319,6 +403,7 @@ def movimenti_articolo(
                 data_doc=None,
                 carico=tot_carico,
                 scarico=tot_scarico,
+                prezzo_unitario=0.0,
                 valore=0.0,
                 giacenza=saldo,
                 is_totale=True,
@@ -335,6 +420,9 @@ def movimenti_articolo(
         data_a=data_a,
         giacenza_precedente=giacenza_prec,
         filtro_attivo=filtro_attivo,
+        prezzo_ultimo_acquisto=prezzo_ultimo,
+        prezzo_medio=prezzo_medio,
+        giacenza_finale=saldo,
     )
 
 
@@ -365,8 +453,18 @@ MOVIMENTI_ARTICOLO_PRINT_COLUMNS = (
         "align": "end",
     },
     {
-        "label": "Valore",
-        "value": lambda r: _fmt_euro(r.valore),
+        "label": "P. lordo",
+        "value": lambda r: _fmt_prezzo_unitario(r.prezzo_lordo),
+        "align": "end",
+    },
+    {
+        "label": "Sconto",
+        "value": lambda r: r.sconto or "—",
+        "align": "end",
+    },
+    {
+        "label": "P. netto",
+        "value": lambda r: _fmt_prezzo_unitario(r.prezzo_unitario),
         "align": "end",
     },
     {
@@ -387,9 +485,10 @@ def _fmt_qty(value: float) -> str:
     return intit(value)
 
 
-def _fmt_euro(value: float) -> str:
+def _fmt_prezzo_unitario(value: float) -> str:
+    from apps.core.prezzi import get_prezzo_decimali
     from apps.core.templatetags.format_tags import euro
 
     if not value:
         return "—"
-    return euro(value)
+    return euro(value, get_prezzo_decimali())

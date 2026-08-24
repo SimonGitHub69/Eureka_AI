@@ -23,7 +23,7 @@ class ArticoloMovimentiPrintTests(SimpleTestCase):
         from apps.core.print_list import structured_print_row
 
         row = structured_print_row(
-            ["16.000", "100", "29,40", "13.726"],
+            ["16.000", "100", "10,000", "10%", "9,000", "13.726"],
             MOVIMENTI_ARTICOLO_PRINT_COLUMNS[9:],
         )
         for cell in row["cells"]:
@@ -45,11 +45,16 @@ class ArticoloMovimentiPrintTests(SimpleTestCase):
             data_doc=None,
             carico=268050.0,
             scarico=254324.0,
+            prezzo_unitario=0.0,
+            prezzo_lordo=0.0,
+            sconto="",
             valore=0.0,
             giacenza=13726.0,
             is_totale=True,
         )
         headers, rows = build_print_rows([riga], MOVIMENTI_ARTICOLO_PRINT_COLUMNS)
+        self.assertIn("P. netto", headers)
+        self.assertIn("P. lordo", headers)
         self.assertIn("Totali", rows[0][2])
         self.assertEqual(rows[0][-1], "13.726")
 

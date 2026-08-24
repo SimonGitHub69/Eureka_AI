@@ -1,0 +1,304 @@
+{% load static %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ print_title }} · Stampa lista{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=22">
+</head>
+<body class="eureka-print-body{% if print_orientation == 'landscape' %} eureka-print-body--landscape{% endif %}">
+<div class="eureka-print-toolbar d-print-none">
+    <div class="eureka-print-toolbar__inner{% if print_inventario_options %} eureka-print-toolbar__inner--wide{% endif %}">
+        <div class="eureka-print-toolbar__head">
+            <div class="eureka-print-toolbar__title">{{ print_title }}</div>
+            <div class="eureka-print-toolbar__meta">
+                <span class="eureka-print-toolbar__count"><strong>{{ print_count }}</strong> record</span>
+                {% if print_filter_summary %}
+                <span class="eureka-print-toolbar__summary">{{ print_filter_summary }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if print_period_filters or print_inventario_options %}
+        <div class="eureka-print-toolbar__panel">
+            <form method="get" class="eureka-print-filters" action="{{ request.path }}">
+                {% for key, value in request.GET.items %}
+                    {% if key != "data_da" and key != "data_a" and key != "categoria_da" and key != "categoria_a" and key != "rottura" and key != "solo_anomalie" and key != "ignora_anomalie" and key != "q" %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+
+                <div class="eureka-print-filters__grid">
+                    {% if print_period_filters %}
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Periodo</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Da data</span>
+                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">A data</span>
+                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                            </label>
+                            {% if inventario_preset_urls %}
+                            <div class="eureka-print-field eureka-print-field--presets">
+                                <span class="eureka-print-field__label">Scorciatoie</span>
+                                <div class="eureka-print-pills">
+                                    <a
+                                        href="{{ inventario_preset_urls.corrente }}"
+                                        class="eureka-print-pill{% if inventario_active_preset == 'corrente' %} eureka-print-pill--active{% endif %}"
+                                        title="Dal 1° gennaio al 31 dicembre {{ print_date|date:'Y' }}"
+                                    >Anno corrente</a>
+                                    <a
+                                        href="{{ inventario_preset_urls.precedente }}"
+                                        class="eureka-print-pill{% if inventario_active_preset == 'precedente' %} eureka-print-pill--active{% endif %}"
+                                        title="Anno solare precedente"
+                                    >Anno precedente</a>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </fieldset>
+                    {% endif %}
+
+                    {% if print_inventario_options %}
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Articoli</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Cerca</span>
+                                <input type="search" class="eureka-print-input" name="q" value="{{ q }}" placeholder="Codice o descrizione" maxlength="80" autocomplete="off">
+                            </label>
+                            <label class="eureka-print-field eureka-print-field--narrow">
+                                <span class="eureka-print-field__label">Da cat.</span>
+                                <input type="text" class="eureka-print-input" name="categoria_da" value="{{ categoria_da }}" maxlength="20" autocomplete="off" placeholder="1">
+                            </label>
+                            <label class="eureka-print-field eureka-print-field--narrow">
+                                <span class="eureka-print-field__label">A cat.</span>
+                                <input type="text" class="eureka-print-input" name="categoria_a" value="{{ categoria_a }}" maxlength="20" autocomplete="off" placeholder="99">
+                            </label>
+                        </div>
+                        <div class="eureka-print-filters__row eureka-print-filters__row--toggles">
+                            <div class="eureka-print-field eureka-print-field--toggles">
+                                <span class="eureka-print-field__label">Opzioni stampa</span>
+                                <div class="eureka-print-toggles" role="group" aria-label="Opzioni stampa inventario">
+                                    <label class="eureka-print-toggle{% if rottura %} eureka-print-toggle--on{% endif %}">
+                                        <input type="checkbox" name="rottura" value="1"{% if rottura %} checked{% endif %}>
+                                        <span class="eureka-print-toggle__mark" aria-hidden="true"></span>
+                                        <span class="eureka-print-toggle__text">
+                                            <span class="eureka-print-toggle__title">Rottura categoria</span>
+                                            <span class="eureka-print-toggle__hint">Subtotali per cat.</span>
+                                        </span>
+                                    </label>
+                                    <label class="eureka-print-toggle eureka-print-toggle--warn{% if solo_anomalie %} eureka-print-toggle--on{% endif %}{% if ignora_anomalie %} eureka-print-toggle--disabled{% endif %}">
+                                        <input type="checkbox" name="solo_anomalie" value="1"{% if solo_anomalie %} checked{% endif %}{% if ignora_anomalie %} disabled{% endif %}>
+                                        <span class="eureka-print-toggle__mark" aria-hidden="true"></span>
+                                        <span class="eureka-print-toggle__text">
+                                            <span class="eureka-print-toggle__title">Solo anomalie</span>
+                                            <span class="eureka-print-toggle__hint">Evidenzia e filtra</span>
+                                        </span>
+                                    </label>
+                                    <label class="eureka-print-toggle eureka-print-toggle--mute{% if ignora_anomalie %} eureka-print-toggle--on{% endif %}">
+                                        <input type="checkbox" name="ignora_anomalie" value="1"{% if ignora_anomalie %} checked{% endif %}>
+                                        <span class="eureka-print-toggle__mark" aria-hidden="true"></span>
+                                        <span class="eureka-print-toggle__text">
+                                            <span class="eureka-print-toggle__title">Ignora anomalie</span>
+                                            <span class="eureka-print-toggle__hint">Stampa senza colori</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    {% endif %}
+
+                    <div class="eureka-print-filters__submit">
+                        <button type="submit" class="eureka-print-btn eureka-print-btn--apply">
+                            Applica filtri
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="eureka-print-toolbar__actions">
+                {% include "base/partials/print_zoom_controls.html" %}
+                <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">
+                    Stampa
+                </button>
+                <button type="button" class="eureka-print-btn" data-print-close>
+                    Chiudi
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="eureka-print-toolbar__actions eureka-print-toolbar__actions--solo">
+            {% include "base/partials/print_zoom_controls.html" %}
+            <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">
+                Stampa
+            </button>
+            <button type="button" class="eureka-print-btn" data-print-close>
+                Chiudi
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="eureka-print-preview-stage">
+<div class="eureka-print-preview-scaler">
+<article class="eureka-print-sheet">
+    <header class="eureka-print-header">
+        <div class="eureka-print-company">
+            {% if print_azienda_logo_url %}
+            <img
+                src="{{ print_azienda_logo_url }}"
+                alt="Logo {{ print_azienda_ragione_sociale }}"
+                class="eureka-print-company__logo"
+            >
+            {% elif print_azienda_initials %}
+            <span class="eureka-print-company__initials" aria-hidden="true">{{ print_azienda_initials }}</span>
+            {% endif %}
+            {% if print_azienda_ragione_sociale %}
+            <div class="eureka-print-company__name">{{ print_azienda_ragione_sociale }}</div>
+            {% endif %}
+        </div>
+        <div class="eureka-print-header__meta">
+            <div class="eureka-print-header__date">{{ print_date|date:"d/m/Y" }}</div>
+        </div>
+    </header>
+
+    <section class="eureka-print-title-block">
+        <h1 class="eureka-print-title">{{ print_title }}</h1>
+        {% if print_subtitle %}
+        <p class="eureka-print-subtitle">{{ print_subtitle }}</p>
+        {% endif %}
+        <div class="eureka-print-stats">
+            <span><strong>{{ print_count }}</strong> record</span>
+            {% if print_filter_summary %}
+            <span class="eureka-print-stats__filter">{{ print_filter_summary }}</span>
+            {% endif %}
+        </div>
+        {% if inventario_anomalie_total %}
+        <div class="eureka-print-anomalie" aria-label="Legenda anomalie">
+            <span class="eureka-print-anomalie__title">Anomalie evidenziate</span>
+            {% if inventario_anomalie.prezzo_zero_ultimo %}
+            <span class="eureka-print-anomalie__item eureka-print-anomalie__item--zero">
+                Ultimo a zero: <strong>{{ inventario_anomalie.prezzo_zero_ultimo }}</strong>
+            </span>
+            {% endif %}
+            {% if inventario_anomalie.prezzo_zero_medio %}
+            <span class="eureka-print-anomalie__item eureka-print-anomalie__item--zero">
+                Medio a zero: <strong>{{ inventario_anomalie.prezzo_zero_medio }}</strong>
+            </span>
+            {% endif %}
+            {% if inventario_anomalie.prezzo_discrepanza %}
+            <span class="eureka-print-anomalie__item eureka-print-anomalie__item--discrepanza">
+                Ultimo/medio discrepanti (≥{{ inventario_discrepanza_pct|default:25 }}%): <strong>{{ inventario_anomalie.prezzo_discrepanza }}</strong>
+            </span>
+            {% endif %}
+            {% if inventario_anomalie.giacenza_negativa %}
+            <span class="eureka-print-anomalie__item eureka-print-anomalie__item--negativa">
+                Giacenza negativa: <strong>{{ inventario_anomalie.giacenza_negativa }}</strong>
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
+
+    <div class="eureka-print-table-wrap">
+        <table class="eureka-print-table{% if print_table_class %} {{ print_table_class }}{% endif %}">
+            <thead>
+                <tr>
+                    {% if print_header_cells %}
+                    {% for col in print_header_cells %}
+                    <th scope="col"{% if col.align == "end" or col.nowrap %} class="{% if col.align == "end" %}eureka-print-align-end{% endif %}{% if col.nowrap %} eureka-print-nowrap{% endif %}"{% endif %}>{{ col.label|linebreaksbr }}</th>
+                    {% endfor %}
+                    {% else %}
+                    {% for header in print_headers %}
+                    <th scope="col">{{ header|linebreaksbr }}</th>
+                    {% endfor %}
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if print_rows_structured %}
+                {% for row in print_rows %}
+                <tr{% if row.row_class %} class="{{ row.row_class }}"{% endif %}{% if row.row_title %} title="{{ row.row_title }}"{% endif %}>
+                    {% for cell in row.cells %}
+                    <td{% if cell.align == "end" or cell.nowrap or cell.cell_class %} class="{% if cell.align == "end" %}eureka-print-align-end{% endif %}{% if cell.nowrap %} eureka-print-nowrap{% endif %}{% if cell.cell_class %} {{ cell.cell_class }}{% endif %}"{% endif %}>{{ cell.text }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ print_headers|length }}" class="eureka-print-empty">
+                        Nessun record da stampare
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                {% for row in print_rows %}
+                <tr>
+                    {% for cell in row %}
+                    <td>{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ print_headers|length }}" class="eureka-print-empty">
+                        Nessun record da stampare
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="eureka-print-footer">
+        <span>{% if print_azienda_ragione_sociale %}{{ print_azienda_ragione_sociale }}{% else %}{{ print_title }}{% endif %} · {{ print_title }}</span>
+        <span class="eureka-print-footer__pages"></span>
+    </footer>
+</article>
+</div>
+</div>
+<script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
+{% if print_inventario_options %}
+<script>
+(function () {
+    var root = document.querySelector(".eureka-print-toggles");
+    if (!root) return;
+    var rottura = root.querySelector('input[name="rottura"]');
+    var solo = root.querySelector('input[name="solo_anomalie"]');
+    var ignora = root.querySelector('input[name="ignora_anomalie"]');
+
+    function syncToggle(input) {
+        if (!input) return;
+        var label = input.closest(".eureka-print-toggle");
+        if (!label) return;
+        label.classList.toggle("eureka-print-toggle--on", input.checked && !input.disabled);
+        label.classList.toggle("eureka-print-toggle--disabled", input.disabled);
+    }
+
+    function syncAll() {
+        if (ignora && solo) {
+            if (ignora.checked) {
+                solo.checked = false;
+                solo.disabled = true;
+            } else {
+                solo.disabled = false;
+            }
+        }
+        syncToggle(rottura);
+        syncToggle(solo);
+        syncToggle(ignora);
+    }
+
+    root.addEventListener("change", syncAll);
+    syncAll();
+})();
+</script>
+{% endif %}
+</body>
+</html>
