@@ -172,6 +172,21 @@ def _fmt_sconto_movimento(formula: str) -> str:
     return f"{formula}%"
 
 
+def _resolve_sconto_formula(raw: str | None, sconti: dict[str, str]) -> str:
+    """Risolve la formula sconto da codice tabella Sconti o % diretta 4D."""
+    cod = _norm_codice(raw)
+    if not cod:
+        return ""
+    if cod in sconti:
+        return sconti[cod]
+    from apps.documenti.castelletto import parse_sconto_parts
+
+    # In 4D la colonna può contenere la percentuale (es. "7,5") oltre al codice.
+    if parse_sconto_parts(raw):
+        return (raw or "").strip()
+    return ""
+
+
 def _sconti_by_codes(codes) -> dict[str, str]:
     """Mappa codice sconto (normalizzato) → formula % (tabella Sconti)."""
     keys = sorted({_norm_codice(c) for c in codes if _norm_codice(c)})
@@ -272,8 +287,7 @@ def _build_riga(
     causale = _text(row.get("Causale"))
     dep_entrata = _text(row.get("dep_ent"))
     dep_uscita = _text(row.get("dep_usc"))
-    sconto_cod = _norm_codice(row.get("Sconto_CodArtCliFor"))
-    sconto_formula = sconti.get(sconto_cod, "") if sconto_cod else ""
+    sconto_formula = _resolve_sconto_formula(row.get("Sconto_CodArtCliFor"), sconti)
     netto = float(row.get("ValoreUnNetto") or 0)
     lordo = _prezzo_lordo_da_netto(netto, sconto_formula) if netto else 0.0
     riga = MovimentoArticoloRiga(
@@ -486,9 +500,26 @@ def _fmt_qty(value: float) -> str:
 
 
 def _fmt_prezzo_unitario(value: float) -> str:
-    from apps.core.prezzi import get_prezzo_decimali
+    from apps.core.prezzi import get_prezzo_decimali_stampa
     from apps.core.templatetags.format_tags import euro
 
     if not value:
         return "—"
-    return euro(value, get_prezzo_decimali())
+    return euro(value, get_prezzo_decimali_stampa())
+
+
+def attach_prezzi_movimento_righe(righe) -> None:
+    """Aggiunge ``prezzo_lordo``, ``sconto`` e ``prezzo_netto`` alle righe dettaglio."""
+    if not righe:
+        return
+    sconti = _sconti_by_codes(
+        getattr(r, "sconto_cod_art_cli_for", None) for r in righe
+    )
+    for riga in righe:
+        formula = _resolve_sconto_formula(
+            getattr(riga, "sconto_cod_art_cli_for", None), sconti
+        )
+        netto = float(getattr(riga, "valore_un_netto", None) or 0)
+        riga.prezzo_netto = netto
+        riga.prezzo_lordo = _prezzo_lordo_da_netto(netto, formula) if netto else 0.0
+        riga.sconto = _fmt_sconto_movimento(formula)

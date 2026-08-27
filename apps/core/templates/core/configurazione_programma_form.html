@@ -143,11 +143,11 @@
                 Magazzino / Inventario
             </h4>
             <p class="text-secondary small mb-3">
-                Parametri usati da schede articolo, movimenti, documenti e stampa inventario.
+                Parametri usati da schede articolo, movimenti, documenti e stampe.
             </p>
 
             <div class="row g-3 mb-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label" for="{{ form.prezzo_decimali.id_for_label }}">
                         {{ form.prezzo_decimali.label }}
                     </label>
@@ -157,7 +157,17 @@
                         <div class="invalid-feedback d-block">{{ form.prezzo_decimali.errors|join:", " }}</div>
                     {% endif %}
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <label class="form-label" for="{{ form.prezzo_decimali_stampa.id_for_label }}">
+                        {{ form.prezzo_decimali_stampa.label }}
+                    </label>
+                    {{ form.prezzo_decimali_stampa }}
+                    <div class="form-hint">{{ form.prezzo_decimali_stampa.help_text }}</div>
+                    {% if form.prezzo_decimali_stampa.errors %}
+                        <div class="invalid-feedback d-block">{{ form.prezzo_decimali_stampa.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
                     <label class="form-label" for="{{ form.inventario_discrepanza_pct.id_for_label }}">
                         {{ form.inventario_discrepanza_pct.label }}
                     </label>

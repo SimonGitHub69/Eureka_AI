@@ -28,7 +28,9 @@ from apps.articoli.giacenza import (
     inventario_active_preset,
     inventario_row_class,
     inventario_row_classes,
-    inventario_sort_per_categoria,
+    inventario_sort_articoli,
+    inventario_sort_label,
+    INVENTARIO_SORT_CHOICES,
     inventario_totali,
     inventario_want_ignora_anomalie,
     inventario_want_rottura,
@@ -186,6 +188,30 @@ class ArticoloListView(LoginRequiredMixin, SortableListMixin, SafeMirrorListMixi
         return _articoli_list_context(self, context)
 
 
+def _articolo_print_columns():
+    from apps.core.prezzi import get_prezzo_decimali_stampa
+
+    dec = get_prezzo_decimali_stampa()
+    return (
+        {"field": "codice", "label": "Codice"},
+        {"field": "descrizione", "label": "Articolo"},
+        {"field": "cat_omogenea", "label": "Categoria"},
+        {"field": "unita_misura", "label": "U.M."},
+        {
+            "label": "Giacenza",
+            "value": lambda a: getattr(a, "giacenza_quantita", 0) or 0,
+            "align": "end",
+        },
+        {"field": "cod_fornitore", "label": "Fornitore"},
+        {
+            "field": "listino1",
+            "label": "Listino 1",
+            "align": "end",
+            "decimals": dec,
+        },
+    )
+
+
 class ArticoloPrintListView(MirrorPrintListView):
     print_title = "Articoli"
     print_subtitle = "Elenco articoli"
@@ -201,21 +227,12 @@ class ArticoloPrintListView(MirrorPrintListView):
     default_sort = "descrizione"
     default_dir = "asc"
     sort_tiebreaker = "codice"
-    print_columns = (
-        {"field": "codice", "label": "Codice"},
-        {"field": "descrizione", "label": "Articolo"},
-        {"field": "cat_omogenea", "label": "Categoria"},
-        {"field": "unita_misura", "label": "U.M."},
-        {
-            "label": "Giacenza",
-            "value": lambda a: getattr(a, "giacenza_quantita", 0) or 0,
-            "align": "end",
-        },
-        {"field": "cod_fornitore", "label": "Fornitore"},
-        {"field": "listino1", "label": "Listino 1", "align": "end"},
-    )
+    print_columns = _articolo_print_columns()
 
     def get_queryset(self):
+        if not self.print_preview_ready():
+            return []
+        self.print_columns = _articolo_print_columns()
         rows = list(super().get_queryset())
         attach_articoli_list_labels(rows)
         attach_giacenze_articoli(rows)
@@ -314,7 +331,7 @@ def _filter_inventario_queryset(request, stocks: dict[str, float] | None = None)
             qs = qs.filter(_cat_norm__gte=cat_da.upper())
         if cat_a:
             qs = qs.filter(_cat_norm__lte=cat_a.upper())
-    return qs.order_by("descrizione", "codice")
+    return qs
 
 
 def _inventario_totale_cells(label: str, totals: dict[str, float], n_cols: int) -> list[str]:
@@ -330,9 +347,9 @@ def _inventario_totale_cells(label: str, totals: dict[str, float], n_cols: int) 
 
 
 def _inventario_print_columns():
-    from apps.core.prezzi import get_prezzo_decimali
+    from apps.core.prezzi import get_prezzo_decimali_stampa
 
-    dec = get_prezzo_decimali()
+    dec = get_prezzo_decimali_stampa()
     return (
         {"field": "codice", "label": "Articolo"},
         {"field": "cat_omogenea", "label": "Cat.", "nowrap": True},
@@ -378,17 +395,11 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
     print_subtitle = "Inventario magazzino"
     print_orientation = "portrait"
     print_table_class = "eureka-print-table--compact"
-    sortable_fields = (
-        "codice",
-        "cat_omogenea",
-        "descrizione",
-        "unita_misura",
-        "prezzo_ult_car",
-        "prezzo_medio_acquisto",
-    )
+    sortable_fields = tuple(key for key, _ in INVENTARIO_SORT_CHOICES)
     default_sort = "cat_omogenea"
     default_dir = "asc"
     sort_tiebreaker = "codice"
+    remember_list_sort = False
     print_columns = _inventario_print_columns()
 
     def get_print_queryset(self):
@@ -412,6 +423,8 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
         return _filter_inventario_queryset(self.request, self._inventario_stocks)
 
     def get_queryset(self):
+        if not self.print_preview_ready():
+            return []
         # Assicura periodo/stocks anche se get_print_queryset non è già passato.
         if not hasattr(self, "_inventario_data_a"):
             data_da, data_a = parse_inventario_periodo(self.request)
@@ -433,7 +446,8 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
         soglia = inventario_discrepanza_soglia(pct=pct)
         self._inventario_discrepanza_pct = pct
         self._inventario_discrepanza_soglia = soglia
-        rows = list(super().get_queryset())
+        rows = list(self.get_print_queryset())
+        attach_articoli_list_labels(rows)
         attach_inventario_articoli(
             rows,
             getattr(self, "_inventario_stocks", None),
@@ -442,8 +456,13 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
         rows = inventario_filter_giacenza_non_zero(rows)
         if getattr(self, "_inventario_solo_anomalie", False):
             rows = inventario_filter_solo_anomalie(rows, soglia=soglia)
-        if getattr(self, "_inventario_rottura", False):
-            rows = inventario_sort_per_categoria(rows)
+        sort, direction = self.resolve_sorting()
+        rows = inventario_sort_articoli(
+            rows,
+            sort,
+            direction,
+            rottura=getattr(self, "_inventario_rottura", False),
+        )
         self._inventario_rows = rows
         return rows
 
@@ -482,9 +501,33 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
             self._inventario_discrepanza_pct = pct
             self._inventario_discrepanza_soglia = soglia
 
+        context.update(
+            {
+                "print_period_filters": True,
+                "print_inventario_options": True,
+                "data_da": data_da.isoformat() if data_da else "",
+                "data_a": data_a.isoformat() if data_a else "",
+                "categoria_da": cat_da,
+                "categoria_a": cat_a,
+                "q": (self.request.GET.get("q") or "").strip(),
+                "rottura": rottura,
+                "solo_anomalie": solo_anomalie,
+                "ignora_anomalie": ignora_anomalie,
+                "inventario_discrepanza_pct": pct,
+                "inventario_sort_choices": INVENTARIO_SORT_CHOICES,
+                "inventario_preset_urls": inventario_preset_urls(self.request),
+                "inventario_active_preset": inventario_active_preset(data_da, data_a),
+                "print_orientation": self.print_orientation,
+                "print_table_class": getattr(self, "print_table_class", ""),
+            }
+        )
+        if not self.print_preview_ready():
+            return context
+
         rows = getattr(self, "_inventario_rows", None)
         if rows is None:
-            rows = list(context.get(self.context_object_name) or [])
+            rows = list(self.get_print_queryset())
+            attach_articoli_list_labels(rows)
             attach_inventario_articoli(
                 rows,
                 getattr(self, "_inventario_stocks", None),
@@ -493,8 +536,13 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
             rows = inventario_filter_giacenza_non_zero(rows)
             if solo_anomalie:
                 rows = inventario_filter_solo_anomalie(rows, soglia=soglia)
-            if rottura:
-                rows = inventario_sort_per_categoria(rows)
+            sort, direction = self.resolve_sorting()
+            rows = inventario_sort_articoli(
+                rows,
+                sort,
+                direction,
+                rottura=rottura,
+            )
             self._inventario_rows = rows
         columns = self.print_columns
         n_cols = len(columns)
@@ -559,21 +607,6 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
             anomalie_total = sum(anomalies.values())
         context.update(
             {
-                "print_period_filters": True,
-                "print_inventario_options": True,
-                "data_da": data_da.isoformat() if data_da else "",
-                "data_a": data_a.isoformat() if data_a else "",
-                "categoria_da": cat_da,
-                "categoria_a": cat_a,
-                "q": (self.request.GET.get("q") or "").strip(),
-                "rottura": rottura,
-                "solo_anomalie": solo_anomalie,
-                "ignora_anomalie": ignora_anomalie,
-                "inventario_discrepanza_pct": pct,
-                "inventario_preset_urls": inventario_preset_urls(self.request),
-                "inventario_active_preset": inventario_active_preset(data_da, data_a),
-                "print_orientation": self.print_orientation,
-                "print_table_class": getattr(self, "print_table_class", ""),
                 "print_header_cells": print_header_cells(columns),
                 "print_rows": structured,
                 "print_rows_structured": True,
@@ -630,6 +663,11 @@ class ArticoloInventarioPrintView(MirrorPrintListView):
             self, "_inventario_solo_anomalie", False
         ) or inventario_want_solo_anomalie(self.request):
             parts.append("Solo anomalie")
+        sort, direction = self.resolve_sorting()
+        sort_label = inventario_sort_label(sort)
+        if sort_label:
+            arrow = "↓" if direction == "desc" else "↑"
+            parts.append(f"Ordina: {sort_label} {arrow}")
         extra = super().get_filter_summary()
         if extra:
             parts.append(extra)
@@ -847,10 +885,21 @@ class ArticoloMovimentiPrintView(RawPrintListView):
         from django.utils import timezone
 
         from apps.aziende.configurazione import resolve_print_azienda_context
-        from apps.core.print_list import build_print_rows, print_header_cells, structured_print_row
+        from apps.core.print_list import (
+            build_print_rows,
+            print_header_cells,
+            print_preview_requested,
+            structured_print_row,
+        )
 
         self.articolo = get_object_or_404(Articolo, pk=self.codice)
-        object_list = self.get_object_list(request)
+        preview_ready = print_preview_requested(request)
+        if preview_ready:
+            object_list = self.get_object_list(request)
+            filter_summary = self.get_filter_summary(request)
+        else:
+            object_list = []
+            filter_summary = ""
         headers, rows = build_print_rows(object_list, self.print_columns)
         columns = self.print_columns
         structured_rows = [
@@ -875,7 +924,9 @@ class ArticoloMovimentiPrintView(RawPrintListView):
                 "print_rows_structured": True,
                 "print_count": len(structured_rows),
                 "print_date": timezone.localdate(),
-                "print_filter_summary": self.get_filter_summary(request),
+                "print_filter_summary": filter_summary,
+                "print_preview_ready": preview_ready,
+                "print_filters_gate": True,
                 "print_orientation": self.print_orientation,
                 **resolve_print_azienda_context(branding=self.print_branding),
             },

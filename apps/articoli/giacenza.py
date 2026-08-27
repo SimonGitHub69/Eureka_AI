@@ -283,6 +283,11 @@ def prezzi_movimento_per_codici(
     if not keys:
         return {}
 
+    # Colonna solo Eureka: se un sync 4D ha ricreato causali_maga, va ripristinata.
+    from apps.causali_magazzino.sync import ensure_update_prezzo_medio_column
+
+    ensure_update_prezzo_medio_column()
+
     date_sql, date_params = _date_range_sql(data_da=data_da, data_a=data_a)
     params_base: list = [keys, *date_params]
 
@@ -637,12 +642,60 @@ def inventario_gruppi_per_categoria(articoli) -> list[tuple[str, list]]:
     return gruppi
 
 
+INVENTARIO_SORT_CHOICES: tuple[tuple[str, str], ...] = (
+    ("codice", "Codice articolo"),
+    ("descrizione", "Descrizione articolo"),
+    ("cat_omogenea", "Cod. categoria"),
+    ("categoria_label", "Descrizione categoria"),
+)
+
+
+def inventario_sort_label(sort: str | None) -> str:
+    for key, label in INVENTARIO_SORT_CHOICES:
+        if key == sort:
+            return label
+    return ""
+
+
+def _inventario_sort_value(articolo, sort: str) -> str:
+    if sort == "codice":
+        return (getattr(articolo, "codice", None) or "").strip().upper()
+    if sort == "descrizione":
+        return (getattr(articolo, "descrizione", None) or "").strip().casefold()
+    if sort == "cat_omogenea":
+        return inventario_categoria_key(articolo).upper()
+    if sort == "categoria_label":
+        return (getattr(articolo, "categoria_label", None) or "").strip().casefold()
+    return ""
+
+
+def inventario_sort_articoli(
+    articoli,
+    sort: str | None,
+    direction: str = "asc",
+    *,
+    rottura: bool = False,
+) -> list:
+    """Ordina le righe inventario (in memoria, dopo attach etichette)."""
+    allowed = {key for key, _ in INVENTARIO_SORT_CHOICES}
+    sort_key = sort if sort in allowed else "cat_omogenea"
+    reverse = direction == "desc"
+
+    def key_fn(articolo):
+        parts: list[str] = []
+        if rottura:
+            parts.append(inventario_categoria_key(articolo).upper())
+        if sort_key != "cat_omogenea" or not rottura:
+            parts.append(_inventario_sort_value(articolo, sort_key))
+        if sort_key != "codice":
+            parts.append((getattr(articolo, "codice", None) or "").strip().upper())
+        return tuple(parts)
+
+    return sorted(articoli, key=key_fn, reverse=reverse)
+
+
 def inventario_sort_per_categoria(articoli: list) -> list:
     """Ordina per categoria e codice (necessario per la rottura)."""
-    return sorted(
-        articoli,
-        key=lambda a: (
-            inventario_categoria_key(a).upper(),
-            (getattr(a, "codice", None) or "").strip().upper(),
-        ),
+    return inventario_sort_articoli(
+        articoli, "cat_omogenea", "asc", rottura=True
     )

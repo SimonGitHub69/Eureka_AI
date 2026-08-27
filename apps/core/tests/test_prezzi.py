@@ -7,8 +7,10 @@ from apps.core.prezzi import (
     PREZZO_DECIMALI_DEFAULT,
     clamp_prezzo_decimali,
     get_prezzo_decimali,
+    get_prezzo_decimali_stampa,
     prezzo_input_step,
     round_prezzo,
+    round_prezzo_stampa,
 )
 from apps.core.templatetags.format_tags import prezzo as prezzo_filter
 
@@ -57,3 +59,17 @@ class PrezzoDecimaliTests(TestCase):
         cfg.prezzo_decimali = 2
         cfg.save(update_fields=["prezzo_decimali"])
         self.assertEqual(prezzo_filter(12.5), "12,50")
+
+    def test_get_prezzo_decimali_stampa_da_parametri(self):
+        cfg = ConfigurazioneProgramma.get_solo()
+        cfg.prezzo_decimali_stampa = 5
+        cfg.save(update_fields=["prezzo_decimali_stampa"])
+        self.assertEqual(get_prezzo_decimali_stampa(), 5)
+
+    def test_round_prezzo_stampa_usa_parametro(self):
+        cfg = ConfigurazioneProgramma.get_solo()
+        cfg.prezzo_decimali = 4
+        cfg.prezzo_decimali_stampa = 2
+        cfg.save(update_fields=["prezzo_decimali", "prezzo_decimali_stampa"])
+        self.assertEqual(round_prezzo(3.41155), 3.4116)
+        self.assertEqual(round_prezzo_stampa(3.41155), 3.41)

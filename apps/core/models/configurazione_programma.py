@@ -109,9 +109,18 @@ class ConfigurazioneProgramma(BaseModel):
         "Decimali prezzi unitari",
         default=3,
         help_text=(
-            "Numero massimo di decimali per i prezzi unitari "
-            "(schede articolo, movimenti di magazzino, righe documento, "
-            "stampe inventario, ecc.). Importi e totali restano a 2 decimali."
+            "Numero massimo di decimali per i prezzi unitari a video "
+            "(schede articolo, movimenti di magazzino, righe documento, ecc.). "
+            "Importi e totali restano a 2 decimali."
+        ),
+    )
+    prezzo_decimali_stampa = models.PositiveSmallIntegerField(
+        "Decimali prezzi unitari in stampa",
+        default=3,
+        help_text=(
+            "Numero massimo di decimali per i prezzi unitari nelle stampe "
+            "(inventario, movimenti articolo, elenco articoli, ecc.). "
+            "Importi e totali in stampa restano a 2 decimali."
         ),
     )
 
@@ -147,6 +156,7 @@ class ConfigurazioneProgramma(BaseModel):
                 ),
                 "inventario_discrepanza_pct": 25,
                 "prezzo_decimali": 3,
+                "prezzo_decimali_stampa": 3,
             },
         )
         return obj

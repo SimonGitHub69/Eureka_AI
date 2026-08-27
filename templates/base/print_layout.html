@@ -5,26 +5,29 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ print_title }} · Stampa lista{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=22">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=23">
 </head>
 <body class="eureka-print-body{% if print_orientation == 'landscape' %} eureka-print-body--landscape{% endif %}">
 <div class="eureka-print-toolbar d-print-none">
-    <div class="eureka-print-toolbar__inner{% if print_inventario_options %} eureka-print-toolbar__inner--wide{% endif %}">
+    <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
         <div class="eureka-print-toolbar__head">
             <div class="eureka-print-toolbar__title">{{ print_title }}</div>
             <div class="eureka-print-toolbar__meta">
+                {% if print_preview_ready %}
                 <span class="eureka-print-toolbar__count"><strong>{{ print_count }}</strong> record</span>
                 {% if print_filter_summary %}
                 <span class="eureka-print-toolbar__summary">{{ print_filter_summary }}</span>
                 {% endif %}
+                {% else %}
+                <span class="eureka-print-toolbar__hint">Imposta i filtri e genera l'anteprima</span>
+                {% endif %}
             </div>
         </div>
 
-        {% if print_period_filters or print_inventario_options %}
         <div class="eureka-print-toolbar__panel">
             <form method="get" class="eureka-print-filters" action="{{ request.path }}">
                 {% for key, value in request.GET.items %}
-                    {% if key != "data_da" and key != "data_a" and key != "categoria_da" and key != "categoria_a" and key != "rottura" and key != "solo_anomalie" and key != "ignora_anomalie" and key != "q" %}
+                    {% if key != "data_da" and key != "data_a" and key != "categoria_da" and key != "categoria_a" and key != "rottura" and key != "solo_anomalie" and key != "ignora_anomalie" and key != "q" and key != "tipo" and key != "causale" and key != "registro" and key != "attivo" and key != "elenco" and key != "anteprima" and key != "sort" and key != "dir" %}
                     <input type="hidden" name="{{ key }}" value="{{ value }}">
                     {% endif %}
                 {% endfor %}
@@ -63,6 +66,85 @@
                     </fieldset>
                     {% endif %}
 
+                    {% if print_primanota_filters %}
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Registrazioni</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Da data</span>
+                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">A data</span>
+                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Tipo</span>
+                                <select class="eureka-print-input" name="tipo">
+                                    <option value="">Tutti</option>
+                                    {% for value, label in tipo_choices %}
+                                    <option value="{{ value }}"{% if tipo == value|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Causale</span>
+                                <input type="text" class="eureka-print-input" name="causale" value="{{ causale }}" maxlength="20" autocomplete="off" placeholder="Codice">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Registro</span>
+                                <select class="eureka-print-input" name="registro">
+                                    {% for value, label in registri_choices %}
+                                    <option value="{{ value }}"{% if registro == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Ricerca</span>
+                                <input type="search" class="eureka-print-input" name="q" value="{{ q }}" placeholder="N. reg., documento, partita..." maxlength="80" autocomplete="off">
+                            </label>
+                        </div>
+                    </fieldset>
+                    {% endif %}
+
+                    {% if print_registri_iva_filters %}
+                    <input type="hidden" name="elenco" value="1">
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Registri IVA</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Da data</span>
+                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">A data</span>
+                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Tipo registro</span>
+                                <select class="eureka-print-input" name="tipo">
+                                    <option value="">Tutti</option>
+                                    <option value="Acquisto"{% if tipo == "Acquisto" %} selected{% endif %}>Acquisto</option>
+                                    <option value="Vendita"{% if tipo == "Vendita" %} selected{% endif %}>Vendita</option>
+                                    <option value="Corrispettivi"{% if tipo == "Corrispettivi" %} selected{% endif %}>Corrispettivi</option>
+                                </select>
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Stato</span>
+                                <select class="eureka-print-input" name="attivo">
+                                    <option value="">Tutti</option>
+                                    <option value="1"{% if attivo == "1" %} selected{% endif %}>Attivi</option>
+                                    <option value="0"{% if attivo == "0" %} selected{% endif %}>Disattivati</option>
+                                </select>
+                            </label>
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Ricerca</span>
+                                <input type="search" class="eureka-print-input" name="q" value="{{ q }}" placeholder="Codice, descrizione..." maxlength="80" autocomplete="off">
+                            </label>
+                        </div>
+                    </fieldset>
+                    {% endif %}
+
                     {% if print_inventario_options %}
                     <fieldset class="eureka-print-filters__group">
                         <legend class="eureka-print-filters__legend">Articoli</legend>
@@ -78,6 +160,21 @@
                             <label class="eureka-print-field eureka-print-field--narrow">
                                 <span class="eureka-print-field__label">A cat.</span>
                                 <input type="text" class="eureka-print-input" name="categoria_a" value="{{ categoria_a }}" maxlength="20" autocomplete="off" placeholder="99">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Ordina per</span>
+                                <select class="eureka-print-input" name="sort">
+                                    {% for value, label in inventario_sort_choices %}
+                                    <option value="{{ value }}"{% if sort == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field eureka-print-field--narrow">
+                                <span class="eureka-print-field__label">Direzione</span>
+                                <select class="eureka-print-input" name="dir">
+                                    <option value="asc"{% if dir == "asc" %} selected{% endif %}>Crescente</option>
+                                    <option value="desc"{% if dir == "desc" %} selected{% endif %}>Decrescente</option>
+                                </select>
                             </label>
                         </div>
                         <div class="eureka-print-filters__row eureka-print-filters__row--toggles">
@@ -114,38 +211,38 @@
                     </fieldset>
                     {% endif %}
 
+                    {% if not print_period_filters and not print_inventario_options and not print_primanota_filters and not print_registri_iva_filters %}
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Anteprima</legend>
+                        <p class="eureka-print-filters__intro">Genera l'anteprima per caricare i dati da stampare.</p>
+                    </fieldset>
+                    {% endif %}
+
                     <div class="eureka-print-filters__submit">
+                        <input type="hidden" name="anteprima" value="1">
                         <button type="submit" class="eureka-print-btn eureka-print-btn--apply">
-                            Applica filtri
+                            {% if print_preview_ready %}Applica filtri{% else %}Genera anteprima{% endif %}
                         </button>
                     </div>
                 </div>
             </form>
 
             <div class="eureka-print-toolbar__actions">
+                {% if print_preview_ready %}
                 {% include "base/partials/print_zoom_controls.html" %}
                 <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">
                     Stampa
                 </button>
+                {% endif %}
                 <button type="button" class="eureka-print-btn" data-print-close>
                     Chiudi
                 </button>
             </div>
         </div>
-        {% else %}
-        <div class="eureka-print-toolbar__actions eureka-print-toolbar__actions--solo">
-            {% include "base/partials/print_zoom_controls.html" %}
-            <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">
-                Stampa
-            </button>
-            <button type="button" class="eureka-print-btn" data-print-close>
-                Chiudi
-            </button>
-        </div>
-        {% endif %}
     </div>
 </div>
 
+{% if print_preview_ready %}
 <div class="eureka-print-preview-stage">
 <div class="eureka-print-preview-scaler">
 <article class="eureka-print-sheet">
@@ -263,6 +360,14 @@
 </article>
 </div>
 </div>
+{% else %}
+<div class="eureka-print-preview-stage eureka-print-preview-stage--idle d-print-none">
+    <div class="eureka-print-preview-idle">
+        <i class="ti ti-filter" aria-hidden="true"></i>
+        <p>Imposta i filtri e clicca <strong>Genera anteprima</strong> per visualizzare i dati.</p>
+    </div>
+</div>
+{% endif %}
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
 {% if print_inventario_options %}
 <script>

@@ -20,11 +20,22 @@ def clamp_prezzo_decimali(value) -> int:
 
 
 def get_prezzo_decimali() -> int:
-    """Numero massimo di decimali per prezzi unitari (listini, movimenti, stampe)."""
+    """Numero massimo di decimali per prezzi unitari a video."""
     try:
         from apps.core.models import ConfigurazioneProgramma
 
         value = ConfigurazioneProgramma.get_solo().prezzo_decimali
+    except Exception:
+        value = PREZZO_DECIMALI_DEFAULT
+    return clamp_prezzo_decimali(value)
+
+
+def get_prezzo_decimali_stampa() -> int:
+    """Numero massimo di decimali per prezzi unitari nelle stampe."""
+    try:
+        from apps.core.models import ConfigurazioneProgramma
+
+        value = ConfigurazioneProgramma.get_solo().prezzo_decimali_stampa
     except Exception:
         value = PREZZO_DECIMALI_DEFAULT
     return clamp_prezzo_decimali(value)
@@ -39,7 +50,16 @@ def prezzo_input_step() -> str:
 
 
 def round_prezzo(value) -> float:
-    """Arrotonda un prezzo unitario (half-up commerciale)."""
+    """Arrotonda un prezzo unitario a video (half-up commerciale)."""
+    return _round_prezzo_with_decimals(value, get_prezzo_decimali())
+
+
+def round_prezzo_stampa(value) -> float:
+    """Arrotonda un prezzo unitario per le stampe (half-up commerciale)."""
+    return _round_prezzo_with_decimals(value, get_prezzo_decimali_stampa())
+
+
+def _round_prezzo_with_decimals(value, dec: int) -> float:
     if value in (None, ""):
         return 0.0
     try:
@@ -48,6 +68,5 @@ def round_prezzo(value) -> float:
         return 0.0
     if not number.is_finite():
         return 0.0
-    dec = get_prezzo_decimali()
     quant = Decimal("1").scaleb(-dec)
     return float(number.quantize(quant, rounding=ROUND_HALF_UP))

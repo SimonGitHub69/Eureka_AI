@@ -35,6 +35,7 @@ class ConfigurazioneProgrammaAdmin(admin.ModelAdmin):
                     "debug_ai_sql",
                     "inventario_discrepanza_pct",
                     "prezzo_decimali",
+                    "prezzo_decimali_stampa",
                     "suono_errore_wav",
                     "doc_prv",
                     "doc_orv",
@@ -77,8 +78,34 @@ class ConfigurazionePCAdmin(admin.ModelAdmin):
         "updated_at",
     )
     search_fields = ("nome_pc", "descrizione")
-    list_filter = ("assistente_vocale_attivo", "navbar_fissa", "liste_fisse", "is_active")
+    list_filter = (
+        "assistente_vocale_attivo",
+        "navbar_fissa",
+        "liste_fisse",
+        "is_active",
+    )
     readonly_fields = ("uuid", "created_at", "updated_at", "created_by", "updated_by")
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "nome_pc",
+                    "descrizione",
+                    "assistente_vocale_attivo",
+                    "navbar_fissa",
+                    "liste_fisse",
+                    "dashboard_shortcuts",
+                    "note",
+                    "is_active",
+                )
+            },
+        ),
+        (
+            "Audit",
+            {"fields": ("uuid", "created_at", "updated_at", "created_by", "updated_by")},
+        ),
+    )
 
 
 

@@ -129,6 +129,44 @@ class MovimentiArticoloTests(SimpleTestCase):
         self.assertAlmostEqual(riga.prezzo_lordo, 100.0, places=4)
         self.assertEqual(riga.sconto, "10%")
 
+    @patch("apps.articoli.movimenti_magazzino._sconti_by_codes", return_value={})
+    @patch("apps.articoli.movimenti_magazzino.depositi_by_codes", return_value={})
+    @patch("apps.articoli.movimenti_magazzino.giacenza_articolo", return_value=810.0)
+    @patch("apps.articoli.movimenti_magazzino.fornitori_ragione_sociale_by_codes", return_value={"F1776": "FORN"})
+    @patch("apps.articoli.movimenti_magazzino.clienti_ragione_sociale_by_codes", return_value={})
+    @patch("apps.articoli.movimenti_magazzino.causali_magazzino_by_codes", return_value={"02": "CARICO"})
+    @patch(
+        "apps.articoli.movimenti_magazzino.prezzi_periodo_articolo",
+        return_value={"ultimo": 3.9035, "medio": 3.9035},
+    )
+    @patch("apps.articoli.movimenti_magazzino._fetch_rows")
+    def test_movimenti_sconto_percentuale_diretta_4d(self, mock_fetch, *_mocks):
+        """4D: Sconto_CodArtCliFor può essere la % (es. 7,5) senza codice tabella Sconti."""
+        mock_fetch.return_value = [
+            {
+                "ID_Testa": 603352,
+                "NumRegistraz": 309251,
+                "DataRegistraz": date(2025, 2, 3),
+                "Causale": "02",
+                "dep_ent": "02",
+                "dep_usc": "",
+                "Cliente": "",
+                "Fornitore": "F1776",
+                "NumDoc": "1/176",
+                "DataDoc": date(2025, 1, 23),
+                "Quantita": 1500.0,
+                "Flag_CD": 2,
+                "ValoreUnNetto": 3.9035,
+                "ValoreTotale": 5855.25,
+                "Sconto_CodArtCliFor": "7,5",
+            },
+        ]
+        result = movimenti_articolo("RAME10")
+        riga = result.righe[0]
+        self.assertEqual(riga.prezzo_unitario, 3.9035)
+        self.assertAlmostEqual(riga.prezzo_lordo, 4.22, places=2)
+        self.assertEqual(riga.sconto, "7,5%")
+
     @patch("apps.articoli.movimenti_magazzino.prezzi_periodo_articolo", return_value={"ultimo": None, "medio": None})
     @patch("apps.articoli.movimenti_magazzino.giacenza_articolo", return_value=0.0)
     @patch("apps.articoli.movimenti_magazzino._fetch_rows", return_value=[])

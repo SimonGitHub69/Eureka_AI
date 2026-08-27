@@ -25,6 +25,7 @@ def _riga(**kwargs) -> MovimentoArticoloRiga:
         data_doc=None,
         carico=10.0,
         scarico=0.0,
+        prezzo_unitario=9.025,
         valore=100.0,
         giacenza=10.0,
     )

@@ -12,6 +12,18 @@ from django.views.generic import ListView
 from apps.aziende.configurazione import resolve_print_azienda_context
 from apps.core.sorting import SortableListMixin
 
+PRINT_PREVIEW_PARAM = "anteprima"
+
+
+def print_preview_requested(request) -> bool:
+    """True dopo «Genera anteprima» / «Applica filtri» (param GET anteprima=1)."""
+    return (request.GET.get(PRINT_PREVIEW_PARAM) or "").strip() == "1"
+
+
+def print_export_request(request) -> bool:
+    path = (request.path or "").rstrip("/")
+    return path.endswith("/export")
+
 
 def format_it_number(value, *, decimals: int = 2) -> str:
     """Formatta un numero in stile italiano (1.234,56) con arrotondamento commerciale."""
@@ -138,10 +150,17 @@ class PrintListView(LoginRequiredMixin, SortableListMixin, ListView):
     # "liste" = logo generale; "documenti" = logo stampe documenti (+ fallback)
     print_branding = "liste"
 
+    def print_preview_ready(self) -> bool:
+        if print_export_request(self.request):
+            return True
+        return print_preview_requested(self.request)
+
     def get_print_queryset(self):
         raise NotImplementedError
 
     def get_queryset(self):
+        if not self.print_preview_ready():
+            return []
         return self.apply_sorting(self.get_print_queryset())
 
     def get_print_subtitle(self) -> str:
@@ -155,8 +174,13 @@ class PrintListView(LoginRequiredMixin, SortableListMixin, ListView):
         return " · ".join(parts)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        object_list = list(context.get(self.context_object_name, []))
+        preview_ready = self.print_preview_ready()
+        if preview_ready:
+            context = super().get_context_data(**kwargs)
+            object_list = list(context.get(self.context_object_name, []))
+        else:
+            context = kwargs
+            object_list = []
         headers, rows = build_print_rows(object_list, self.print_columns)
         context.update(
             {
@@ -166,7 +190,11 @@ class PrintListView(LoginRequiredMixin, SortableListMixin, ListView):
                 "print_rows": rows,
                 "print_count": len(rows),
                 "print_date": timezone.localdate(),
-                "print_filter_summary": self.get_filter_summary(),
+                "print_filter_summary": self.get_filter_summary()
+                if preview_ready
+                else "",
+                "print_preview_ready": preview_ready,
+                "print_filters_gate": True,
                 **resolve_print_azienda_context(branding=self.print_branding),
             }
         )
@@ -205,7 +233,11 @@ class RawPrintListView(LoginRequiredMixin, View):
     def get(self, request):
         from django.shortcuts import render
 
-        object_list = self.get_object_list(request)
+        preview_ready = print_preview_requested(request) or print_export_request(request)
+        if preview_ready:
+            object_list = self.get_object_list(request)
+        else:
+            object_list = []
         headers, rows = build_print_rows(object_list, self.print_columns)
         return render(
             request,
@@ -217,7 +249,11 @@ class RawPrintListView(LoginRequiredMixin, View):
                 "print_rows": rows,
                 "print_count": len(rows),
                 "print_date": timezone.localdate(),
-                "print_filter_summary": self.get_filter_summary(request),
+                "print_filter_summary": self.get_filter_summary(request)
+                if preview_ready
+                else "",
+                "print_preview_ready": preview_ready,
+                "print_filters_gate": True,
                 **resolve_print_azienda_context(branding=self.print_branding),
             },
         )

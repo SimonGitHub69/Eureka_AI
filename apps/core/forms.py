@@ -1,5 +1,11 @@
 from django import forms
 
+from apps.core.dashboard_shortcuts import (
+    DASHBOARD_SHORTCUT_CATALOG,
+    SHORTCUT_MODE_CHOICES,
+    catalog_by_section,
+    resolve_shortcut_configs,
+)
 from apps.core.mirror_crud import CONTROL, apply_control_widgets
 from apps.core.models import (
     AzioneComandoVocale,
@@ -126,6 +132,7 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
             "ai_recent_searches_limit",
             "ai_example_prompt",
             "prezzo_decimali",
+            "prezzo_decimali_stampa",
             "inventario_discrepanza_pct",
             "doc_prv",
             "doc_orv",
@@ -173,6 +180,14 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
                     "step": "1",
                 }
             ),
+            "prezzo_decimali_stampa": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "2",
+                    "max": "6",
+                    "step": "1",
+                }
+            ),
             "doc_prv": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "doc_orv": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "doc_ora": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -195,6 +210,7 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
             "suono_errore_attivo",
             "debug_ai_sql",
             "prezzo_decimali",
+            "prezzo_decimali_stampa",
             "inventario_discrepanza_pct",
             "doc_prv",
             "doc_orv",
@@ -247,6 +263,17 @@ class ConfigurazioneProgrammaForm(forms.ModelForm):
         from apps.core.prezzi import PREZZO_DECIMALI_DEFAULT, clamp_prezzo_decimali
 
         value = self.cleaned_data.get("prezzo_decimali")
+        if value in (None, ""):
+            return PREZZO_DECIMALI_DEFAULT
+        clamped = clamp_prezzo_decimali(value)
+        if clamped != int(value):
+            raise forms.ValidationError("Indicare un valore tra 2 e 6 decimali.")
+        return clamped
+
+    def clean_prezzo_decimali_stampa(self):
+        from apps.core.prezzi import PREZZO_DECIMALI_DEFAULT, clamp_prezzo_decimali
+
+        value = self.cleaned_data.get("prezzo_decimali_stampa")
         if value in (None, ""):
             return PREZZO_DECIMALI_DEFAULT
         clamped = clamp_prezzo_decimali(value)
@@ -463,11 +490,9 @@ class ConfigurazionePCForm(forms.ModelForm):
                     "placeholder": "Es. Tablet magazzino",
                 }
             ),
-            "assistente_vocale_attivo": forms.CheckboxInput(
-                attrs={"class": "form-check-input"}
-            ),
-            "navbar_fissa": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "liste_fisse": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "assistente_vocale_attivo": forms.CheckboxInput(),
+            "navbar_fissa": forms.CheckboxInput(),
+            "liste_fisse": forms.CheckboxInput(),
             "note": forms.Textarea(
                 attrs={"class": "form-control", "rows": 3, "autocomplete": "off"}
             ),
@@ -487,6 +512,82 @@ class ConfigurazionePCForm(forms.ModelForm):
             if self.forced_nome_pc:
                 self.fields["nome_pc"].initial = self.forced_nome_pc
 
+        stored = {}
+        if self.instance and self.instance.pk:
+            stored = self.instance.dashboard_shortcuts or {}
+        configs = resolve_shortcut_configs(stored)
+        self.dashboard_shortcut_sections = []
+        for section_label, items in catalog_by_section():
+            section_fields = []
+            for item in items:
+                key = item["key"]
+                cfg = configs[key]
+                field_name = f"dash_{key}"
+                gruppo_name = f"dash_{key}_gruppo"
+                pos_name = f"dash_{key}_posizione"
+                etichetta_name = f"dash_{key}_etichetta"
+                self.fields[field_name] = forms.ChoiceField(
+                    choices=SHORTCUT_MODE_CHOICES,
+                    required=True,
+                    label=item["label"],
+                    initial=cfg["mode"],
+                    widget=forms.RadioSelect(
+                        attrs={"class": "btn-check eureka-tri-state__input"}
+                    ),
+                )
+                self.fields[etichetta_name] = forms.CharField(
+                    required=False,
+                    label="Etichetta barra",
+                    initial=cfg.get("etichetta") or item["label"],
+                    max_length=60,
+                    widget=forms.TextInput(
+                        attrs={
+                            "class": "form-control form-control-sm eureka-shortcut-config__text",
+                            "placeholder": item["label"],
+                            "title": "Testo sotto l'icona in barra alta (default: voce di menu)",
+                            "autocomplete": "off",
+                        }
+                    ),
+                )
+                self.fields[gruppo_name] = forms.IntegerField(
+                    required=True,
+                    min_value=1,
+                    label="Gruppo",
+                    initial=cfg["gruppo"],
+                    widget=forms.NumberInput(
+                        attrs={
+                            "class": "form-control form-control-sm eureka-shortcut-config__num",
+                            "min": "1",
+                            "step": "1",
+                            "title": "Gruppo in barra alta (1, 2, … da sinistra)",
+                        }
+                    ),
+                )
+                self.fields[pos_name] = forms.IntegerField(
+                    required=True,
+                    label="Posizione",
+                    initial=cfg["posizione"],
+                    widget=forms.NumberInput(
+                        attrs={
+                            "class": "form-control form-control-sm eureka-shortcut-config__num",
+                            "step": "1",
+                            "title": "Ordine da sinistra a destra nel gruppo",
+                        }
+                    ),
+                )
+                section_fields.append(
+                    {
+                        "field": self[field_name],
+                        "etichetta": self[etichetta_name],
+                        "gruppo": self[gruppo_name],
+                        "posizione": self[pos_name],
+                        "icon": item.get("icon") or "ti-click",
+                        "key": key,
+                        "menu_label": item["label"],
+                    }
+                )
+            self.dashboard_shortcut_sections.append((section_label, section_fields))
+
     def clean_nome_pc(self):
         if self.nome_pc_readonly and self.forced_nome_pc:
             nome = self.forced_nome_pc
@@ -502,6 +603,31 @@ class ConfigurazionePCForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError("Esiste già una postazione con questo nome PC.")
         return nome
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        from apps.core.dashboard_shortcuts import normalize_shortcut_mode
+
+        payload = {}
+        for item in DASHBOARD_SHORTCUT_CATALOG:
+            key = item["key"]
+            etichetta = (self.cleaned_data.get(f"dash_{key}_etichetta") or "").strip()
+            if not etichetta:
+                etichetta = item["label"]
+            payload[key] = {
+                "mode": normalize_shortcut_mode(
+                    self.cleaned_data.get(f"dash_{key}")
+                ),
+                "gruppo": int(self.cleaned_data.get(f"dash_{key}_gruppo") or 1),
+                "posizione": int(
+                    self.cleaned_data.get(f"dash_{key}_posizione") or 0
+                ),
+                "etichetta": etichetta[:60],
+            }
+        obj.dashboard_shortcuts = payload
+        if commit:
+            obj.save()
+        return obj
 
 
 class ComandoVocaleForm(forms.ModelForm):

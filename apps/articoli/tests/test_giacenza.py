@@ -28,6 +28,8 @@ from apps.articoli.giacenza import (
     inventario_active_preset,
     inventario_row_class,
     inventario_row_classes,
+    inventario_sort_articoli,
+    inventario_sort_label,
     inventario_sort_per_categoria,
     inventario_totali,
     inventario_want_ignora_anomalie,
@@ -656,6 +658,39 @@ class InventarioHelpersTests(SimpleTestCase):
         ordered = inventario_sort_per_categoria([a, c, b])
         self.assertEqual([x.codice for x in ordered], ["A1", "A2", "B2"])
 
+    def test_inventario_sort_articoli_per_descrizione(self):
+        a = MagicMock(codice="Z1", descrizione="Zeta", cat_omogenea="1")
+        b = MagicMock(codice="A1", descrizione="Alfa", cat_omogenea="1")
+        ordered = inventario_sort_articoli([a, b], "descrizione", "asc")
+        self.assertEqual([x.codice for x in ordered], ["A1", "Z1"])
+
+    def test_inventario_sort_articoli_per_categoria_label(self):
+        a = MagicMock(
+            codice="A1",
+            cat_omogenea="2",
+            categoria_label="Utensili",
+        )
+        b = MagicMock(
+            codice="B1",
+            cat_omogenea="1",
+            categoria_label="Abbigliamento",
+        )
+        ordered = inventario_sort_articoli([a, b], "categoria_label", "asc")
+        self.assertEqual([x.codice for x in ordered], ["B1", "A1"])
+
+    def test_inventario_sort_articoli_rottura_mantiene_gruppi(self):
+        a = MagicMock(codice="B2", descrizione="Beta", cat_omogenea="2")
+        b = MagicMock(codice="A2", descrizione="Alfa", cat_omogenea="1")
+        c = MagicMock(codice="A1", descrizione="Zeta", cat_omogenea="1")
+        ordered = inventario_sort_articoli(
+            [a, c, b], "descrizione", "asc", rottura=True
+        )
+        self.assertEqual([x.codice for x in ordered], ["A2", "A1", "B2"])
+
+    def test_inventario_sort_label(self):
+        self.assertEqual(inventario_sort_label("codice"), "Codice articolo")
+        self.assertEqual(inventario_sort_label("unknown"), "")
+
     def test_format_it_number(self):
         self.assertEqual(format_it_number(2172.7, decimals=2), "2.172,70")
         self.assertEqual(format_it_number(0.01, decimals=3), "0,010")
@@ -688,3 +723,12 @@ class InventarioHelpersTests(SimpleTestCase):
         view._inventario_ignora_anomalie = True
         self.assertIn("Ignora anomalie", view.get_filter_summary())
         self.assertNotIn("Solo anomalie", view.get_filter_summary())
+
+    def test_filter_summary_include_ordinamento(self):
+        request = RequestFactory().get(
+            "/stampe/inventario/",
+            {"sort": "descrizione", "dir": "desc", "anteprima": "1"},
+        )
+        view = ArticoloInventarioPrintView()
+        view.request = request
+        self.assertIn("Ordina: Descrizione articolo ↓", view.get_filter_summary())

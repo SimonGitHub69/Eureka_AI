@@ -311,6 +311,7 @@ class ProgrammaAiSettingsTests(TestCase):
                 "ai_example_prompt": "Mostra le fatture del mese scorso",
                 "inventario_discrepanza_pct": "20",
                 "prezzo_decimali": "4",
+                "prezzo_decimali_stampa": "2",
                 "doc_prv": "on",
                 "doc_orv": "on",
                 "doc_ora": "on",
@@ -330,3 +331,4 @@ class ProgrammaAiSettingsTests(TestCase):
         self.assertEqual(cfg.ai_example_prompt, "Mostra le fatture del mese scorso")
         self.assertEqual(cfg.inventario_discrepanza_pct, 20)
         self.assertEqual(cfg.prezzo_decimali, 4)
+        self.assertEqual(cfg.prezzo_decimali_stampa, 2)
