@@ -2,16 +2,6 @@ from django.db import models
 from django.urls import reverse
 
 
-def _scadenza_data(value):
-    """Date 4D vuote (00/00/00, anno < 1901) → None."""
-    if value is None:
-        return None
-    year = getattr(value, "year", None)
-    if year is None or year < 1901:
-        return None
-    return value
-
-
 class Primanota(models.Model):
     """Mirror PostgreSQL della tabella 4D Primanota (gestita dal sync)."""
 
@@ -138,18 +128,10 @@ class Primanota(models.Model):
 
     @property
     def scadenze_righe(self) -> list[dict]:
-        rows = []
-        for i in range(1, 11):
-            importo = getattr(self, f"imp_scad{i}", None)
-            rows.append(
-                {
-                    "n": i,
-                    "data": _scadenza_data(getattr(self, f"scad{i}", None)),
-                    "importo": float(importo or 0),
-                    "rit_acc": bool(getattr(self, f"flag_ra{i:02d}", False)),
-                }
-            )
-        return rows
+        """Scadenze per maschera: date da DB o calcolate (come 4D se non manuali)."""
+        from apps.primanota.scadenze import enrich_scadenze_dates
+
+        return enrich_scadenze_dates(self)
 
     @property
     def totale_scadenze(self) -> float:

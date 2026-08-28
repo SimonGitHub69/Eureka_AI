@@ -11,7 +11,7 @@
             <h2 class="page-title">Lavorazioni partite</h2>
             <div class="text-secondary">
                 Importate da 4D (<code>Lavorazioni_Partite</code>)
-                {% if totale %}· {{ totale }} totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
         <a href="{% url 'carbon:hub' %}" class="btn btn-outline-secondary">
@@ -23,7 +23,9 @@
 
 <div class="card mb-3">
     <div class="card-body">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'carbon:lavorazioni_list' %}">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end">
                 <div class="col-lg-8">
                     <label class="form-label" for="carbonSearch">Ricerca</label>
@@ -43,18 +45,19 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card" data-eureka-list-next>
     <div class="table-responsive">
         <table class="table table-vcenter card-table table-hover">
             <thead>
-                <tr>
-                    <th class="w-1 text-secondary">#</th>
-                    <th>Data</th>
-                    <th>Seriale</th>
-                    <th>Articolo</th>
-                    <th>Stampo</th>
-                    <th>Reparto</th>
-                    <th>Stato</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "id" "#" default_dir="desc" %}
+                    {% sort_th "data" "Data" default_dir="desc" %}
+                    {% sort_th "codart_ser" "Seriale" default_dir="asc" %}
+                    {% sort_th "codart" "Articolo" default_dir="asc" %}
+                    {% sort_th "cod_stampo" "Stampo" default_dir="asc" %}
+                    {% sort_th "cod_reparto" "Reparto" default_dir="asc" %}
+                    {% sort_th "stato" "Stato" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>

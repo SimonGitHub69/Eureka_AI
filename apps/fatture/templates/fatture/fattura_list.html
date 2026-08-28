@@ -2,26 +2,34 @@
 {% load format_tags %}
 
 {% block title %}Fatture · Eureka AI{% endblock %}
-
 {% block page_title %}Fatture{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-file-invoice"></i></span>
         <div>
-            <h2 class="page-title">Fatture</h2>
-            <div class="text-secondary">
-                Elenco documenti importati da 4D
-                {% if totale_fatture %}· {{ totale_fatture }} totali{% endif %}
+            <h2 class="page-title mb-0">Fatture</h2>
+            <div class="text-secondary mt-1">
+                Documenti importati da 4D (<code>Fatture</code>)
+                {% include "partials/tlist_count.html" with totale=totale_fatture %}
             </div>
         </div>
     </div>
+    <a href="{% url 'fatture:analisi' %}" class="btn btn-outline-secondary">
+        <i class="ti ti-chart-bar"></i>
+        Analisi
+    </a>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'fatture:list' %}">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end">
                 <div class="col-lg-3">
                     <label class="form-label" for="fattureSearch">Ricerca</label>
@@ -60,8 +68,8 @@
                     <label class="form-label" for="fattureDataA">Data a</label>
                     <input type="date" id="fattureDataA" name="data_a" value="{{ data_a }}" class="form-control">
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
                         <i class="ti ti-filter"></i>
                         Filtra
                     </button>
@@ -78,16 +86,21 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
-                <tr>
-                    <th>Numero</th>
-                    <th>Data</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "numero_fatt" "Documento" default_dir="desc" %}
+                    {% sort_th "data_fattura" "Data" default_dir="desc" %}
+                    {% if sort_cliente_ragione_sociale %}
+                    {% sort_th "cliente_ragione_sociale1" "Cliente" default_dir="asc" %}
+                    {% else %}
                     <th>Cliente</th>
-                    <th>Destinatario</th>
-                    <th class="text-end">Imponibile</th>
+                    {% endif %}
+                    {% sort_th "destinatario" "Destinatario" default_dir="asc" %}
+                    {% sort_th "imponibile" "Imponibile" align="end" default_dir="desc" %}
                     <th class="text-end text-orange">Spese</th>
-                    <th class="text-end">Totale</th>
+                    {% sort_th "totale_fattura" "Totale" align="end" default_dir="desc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -95,42 +108,71 @@
                 {% for fattura in fatture %}
                 <tr>
                     <td>
-                        <a href="{% url 'fatture:detail' fattura.id_testa %}" class="fw-semibold text-decoration-none">
-                            {{ fattura.numero_documento }}
-                        </a>
-                        <div class="text-secondary small">ID {{ fattura.id_testa }}</div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar {% if fattura.is_nota_credito %}bg-orange-lt text-orange{% else %}bg-azure-lt text-azure{% endif %}">
+                                <i class="ti ti-file-invoice"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'fatture:detail' fattura.id_testa %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 220px;">
+                                    {{ fattura.numero_documento }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ fattura.id_testa }}
+                                    {% if fattura.is_nota_credito %}
+                                    <span class="badge bg-orange-lt ms-1">NC</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
                     </td>
                     <td>
                         {% if fattura.data_fattura %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-calendar text-azure"></i>
                             {{ fattura.data_fattura|date:"d/m/Y" }}
+                        </span>
                         {% else %}
-                            —
+                        <span class="text-secondary">—</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if fattura.cliente_ragione_sociale %}
-                        <div class="fw-semibold text-truncate" style="max-width: 220px;" title="{{ fattura.cliente_ragione_sociale }}">
-                            {{ fattura.cliente_ragione_sociale }}
+                        <div class="overflow-hidden">
+                            <div class="eureka-tlist-name text-truncate" style="max-width: 220px;" title="{{ fattura.cliente_ragione_sociale }}">
+                                {{ fattura.cliente_ragione_sociale }}
+                            </div>
+                            {% if fattura.cliente %}
+                            <span class="eureka-tlist-code">
+                                <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                {{ fattura.cliente }}
+                            </span>
+                            {% endif %}
                         </div>
-                        {% if fattura.cliente %}
-                        <div class="text-secondary small">{{ fattura.cliente }}</div>
-                        {% endif %}
                         {% elif fattura.cliente %}
-                        <div class="fw-semibold">{{ fattura.cliente }}</div>
+                        <span class="eureka-tlist-code">
+                            <i class="ti ti-hash" style="font-size:.85em;"></i>
+                            {{ fattura.cliente }}
+                        </span>
                         {% else %}
-                        —
+                        <span class="text-secondary">—</span>
                         {% endif %}
                     </td>
                     <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 220px;" title="{{ fattura.destinatario }}">
-                            {{ fattura.destinatario|default:"—" }}
+                        {% if fattura.destinatario %}
+                        <span class="eureka-tlist-chip text-truncate" style="max-width: 200px;" title="{{ fattura.destinatario }}">
+                            <i class="ti ti-map-pin text-azure"></i>
+                            {{ fattura.destinatario }}
                         </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
                     </td>
                     <td class="text-end">
                         {% if fattura.imponibile != None %}
                             € {{ fattura.imponibile|euro }}
                         {% else %}
-                            —
+                        <span class="text-secondary">—</span>
                         {% endif %}
                     </td>
                     <td class="text-end {% if fattura.totale_spese %}text-orange fw-semibold{% else %}text-secondary{% endif %}">
@@ -140,21 +182,25 @@
                         {% if fattura.totale_fattura != None %}
                             € {{ fattura.totale_fattura|euro }}
                         {% else %}
-                            —
+                        <span class="text-secondary">—</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="{% url 'fatture:detail' fattura.id_testa %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'fatture:detail' fattura.id_testa %}" class="btn btn-icon" title="Dettaglio">
+                            <i class="ti ti-eye"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center text-secondary py-5">
-                        <i class="ti ti-file-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
-                        Nessuna fattura trovata
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'fatture:list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="8">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-file-off"></i></div>
+                            Nessuna fattura trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'fatture:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -163,6 +209,8 @@
     </div>
 
     {% include "partials/pagination.html" %}
+</div>
+
 </div>
 
 {% endblock %}

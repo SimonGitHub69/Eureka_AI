@@ -265,6 +265,31 @@ def get_configurazione_pc_for_request(request):
     return get_configurazione_pc(nome)
 
 
+def get_dashboard_shortcut_configs_for_request(request) -> dict[str, dict]:
+    """Config scorciatoie (mode/gruppo/posizione) per la postazione corrente."""
+    from apps.core.dashboard_shortcuts import (
+        default_shortcut_configs,
+        resolve_shortcut_configs,
+    )
+
+    cfg = get_configurazione_pc_for_request(request)
+    if cfg is None:
+        return default_shortcut_configs()
+    return resolve_shortcut_configs(cfg.dashboard_shortcuts)
+
+
+def get_dashboard_shortcut_modes_for_request(request) -> dict[str, str]:
+    """Modalità scorciatoie (off|dash|bar|both) per la postazione corrente."""
+    return {
+        key: value["mode"]
+        for key, value in get_dashboard_shortcut_configs_for_request(request).items()
+    }
+
+
+# Alias retrocompatibilità
+get_dashboard_shortcut_flags_for_request = get_dashboard_shortcut_modes_for_request
+
+
 def bind_nome_pc(request, response, nome_pc):
     """Associa il PC alla sessione e a un cookie di lunga durata."""
     nome = normalize_nome_pc(nome_pc)
@@ -313,6 +338,7 @@ def register_device_for_request(request, *, user=None, descrizione: str = "") ->
         descrizione=descrizione,
         assistente_vocale_attivo=programma.assistente_vocale_attivo,
         navbar_fissa=programma.navbar_fissa,
+        liste_fisse=programma.liste_fisse,
     )
     if user is not None:
         cfg.created_by = user

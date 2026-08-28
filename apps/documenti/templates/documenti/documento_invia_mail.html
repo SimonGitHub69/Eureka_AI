@@ -1,0 +1,118 @@
+{% extends "base/layout.html" %}
+{% load static format_tags %}
+
+{% block title %}Invia per mail · {{ documento.numero_documento }} · Eureka AI{% endblock %}
+{% block page_title %}Invia per mail{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=29">
+{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask{% if tipo.codice == 'PRV' %} eureka-doc eureka-doc--prv{% endif %}">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon">
+            <i class="ti ti-mail"></i>
+        </span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">Invia {{ mail_title }} {{ documento.numero_documento }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="badge{% if tipo.codice == 'PRV' %} eureka-doc-badge{% else %} bg-primary-lt{% endif %}">{{ tipo.codice }}</span>
+                {% if documento.data_documento %}<span class="badge bg-azure-lt">{{ documento.data_documento|date:"d/m/Y" }}</span>{% endif %}
+                {% if documento.cliente_ragione_sociale %}
+                <span class="text-secondary text-truncate" style="max-width: 280px;">{{ documento.cliente_ragione_sociale }}</span>
+                {% elif documento.destinatario %}
+                <span class="text-secondary text-truncate" style="max-width: 280px;">{{ documento.destinatario }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{{ next_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Indietro
+        </a>
+        <a href="{{ list_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+{% if not mail_status.smtp_ok %}
+<div class="alert alert-warning">
+    Configura server SMTP e mittente in
+    <a href="{% url 'core:parametri_mail' %}">Parametri mail</a>
+    prima di inviare.
+</div>
+{% elif not mail_status.attiva %}
+<div class="alert alert-warning">
+    L’invio automatico è disattivato. Attivalo in
+    <a href="{% url 'core:parametri_mail' %}">Parametri mail</a>
+    (opzione «Invio mail attivo»).
+</div>
+{% endif %}
+
+<form method="post" autocomplete="off">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card eureka-mask-card mb-3">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+            <i class="ti ti-send eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title mb-0">Email</h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label" for="{{ form.destinatario.id_for_label }}">{{ form.destinatario.label }}</label>
+                    {{ form.destinatario }}
+                    <div class="form-hint">Preso dall’anagrafica cliente/fornitore se presente. Puoi modificarlo.</div>
+                    {% if form.destinatario.errors %}
+                    <div class="invalid-feedback d-block">{{ form.destinatario.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="{{ form.cc.id_for_label }}">{{ form.cc.label }}</label>
+                    {{ form.cc }}
+                    {% if form.cc.errors %}
+                    <div class="invalid-feedback d-block">{{ form.cc.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.oggetto.id_for_label }}">{{ form.oggetto.label }}</label>
+                    {{ form.oggetto }}
+                    {% if form.oggetto.errors %}
+                    <div class="invalid-feedback d-block">{{ form.oggetto.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.messaggio.id_for_label }}">{{ form.messaggio.label }}</label>
+                    {{ form.messaggio }}
+                    {% if form.messaggio.errors %}
+                    <div class="invalid-feedback d-block">{{ form.messaggio.errors|join:", " }}</div>
+                    {% endif %}
+                    <div class="form-hint mt-1">
+                        Il testo predefinito arriva da Parametri documento (Testo mail).
+                        In invio viene allegato il PDF della stampa.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
+            <a href="{{ next_url }}" class="btn btn-outline-secondary">Annulla</a>
+            <button type="submit" class="btn btn-primary"{% if not mail_status.smtp_ok or not mail_status.attiva %} disabled{% endif %}>
+                <i class="ti ti-send"></i>
+                Invia
+            </button>
+        </div>
+    </div>
+</form>
+
+</div>
+{% endblock %}

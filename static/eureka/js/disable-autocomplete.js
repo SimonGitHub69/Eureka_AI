@@ -102,8 +102,22 @@
         return isTextLikeField(field) || type === "password";
     }
 
+    function isFieldLocked(field) {
+        return (
+            field.dataset.fieldLocked === "true" ||
+            field.getAttribute("aria-readonly") === "true" ||
+            field.classList.contains("eureka-field-locked")
+        );
+    }
+
     function obfuscateFieldName(field) {
         if (field.dataset.originalName) {
+            return;
+        }
+
+        // Form documenti / primanota: castelletto e ricalcolo IVA leggono name$=-campo.
+        // Offuscare i name spezza il ricalcolo live (e il submit del formset).
+        if (field.closest("#documentoForm, #primanotaForm, [data-primanota-riga-form]")) {
             return;
         }
 
@@ -173,6 +187,10 @@
         }
 
         field.dataset.autocompleteGuard = "true";
+
+        if (isFieldLocked(field)) {
+            return;
+        }
 
         function clearReadonlyGuard() {
             field.removeAttribute("readonly");

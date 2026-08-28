@@ -1,0 +1,17 @@
+{% if ai_filter_count %}
+<div class="eureka-tlist-filter-count" role="status">
+    <i class="ti ti-sparkles" aria-hidden="true"></i>
+    <span><strong>{{ ai_filter_count }}</strong> risultati dalla ricerca AI</span>
+</div>
+{% elif has_filters and filter_count is not None %}
+<div class="eureka-tlist-filter-count" role="status">
+    <i class="ti ti-filter-check" aria-hidden="true"></i>
+    <span>
+        <strong>{{ filter_count }}</strong>
+        {{ list_count_filter_noun|default:"schede" }} corrispondono ai filtri
+        {% if totale and filter_count != totale %}
+        <span class="eureka-tlist-filter-count__total">(su {{ totale }} {{ list_count_total_label|default:"totali" }})</span>
+        {% endif %}
+    </span>
+</div>
+{% endif %}

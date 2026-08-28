@@ -1,0 +1,129 @@
+{# Destinatario (anagrafica) | Luogo di Destinazione (testata) — come 4D #}
+<div class="eureka-doc-party">
+    <div class="eureka-doc-party__col eureka-doc-party__col--destinatario" data-anagrafica-panel
+         {% if clifor_lookup_tipo %}data-clifor-tipo="{{ clifor_lookup_tipo }}"{% endif %}>
+        <div class="eureka-doc-testata__label">
+            <i class="ti ti-user" aria-hidden="true"></i>
+            <span>Destinatario</span>
+            {% if clifor_url %}
+            <a href="{{ clifor_url }}" class="eureka-doc-party__open-link" data-anagrafica-link
+               title="Apri scheda {{ clifor_label|default:'anagrafica' }}">
+                <i class="ti ti-external-link" aria-hidden="true"></i>
+                <span>{{ clifor_label|default:"Anagrafica" }}</span>
+            </a>
+            {% else %}
+            <a href="#" class="eureka-doc-party__open-link" data-anagrafica-link hidden
+               title="Apri scheda {{ clifor_label|default:'anagrafica' }}">
+                <i class="ti ti-external-link" aria-hidden="true"></i>
+                <span>{{ clifor_label|default:"Anagrafica" }}</span>
+            </a>
+            {% endif %}
+        </div>
+        {% if editable %}
+        <div class="row g-compact">
+            {% if clifor_linked %}
+            {% include "partials/mask_linked_code.html" with field=form.codice_clifor label=clifor_linked_label tipo=clifor_lookup_tipo col="col-12 eureka-doc-field--key eureka-doc-field--cliente" %}
+            {% else %}
+            {% include "partials/mask_field.html" with field=form.codice_clifor col="col-12 eureka-doc-field--key eureka-doc-field--cliente" %}
+            {% endif %}
+            <div class="col-12">
+                <label class="visually-hidden" for="anagraficaDestinatario">Ragione sociale</label>
+                <input type="text" class="form-control" id="anagraficaDestinatario" readonly tabindex="-1"
+                       data-anagrafica-field="destinatario" value="{{ anagrafica.destinatario|default:'' }}">
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="anagraficaIndirizzo">Indirizzo</label>
+                <input type="text" class="form-control" id="anagraficaIndirizzo" readonly tabindex="-1"
+                       data-anagrafica-field="indirizzo" value="{{ anagrafica.indirizzo|default:'' }}">
+            </div>
+            <div class="col-4 col-sm-3">
+                <label class="form-label" for="anagraficaCap">CAP</label>
+                <input type="text" class="form-control" id="anagraficaCap" readonly tabindex="-1"
+                       data-anagrafica-field="cap" value="{{ anagrafica.cap|default:'' }}">
+            </div>
+            <div class="col">
+                <label class="form-label" for="anagraficaLocalita">Località</label>
+                <input type="text" class="form-control" id="anagraficaLocalita" readonly tabindex="-1"
+                       data-anagrafica-field="localita" value="{{ anagrafica.localita|default:'' }}">
+            </div>
+            <div class="col-4 col-sm-2">
+                <label class="form-label" for="anagraficaProvincia">Prov.</label>
+                <input type="text" class="form-control" id="anagraficaProvincia" readonly tabindex="-1"
+                       data-anagrafica-field="provincia" value="{{ anagrafica.provincia|default:'' }}">
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="anagraficaNazione">Nazione</label>
+                <input type="text" class="form-control" id="anagraficaNazione" readonly tabindex="-1"
+                       data-anagrafica-field="nazione" value="{{ anagrafica.nazione|default:'' }}">
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="anagraficaTelefono">Telefono</label>
+                <input type="text" class="form-control" id="anagraficaTelefono" readonly tabindex="-1"
+                       data-anagrafica-field="telefono" value="{{ anagrafica.telefono|default:'' }}">
+            </div>
+        </div>
+        {% else %}
+        <div class="eureka-doc-party__read">
+            <div class="eureka-doc-party__name">
+                {% if clifor_url %}
+                <a href="{{ clifor_url }}" class="eureka-doc-party__name-link">{% firstof anagrafica.destinatario documento.cliente_ragione_sociale "—" %}</a>
+                {% else %}
+                {% firstof anagrafica.destinatario documento.cliente_ragione_sociale "—" %}
+                {% endif %}
+            </div>
+            {% if documento.codice_clifor %}
+            <div class="eureka-doc-party__code">
+                {% if clifor_url %}
+                <a href="{{ clifor_url }}">{{ documento.codice_clifor }}</a>
+                {% else %}
+                {{ documento.codice_clifor }}
+                {% endif %}
+            </div>
+            {% endif %}
+            <div class="eureka-doc-party__line">{{ anagrafica.indirizzo|default:"—" }}</div>
+            <div class="eureka-doc-party__line">
+                {% if anagrafica.cap or anagrafica.localita or anagrafica.provincia %}
+                {{ anagrafica.cap }} {{ anagrafica.localita }}{% if anagrafica.provincia %} ({{ anagrafica.provincia }}){% endif %}
+                {% else %}
+                —
+                {% endif %}
+            </div>
+            {% if anagrafica.nazione %}<div class="eureka-doc-party__line">{{ anagrafica.nazione }}</div>{% endif %}
+            {% if anagrafica.telefono %}<div class="eureka-doc-party__line">{{ anagrafica.telefono }}</div>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="eureka-doc-party__col eureka-doc-party__col--destinazione">
+        <div class="eureka-doc-testata__label">
+            <i class="ti ti-map-pin" aria-hidden="true"></i>
+            <span>Luogo di Destinazione</span>
+        </div>
+        {% if editable %}
+        <div class="row g-compact" data-destinazione-panel>
+            {% include "partials/mask_linked_code.html" with field=form.codice_dest label="" tipo="destinazione" col="col-12 eureka-doc-field--key eureka-doc-field--destinazione" %}
+            {% include "partials/mask_field.html" with field=form.destinatario col="col-12" hide_label=1 %}
+            {% include "partials/mask_field.html" with field=form.indirizzo col="col-12" %}
+            {% include "partials/mask_field.html" with field=form.cap col="col-4 col-sm-3" %}
+            {% include "partials/mask_field.html" with field=form.localita col="col" %}
+            {% include "partials/mask_field.html" with field=form.provincia col="col-4 col-sm-2" %}
+            {% include "partials/mask_field.html" with field=form.nazione col="col-12" %}
+            {% include "partials/mask_field.html" with field=form.telefono col="col-12" %}
+        </div>
+        {% else %}
+        <div class="eureka-doc-party__read">
+            <div class="eureka-doc-party__name">{{ documento.destinatario|default:"—" }}</div>
+            <div class="eureka-doc-party__line">{{ documento.indirizzo|default:"—" }}</div>
+            <div class="eureka-doc-party__line">
+                {% if documento.localita or documento.cap or documento.provincia %}
+                {{ documento.cap }} {{ documento.localita }}{% if documento.provincia %} ({{ documento.provincia }}){% endif %}
+                {% else %}
+                —
+                {% endif %}
+            </div>
+            {% if documento.nazione %}<div class="eureka-doc-party__line">{{ documento.nazione }}</div>{% endif %}
+            {% if documento.telefono %}<div class="eureka-doc-party__line">{{ documento.telefono }}</div>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>

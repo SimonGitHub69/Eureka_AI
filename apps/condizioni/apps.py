@@ -5,4 +5,4 @@ class CondizioniConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.condizioni"
     label = "condizioni"
-    verbose_name = "Condizioni"
+    verbose_name = "Condizioni di Pagamento"

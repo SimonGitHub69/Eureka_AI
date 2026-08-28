@@ -40,7 +40,9 @@
         assistente vocale
         {% if current_pc_config.assistente_vocale_attivo %}Sì{% else %}No{% endif %},
         barra fissa
-        {% if current_pc_config.navbar_fissa %}Sì{% else %}No{% endif %}.
+        {% if current_pc_config.navbar_fissa %}Sì{% else %}No{% endif %},
+        intestazione liste fissa
+        {% if current_pc_config.liste_fisse %}Sì{% else %}No{% endif %}.
     </div>
     {% else %}
     <div>
@@ -60,6 +62,7 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="get">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label">Ricerca</label>
@@ -80,15 +83,17 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card eureka-tlist">
     <div class="table-responsive">
         <table class="table table-vcenter card-table">
             <thead>
-                <tr>
-                    <th>Nome PC</th>
-                    <th>Descrizione</th>
-                    <th>Assistente vocale</th>
-                    <th>Barra fissa</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "nome_pc" "Nome PC" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    {% sort_th "assistente_vocale_attivo" "Assistente vocale" default_dir="asc" %}
+                    {% sort_th "navbar_fissa" "Barra fissa" default_dir="asc" %}
+                    {% sort_th "liste_fisse" "Liste fisse" default_dir="asc" %}
                     <th class="text-end">Azioni</th>
                 </tr>
             </thead>
@@ -116,35 +121,56 @@
                             <span class="badge bg-secondary-lt">No</span>
                             {% endif %}
                         </td>
-                        <td class="text-end">
-                            <div class="btn-list flex-nowrap justify-content-end">
-                                <form method="post"
-                                      action="{% url 'core:configurazione_pc_bind' pc.pk %}"
-                                      class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit"
-                                            class="btn btn-sm {% if current_pc_config and current_pc_config.pk == pc.pk %}btn-success{% else %}btn-outline-success{% endif %}"
-                                            {% if current_pc_config and current_pc_config.pk == pc.pk %}disabled{% endif %}>
-                                        {% if current_pc_config and current_pc_config.pk == pc.pk %}In uso{% else %}Usa qui{% endif %}
-                                    </button>
-                                </form>
-                                <a href="{% url 'core:configurazione_pc_update' pc.pk %}"
-                                   class="btn btn-sm btn-outline-primary">
-                                    Modifica
-                                </a>
-                                <form method="post"
-                                      action="{% url 'core:configurazione_pc_delete' pc.pk %}"
-                                      class="d-inline"
-                                      onsubmit="return confirm('Eliminare la postazione &quot;{{ pc.nome_pc|escapejs }}&quot;?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Elimina</button>
-                                </form>
-                            </div>
+                        <td>
+                            {% if pc.liste_fisse %}
+                            <span class="badge bg-success-lt">Sì</span>
+                            {% else %}
+                            <span class="badge bg-secondary-lt">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="eureka-tlist-actions">
+                            <form method="post"
+                                  action="{% url 'core:configurazione_pc_bind' pc.pk %}"
+                                  class="d-inline">
+                                {% csrf_token %}
+                                {% if current_pc_config and current_pc_config.pk == pc.pk %}
+                                <button type="button"
+                                        class="btn btn-icon eureka-tlist-actions__active"
+                                        title="In uso su questo dispositivo"
+                                        disabled
+                                        aria-label="In uso su questo dispositivo">
+                                    <i class="ti ti-circle-check"></i>
+                                </button>
+                                {% else %}
+                                <button type="submit"
+                                        class="btn btn-icon"
+                                        title="Usa questa postazione qui"
+                                        aria-label="Usa questa postazione qui">
+                                    <i class="ti ti-device-desktop"></i>
+                                </button>
+                                {% endif %}
+                            </form>
+                            <a href="{% url 'core:configurazione_pc_update' pc.pk %}"
+                               class="btn btn-icon"
+                               title="Modifica">
+                                <i class="ti ti-pencil"></i>
+                            </a>
+                            <form method="post"
+                                  action="{% url 'core:configurazione_pc_delete' pc.pk %}"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Eliminare la postazione &quot;{{ pc.nome_pc|escapejs }}&quot;?');">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="btn btn-icon eureka-tlist-actions__danger"
+                                        title="Elimina">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-secondary py-4">
+                        <td colspan="6" class="text-center text-secondary py-4">
                             Nessuna postazione configurata
                         </td>
                     </tr>

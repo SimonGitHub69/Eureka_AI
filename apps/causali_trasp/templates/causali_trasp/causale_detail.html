@@ -1,0 +1,115 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ causale.descrizione|default:causale.codice }} · Causali trasporto · Eureka AI{% endblock %}
+{% block page_title %}Causale trasporto{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-package-export"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ causale.descrizione|default:causale.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ causale.codice }}</span>
+                {% if causale.fatturabile %}<span class="badge bg-green-lt">Fatturabile</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'causali_trasp:edit' causale.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'causali_trasp:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice</div>
+                <div class="eureka-mask-field__value">{{ causale.codice }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione</div>
+                <div class="eureka-mask-field__value">{{ causale.descrizione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Fatturabile</div>
+                <div class="eureka-mask-field__value">{{ causale.fatturabile|yesno:"Si,No,—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Causale magazzino</div>
+                <div class="eureka-mask-field__value">{{ causale.causale_maga|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Reparto ECR</div>
+                <div class="eureka-mask-field__value">{{ causale.reparto_ecr|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Conto partita vendite</div>
+                <div class="eureka-mask-field__value">{{ causale.c_partita_vend|default:"—" }}</div>
+            </div>
+            {% if causale.synced_at %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ causale.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% for name, value in campi %}
+            {% if name != "Codice" and name != "Desc" and name != "Fatturabile" and name != "CausaleMaga" and name != "RepartoECR" and name != "CPartitaVend" %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaCausaleWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaCausale">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaCausale" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ causale.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaCausale">Annulla</button>
+                        <button type="submit" form="formEliminaCausale" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaCausale" method="post" action="{% url 'causali_trasp:delete' causale.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaCausale");
+  document.getElementById("btnApriEliminaCausale")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaCausale")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

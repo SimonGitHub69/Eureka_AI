@@ -185,12 +185,21 @@
       if (isRowDeleted(row)) return;
       const codice = String(fieldVal(row, "codice") || "").trim();
       const descrizione = String(fieldVal(row, "descrizione") || "").trim();
-      const quantita = parseNum(fieldVal(row, "quantita"));
+      const qtyRaw = String(fieldVal(row, "quantita") || "").trim();
+      const quantita = parseNum(qtyRaw);
       const prezzo = parseNum(fieldVal(row, "prezzo_unitario"));
       const sconto = fieldVal(row, "sconto");
       const iva = String(fieldVal(row, "iva") || "").trim();
-      if (!codice && !descrizione && !quantita && !prezzo && !sconto && !iva) return;
-      lines.push({ codice, descrizione, quantita, prezzo, sconto, iva: iva || "22" });
+      if (!codice && !descrizione && !qtyRaw && !prezzo && !sconto && !iva) return;
+      lines.push({
+        codice,
+        descrizione,
+        quantita,
+        qtyMissing: qtyRaw === "",
+        prezzo,
+        sconto,
+        iva: iva || "22",
+      });
     });
     return lines;
   }
@@ -268,7 +277,8 @@
       let qty = line.quantita;
       const prezzo = line.prezzo;
       if (!qty && !prezzo && !line.codice && !line.descrizione) return;
-      if (!qty && prezzo) qty = 1;
+      if (line.qtyMissing && prezzo) qty = 1;
+      if (!line.qtyMissing && !qty) return;
       const merce = round2(qty * prezzo);
       const scontoImp = scontoImporto(merce, line.sconto);
       const g = ensure(line.iva || "22", false);
@@ -324,6 +334,8 @@
       let qty = line.quantita;
       const prezzo = line.prezzo;
       if (!qty && !prezzo && !line.codice && !line.descrizione) return;
+      if (line.qtyMissing && prezzo) qty = 1;
+      if (!line.qtyMissing && !qty) return;
       totQty = round2(totQty + (qty || 0));
     });
     return {
@@ -570,11 +582,6 @@
       if (ev.target.closest("[data-add-riga], .btn-elimina-riga")) {
         // Dopo add/delete DOM (checkbox DELETE settato senza change nativo)
         setTimeout(() => schedule(), 0);
-      }
-      const calcBtn = ev.target.closest("[data-castelletto-calc-peso]");
-      if (calcBtn && root.contains(calcBtn)) {
-        ev.preventDefault();
-        calcPeso(form, root);
       }
     });
 

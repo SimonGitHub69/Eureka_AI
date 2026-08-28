@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.magazzini",
     "apps.depositi",
     "apps.causali_magazzino",
+    "apps.movimenti",
     "apps.stampi",
     "apps.operatori",
     "apps.timbrature",
@@ -88,6 +89,7 @@ TEMPLATES = [
                 "apps.core.context_processors.integrations",
                 "apps.core.context_processors.programma_documenti",
                 "apps.core.context_processors.ai_debug_flags",
+                "apps.core.context_processors.list_back",
             ],
         },
     },
@@ -142,6 +144,8 @@ OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 OLLAMA_URL = env("OLLAMA_URL", default="http://localhost:11434")
 OLLAMA_MODEL = env("OLLAMA_MODEL", default="qwen2.5:3b")
+# Timeout (secondi) per fallback Groq -> Ollama su rate limit / TPD.
+OLLAMA_FALLBACK_TIMEOUT = env("OLLAMA_FALLBACK_TIMEOUT", default=5)
 
 # Groq (solo se AI_BACKEND=groq) — API key gratuita da https://console.groq.com/
 GROQ_API_KEY = env("GROQ_API_KEY", default="")

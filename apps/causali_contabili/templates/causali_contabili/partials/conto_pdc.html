@@ -1,0 +1,8 @@
+{% if url %}
+<a href="{{ url }}" class="fw-semibold text-decoration-none">{{ codice }}</a>
+{% if label %}<span class="text-secondary"> — {{ label }}</span>{% endif %}
+{% elif codice %}
+{{ codice }}
+{% else %}
+—
+{% endif %}

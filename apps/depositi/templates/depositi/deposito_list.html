@@ -14,7 +14,7 @@
             <h2 class="page-title mb-0">Depositi</h2>
             <div class="text-secondary mt-1">
                 Depositi importati da 4D (<code>Depositi</code>)
-                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
     </div>
@@ -22,6 +22,7 @@
 
 <div class="card mb-3 eureka-tlist-search">
     <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'depositi:list' %}">
             {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-center">

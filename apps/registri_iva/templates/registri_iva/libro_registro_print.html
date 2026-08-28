@@ -1,0 +1,192 @@
+{% load static format_tags %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registro IVA · {{ libro.registro_label|default:"Stampa" }}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=29">
+</head>
+<body class="eureka-print-body eureka-print-body--libro-iva">
+<div class="eureka-print-toolbar d-print-none">
+    <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
+        <div class="eureka-print-toolbar__head">
+            <div class="eureka-print-toolbar__title">Registro IVA{% if libro.registro_label %} · {{ libro.registro_label }}{% endif %}</div>
+            <div class="eureka-print-toolbar__meta">
+                {% if print_preview_ready %}
+                <span class="eureka-print-toolbar__count"><strong>{{ libro.documenti_count }}</strong> documenti</span>
+                {% if libro.periodo_label %}
+                <span class="eureka-print-toolbar__summary">{{ libro.periodo_label }}</span>
+                {% endif %}
+                {% else %}
+                <span class="eureka-print-toolbar__hint">Seleziona registro e periodo, poi genera l'anteprima</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="eureka-print-toolbar__panel">
+            <form method="get" class="eureka-print-filters" action="{{ request.path }}">
+                {% for key, value in request.GET.items %}
+                    {% if key != "data_da" and key != "data_a" and key != "registro" and key != "anteprima" %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+                <div class="eureka-print-filters__grid">
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Registro IVA</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Registro</span>
+                                <select class="eureka-print-input" name="registro" required>
+                                    {% for value, label in registri_choices %}
+                                    <option value="{{ value }}"{% if registro == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Da data</span>
+                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">A data</span>
+                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                            </label>
+                        </div>
+                    </fieldset>
+                    <div class="eureka-print-filters__submit">
+                        <input type="hidden" name="anteprima" value="1">
+                        <button type="submit" class="eureka-print-btn eureka-print-btn--apply">
+                            {% if print_preview_ready %}Applica filtri{% else %}Genera anteprima{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="eureka-print-toolbar__actions">
+                {% if print_preview_ready %}
+                {% include "base/partials/print_zoom_controls.html" %}
+                <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">Stampa</button>
+                {% endif %}
+                <button type="button" class="eureka-print-btn" data-print-close>Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if print_preview_ready %}
+<div class="eureka-print-preview-stage">
+<div class="eureka-print-preview-scaler">
+<article class="eureka-print-sheet eureka-print-sheet--libro-iva">
+    <div class="eureka-print-table-wrap">
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact">
+            <colgroup>
+                <col class="eureka-print-col--prot">
+                <col class="eureka-print-col--data">
+                <col class="eureka-print-col--ragione">
+                <col class="eureka-print-col--ndoc">
+                <col class="eureka-print-col--data">
+                <col class="eureka-print-col--descr">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--pct">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--totale">
+            </colgroup>
+            <thead>
+                <tr class="eureka-print-libro-banner">
+                    <th colspan="10">
+                        {% include "registri_iva/partials/libro_registro_masthead.html" %}
+                    </th>
+                </tr>
+                <tr>
+                    <th class="eureka-print-align-end">Prot.</th>
+                    <th>Data</th>
+                    <th>Rag. Sociale</th>
+                    <th>N.Doc.</th>
+                    <th>del</th>
+                    <th>Descr. Iva</th>
+                    <th class="eureka-print-align-end">Impon.</th>
+                    <th class="eureka-print-align-end">%</th>
+                    <th class="eureka-print-align-end">Imp. Iva</th>
+                    <th class="eureka-print-align-end">Tot. Doc.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in libro.righe %}
+                <tr{% if row.row_class %} class="{{ row.row_class }}"{% endif %}>
+                    {% for cell in row.cells %}
+                    <td{% if cell.align == "end" or cell.cell_class %} class="{% if cell.align == "end" %}eureka-print-align-end{% endif %}{% if cell.cell_class %} {{ cell.cell_class }}{% endif %}"{% endif %}{% if cell.colspan > 1 %} colspan="{{ cell.colspan }}"{% endif %}>{{ cell.text }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="eureka-print-empty">Nessuna registrazione nel periodo selezionato</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if libro.righe %}
+            <tfoot>
+                <tr class="eureka-print-row--totale">
+                    <td colspan="6" class="eureka-print-align-end"><strong>Totali generali</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile|euro }}</strong></td>
+                    <td></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_documento|euro }}</strong></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+
+    {% if libro.riepilogo %}
+    <section class="eureka-print-libro-riepilogo">
+        <h2 class="eureka-print-libro-riepilogo__title">Riepilogo{% if libro.periodo_label %} : {{ libro.periodo_label }}{% endif %}</h2>
+        <div class="eureka-print-libro-riepilogo__subtitle">{{ libro.registro_label }}</div>
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact eureka-print-table--riepilogo">
+            <colgroup>
+                <col class="eureka-print-col--ragione">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Descrizione</th>
+                    <th class="eureka-print-align-end">Impon.</th>
+                    <th class="eureka-print-align-end">Iva Ded.</th>
+                    <th class="eureka-print-align-end">Iva Inded.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for voce in libro.riepilogo %}
+                <tr>
+                    <td>{{ voce.descrizione }}</td>
+                    <td class="eureka-print-align-end">{{ voce.imponibile|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_indeducibile|euro }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="eureka-print-row--totale">
+                    <td><strong>TOTALI</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>0,00</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </section>
+    {% endif %}
+</article>
+</div>
+</div>
+{% else %}
+<div class="eureka-print-preview-stage eureka-print-preview-stage--idle d-print-none">
+    <div class="eureka-print-preview-idle">
+        <i class="ti ti-book-2" aria-hidden="true"></i>
+        <p>Seleziona il <strong>registro IVA</strong>, imposta il <strong>periodo</strong> e clicca <strong>Genera anteprima</strong>.</p>
+    </div>
+</div>
+{% endif %}
+<script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
+</body>
+</html>

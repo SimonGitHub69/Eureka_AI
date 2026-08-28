@@ -1,16 +1,17 @@
 {% load pagination_tags %}
-<th{% if align %} class="text-{{ align }}"{% endif %}>
+<th class="eureka-sort-th{% if active %} is-active{% endif %}{% if align %} text-{{ align }}{% endif %}">
     <a href="{% sort_url field default_dir %}"
-       class="text-reset text-decoration-none d-inline-flex align-items-center gap-1{% if align == 'end' %} justify-content-end w-100{% endif %}">
+       class="eureka-sort-th__link text-reset text-decoration-none d-inline-flex align-items-center gap-1{% if align == 'end' %} justify-content-end w-100{% endif %}{% if align == 'center' %} justify-content-center w-100{% endif %}"
+       title="Ordina per {{ label }}">
         <span>{{ label }}</span>
         {% if active %}
             {% if dir == 'asc' %}
-            <i class="ti ti-chevron-up" aria-hidden="true"></i>
+            <i class="ti ti-chevron-up eureka-sort-th__icon" aria-hidden="true"></i>
             {% else %}
-            <i class="ti ti-chevron-down" aria-hidden="true"></i>
+            <i class="ti ti-chevron-down eureka-sort-th__icon" aria-hidden="true"></i>
             {% endif %}
         {% else %}
-            <i class="ti ti-selector text-secondary" aria-hidden="true"></i>
+            <i class="ti ti-selector text-secondary eureka-sort-th__icon eureka-sort-th__icon--idle" aria-hidden="true"></i>
         {% endif %}
     </a>
 </th>

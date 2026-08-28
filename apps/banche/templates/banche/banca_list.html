@@ -1,0 +1,160 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Banche · Eureka AI{% endblock %}
+{% block page_title %}Banche{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-building-bank"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Banche</h2>
+            <div class="text-secondary mt-1">
+                Banche importate da 4D (<code>Banche</code>)
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="banche:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="banche:export_list" %}
+        <a href="{% url 'banche:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuova banca
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'banche:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="bancheSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, ABI, CAB, IBAN, località...">
+                    </div>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'banche:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "codice" "Codice banca" default_dir="asc" %}
+                    {% sort_th "descrizione" "Banca" default_dir="asc" %}
+                    {% sort_th "localita" "Località" default_dir="asc" %}
+                    {% sort_th "codice_abi" "ABI / CAB" default_dir="asc" %}
+                    {% sort_th "iban" "IBAN" default_dir="asc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in banche %}
+                <tr>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-azure-lt text-azure">
+                                <i class="ti ti-building-bank"></i>
+                            </span>
+                            <a href="{% url 'banche:detail' b.codice %}" class="eureka-tlist-name">{{ b.codice }}</a>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'banche:detail' b.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 380px;" title="{{ b.descrizione|default:b.codice }}">
+                            {{ b.descrizione|default:"—" }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if b.localita or b.provincia %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-map-pin text-azure"></i>
+                            {{ b.localita|default:"" }}{% if b.provincia %} ({{ b.provincia|cut:" " }}){% endif %}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% if b.codice_abi %}
+                            <span class="eureka-tlist-chip">
+                                <i class="ti ti-building-bank text-azure"></i>
+                                ABI {{ b.codice_abi }}
+                            </span>
+                            {% endif %}
+                            {% if b.codice_cab %}
+                            <span class="eureka-tlist-chip">
+                                <i class="ti ti-building text-green"></i>
+                                CAB {{ b.codice_cab }}
+                            </span>
+                            {% endif %}
+                            {% if not b.codice_abi and not b.codice_cab %}
+                            <span class="text-secondary">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if b.iban %}
+                        <span class="text-truncate d-inline-block font-monospace small" style="max-width: 220px;" title="{{ b.iban }}">{{ b.iban }}</span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'banche:edit' b.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-building-bank"></i></div>
+                            Nessuna banca trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'banche:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

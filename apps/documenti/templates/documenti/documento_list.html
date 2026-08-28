@@ -1,0 +1,260 @@
+{% extends "base/layout.html" %}
+{% load static format_tags %}
+
+{% block title %}{{ tipo.label }} · Eureka AI{% endblock %}
+{% block page_title %}{{ tipo.label }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist{% if tipo.codice == 'PRV' %} eureka-doc eureka-doc--prv{% endif %}">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon">
+            {% if tipo.codice == "PRV" %}<i class="ti ti-file-certificate"></i>
+            {% elif tipo.codice == "ORV" %}<i class="ti ti-shopping-cart"></i>
+            {% elif tipo.codice == "ORA" %}<i class="ti ti-shopping-bag"></i>
+            {% elif tipo.codice == "DDT" %}<i class="ti ti-truck-delivery"></i>
+            {% elif tipo.codice == "FAT" %}<i class="ti ti-file-invoice"></i>
+            {% elif tipo.codice == "NCR" %}<i class="ti ti-receipt-refund"></i>
+            {% elif tipo.codice == "NDB" %}<i class="ti ti-receipt"></i>
+            {% else %}<i class="ti ti-files"></i>{% endif %}
+        </span>
+        <div>
+            <h2 class="page-title mb-0">{{ tipo.label }}</h2>
+            <div class="text-secondary mt-1">
+                {% if tipo.codice == "PRV" %}
+                Preventivi clienti · offerte e proposte commerciali
+                {% elif tipo.source_table_4d %}Documenti importati da 4D (<code>{{ tipo.source_table_4d }}</code>)
+                {% else %}{{ tipo.descrizione }}{% endif %}
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-tlist-hero__actions d-flex flex-wrap align-items-center gap-2">
+        <a href="{% url 'documenti:index' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-list"></i>
+            Elenco
+        </a>
+        {% if tipo.categoria == "PREVENTIVI" %}
+        <a href="{% url 'documenti:parametri_spese' tipo_doc=tipo.codice %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline-secondary" title="Aliquota IVA spese">
+            <i class="ti ti-settings"></i>
+            Parametri
+        </a>
+        {% endif %}
+        <a href="{% url 'documenti:create' tipo_doc=tipo.codice %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            {% if tipo.codice == "PRV" %}Nuovo preventivo{% else %}Nuovo{% endif %}
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'documenti:list' tipo_doc=tipo.codice %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label" for="documentiSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="documentiSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="Numero, cliente/fornitore, destinatario, agente, ID...">
+                    </div>
+                </div>
+                <div class="col-md-2" style="min-width: 110px;">
+                    <label class="form-label" for="documentiSerie">Serie</label>
+                    <input type="text" id="documentiSerie" name="serie" value="{{ serie }}" class="form-control text-uppercase" placeholder="Es. FF" maxlength="16" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="col-md-2" style="min-width: 150px;">
+                    <label class="form-label" for="documentiDataDa">Data da</label>
+                    <input type="date" id="documentiDataDa" name="data_da" value="{{ data_da }}" class="form-control">
+                </div>
+                <div class="col-md-2" style="min-width: 150px;">
+                    <label class="form-label" for="documentiDataA">Data a</label>
+                    <input type="date" id="documentiDataA" name="data_a" value="{{ data_a }}" class="form-control">
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'documenti:list' tipo_doc=tipo.codice %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "numero" "Documento" default_dir="desc" %}
+                    {% sort_th "data_documento" "Data" default_dir="desc" %}
+                    {% if tipo.clifor_tipo == "F" %}
+                    {% if sort_cliente_ragione_sociale %}
+                    {% sort_th "cliente_ragione_sociale1" "Fornitore" default_dir="asc" %}
+                    {% else %}
+                    <th>Fornitore</th>
+                    {% endif %}
+                    {% else %}
+                    {% if sort_cliente_ragione_sociale %}
+                    {% sort_th "cliente_ragione_sociale1" "Cliente" default_dir="asc" %}
+                    {% else %}
+                    <th>Cliente</th>
+                    {% endif %}
+                    {% endif %}
+                    {% sort_th "destinatario" "Destinatario" default_dir="asc" %}
+                    {% sort_th "codice_agente" "Agente" default_dir="asc" %}
+                    {% sort_th "imponibile" "Imponibile" align="end" default_dir="desc" %}
+                    {% sort_th "totale" "Totale" align="end" default_dir="desc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for documento in documenti %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar{% if tipo.codice != 'PRV' %} bg-azure-lt text-azure{% endif %}">
+                                {% if tipo.codice == "PRV" %}<i class="ti ti-file-certificate"></i>
+                                {% elif tipo.codice == "ORV" %}<i class="ti ti-shopping-cart"></i>
+                                {% elif tipo.codice == "ORA" %}<i class="ti ti-shopping-bag"></i>
+                                {% elif tipo.codice == "DDT" %}<i class="ti ti-truck-delivery"></i>
+                                {% elif tipo.codice == "FAT" %}<i class="ti ti-file-invoice"></i>
+                                {% elif tipo.codice == "NCR" %}<i class="ti ti-receipt-refund"></i>
+                                {% elif tipo.codice == "NDB" %}<i class="ti ti-receipt"></i>
+                                {% else %}<i class="ti ti-file"></i>{% endif %}
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'documenti:detail' tipo_doc=documento.tipo_doc_id pk=documento.pk %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 220px;" title="{{ documento.numero_documento }}">
+                                    {{ documento.numero_documento }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ documento.id_4d }}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if documento.data_documento %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-calendar{% if tipo.codice != 'PRV' %} text-azure{% endif %}"></i>
+                            {{ documento.data_documento|date:"d/m/Y" }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if documento.cliente_ragione_sociale %}
+                        <div class="overflow-hidden">
+                            <div class="eureka-tlist-name text-truncate" style="max-width: 220px;" title="{{ documento.cliente_ragione_sociale }}">
+                                {{ documento.cliente_ragione_sociale }}
+                            </div>
+                            {% if documento.codice_clifor %}
+                            <span class="eureka-tlist-code">
+                                <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                {{ documento.codice_clifor }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% elif documento.codice_clifor %}
+                        <span class="eureka-tlist-code">
+                            <i class="ti ti-hash" style="font-size:.85em;"></i>
+                            {{ documento.codice_clifor }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if documento.destinatario %}
+                        <span class="eureka-tlist-chip text-truncate" style="max-width: 200px;" title="{{ documento.destinatario }}">
+                            <i class="ti ti-map-pin{% if tipo.codice != 'PRV' %} text-azure{% endif %}"></i>
+                            {{ documento.destinatario }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if documento.codice_agente %}
+                        <span class="eureka-tlist-chip" title="Agente">
+                            <i class="ti ti-user-star{% if tipo.codice != 'PRV' %} text-azure{% endif %}"></i>
+                            {{ documento.codice_agente }}
+                        </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end eureka-doc-amount">
+                        {% if documento.imponibile != None %}
+                        € {{ documento.imponibile|euro }}
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-semibold eureka-doc-amount eureka-doc-amount--total">
+                        {% if documento.totale != None %}
+                        € {{ documento.totale|euro }}
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'documenti:detail' tipo_doc=documento.tipo_doc_id pk=documento.pk %}" class="btn btn-icon" title="Dettaglio">
+                            <i class="ti ti-eye"></i>
+                        </a>
+                        <a href="{% url 'documenti:edit' tipo_doc=documento.tipo_doc_id pk=documento.pk %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                        <a href="{% url 'documenti:invia_mail' tipo_doc=documento.tipo_doc_id pk=documento.pk %}?next={{ request.get_full_path|urlencode }}" class="btn btn-icon" title="Invia per mail">
+                            <i class="ti ti-mail"></i>
+                        </a>
+                        {% if tipo.codice == "PRV" %}
+                        <a href="{% url 'documenti:print' tipo_doc=documento.tipo_doc_id pk=documento.pk %}?autoprint=1" class="btn btn-icon" title="Stampa" target="_blank" rel="noopener">
+                            <i class="ti ti-printer"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-file-off"></i></div>
+                            {% if tipo.codice == "PRV" %}Nessun preventivo trovato{% else %}Nessun documento trovato{% endif %}
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'documenti:list' tipo_doc=tipo.codice %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+{% endblock %}

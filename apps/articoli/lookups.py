@@ -8,6 +8,7 @@ LOOKUP_TIPI = (
     "fornitore",
     "clifor",
     "magazzino",
+    "deposito",
     "categoria",
     "gruppo",
     "iva",
@@ -88,6 +89,23 @@ def descrizione_magazzino(codice: str | None) -> str:
 
         obj = (
             Magazzino.objects.filter(codice__iexact=codice)
+            .only("descrizione")
+            .first()
+        )
+        return ((obj.descrizione if obj else "") or "").strip()
+    except Exception:
+        return ""
+
+
+def descrizione_deposito(codice: str | None) -> str:
+    codice = _norm(codice)
+    if not codice:
+        return ""
+    try:
+        from apps.depositi.models import Deposito
+
+        obj = (
+            Deposito.objects.filter(codice__iexact=codice)
             .only("descrizione")
             .first()
         )
@@ -462,6 +480,7 @@ _RESOLVERS = {
     "fornitore": descrizione_fornitore,
     "clifor": descrizione_clifor,
     "magazzino": descrizione_magazzino,
+    "deposito": descrizione_deposito,
     "categoria": descrizione_categoria,
     "gruppo": descrizione_gruppo,
     "iva": descrizione_iva,
@@ -568,6 +587,18 @@ def search_opzioni(
             return [
                 _row(o.codice, o.descrizione)
                 for o in qs.order_by("descrizione", "codice")[:limit]
+            ]
+
+        if tipo == "deposito":
+            from apps.depositi.models import Deposito
+            from django.db.models import Q
+
+            qs = Deposito.objects.all().only("codice", "descrizione")
+            if q:
+                qs = qs.filter(Q(codice__icontains=q) | Q(descrizione__icontains=q))
+            return [
+                _row(o.codice, o.descrizione)
+                for o in qs.order_by("codice", "descrizione")[:limit]
             ]
 
         if tipo == "categoria":

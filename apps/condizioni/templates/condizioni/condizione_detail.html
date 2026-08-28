@@ -1,82 +1,238 @@
 {% extends "base/layout.html" %}
+{% load format_tags %}
 
-{% block title %}{{ condizione.descrizione|default:condizione.codice }} · Condizioni · Eureka AI{% endblock %}
-{% block page_title %}Condizione{% endblock %}
+{% block title %}{{ condizione.descrizione|default:condizione.codice }} · Condizioni di Pagamento · Eureka AI{% endblock %}
+{% block page_title %}Condizione di Pagamento{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ condizione.descrizione|default:condizione.codice }}</h2>
-            <div class="text-secondary">Codice {{ condizione.codice }}</div>
+<div class="eureka-mask eureka-mask--condizioni">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--condizioni {{ condizione.pag_fatt_elett_pa|mp_sdi_color }}">
+            <i class="ti {{ condizione.pag_fatt_elett_pa|mp_sdi_icon }}"></i>
+        </span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ condizione.descrizione|default:condizione.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ condizione.codice }}</span>
+                {% if condizione.tipo_pagamento %}<span class="badge bg-azure-lt">{{ condizione.tipo_pagamento }}</span>{% endif %}
+                {% if condizione.pag_fatt_elett_pa %}
+                <span class="badge {{ condizione.pag_fatt_elett_pa|mp_sdi_color }}">{{ condizione.pag_fatt_elett_pa }}</span>
+                {% endif %}
+            </div>
         </div>
-        <a href="{% url 'condizioni:list' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Elenco
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'condizioni:edit' condizione.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'condizioni:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
         </a>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Dati principali</h3>
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi{% if condizione.numero_rate is None %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-calendar-due"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Rate</div>
+            <div class="eureka-mask-kpi__value">{% if condizione.numero_rate is not None %}{{ condizione.numero_rate }}{% else %}Non impostato{% endif %}</div>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="datagrid-title">Descrizione</div>
-                <div class="datagrid-content">{{ condizione.descrizione|default:"—" }}</div>
+    <div class="eureka-mask-kpi{% if condizione.prima_rata is None %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-clock-play"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Prima rata</div>
+            <div class="eureka-mask-kpi__value">{% if condizione.prima_rata is not None %}{{ condizione.prima_rata }} <small class="text-secondary fw-normal">gg</small>{% else %}Non impostato{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if condizione.intervallo is None %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-arrows-exchange"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Intervallo</div>
+            <div class="eureka-mask-kpi__value">{% if condizione.intervallo is not None %}{{ condizione.intervallo }} <small class="text-secondary fw-normal">gg</small>{% else %}Non impostato{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if not condizione.giorno_fisso and not condizione.fine_mese %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-calendar-event"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Giorno fisso</div>
+            <div class="eureka-mask-kpi__value">
+                {% if condizione.fine_mese %}
+                Fine mese
+                {% elif condizione.giorno_fisso %}
+                {{ condizione.giorno_fisso }}
+                {% else %}
+                Non impostato
+                {% endif %}
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Tipo pagamento</div>
-                <div class="datagrid-content">{{ condizione.tipo_pagamento|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">N. rate</div>
-                <div class="datagrid-content">{% if condizione.numero_rate is not None %}{{ condizione.numero_rate }}{% else %}—{% endif %}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Prima rata</div>
-                <div class="datagrid-content">{% if condizione.prima_rata is not None %}{{ condizione.prima_rata }}{% else %}—{% endif %}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Intervallo</div>
-                <div class="datagrid-content">{% if condizione.intervallo is not None %}{{ condizione.intervallo }}{% else %}—{% endif %}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Giorno fisso</div>
-                <div class="datagrid-content">{% if condizione.giorno_fisso is not None %}{{ condizione.giorno_fisso }}{% else %}—{% endif %}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Codice banca</div>
-                <div class="datagrid-content">{{ condizione.codice_banca|default:"—" }}</div>
-            </div>
-            {% if condizione.synced_at %}
-            <div class="col-12">
-                <div class="text-secondary small">Ultimo sync: {{ condizione.synced_at|date:"d/m/Y H:i" }}</div>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
-{% if campi %}
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            {% for name, value in campi %}
-            <div class="col-md-4">
-                <div class="datagrid-title">{{ name }}</div>
-                <div class="datagrid-content">{{ value }}</div>
-            </div>
-            {% endfor %}
-        </div>
+{% if condizione.pag_fatt_elett_pa %}
+<div class="eureka-sdi-highlight">
+    <span class="eureka-sdi-highlight__icon {{ condizione.pag_fatt_elett_pa|mp_sdi_color }}">
+        <i class="ti {{ condizione.pag_fatt_elett_pa|mp_sdi_icon }}"></i>
+    </span>
+    <div class="flex-fill min-w-0">
+        <div class="eureka-sdi-highlight__label">Modalità pagamento SDI</div>
+        <div class="eureka-sdi-highlight__code">{{ condizione.pag_fatt_elett_pa }}</div>
+        {% if condizione.pag_fatt_elett_pa_descrizione %}
+        <div class="eureka-sdi-highlight__desc">{{ condizione.pag_fatt_elett_pa_descrizione }}</div>
+        {% endif %}
     </div>
 </div>
 {% endif %}
 
+<div class="row g-3">
+    <div class="col-lg-7 d-flex flex-column gap-3">
+        <div class="eureka-mask-panel">
+            <div class="eureka-mask-panel__head">
+                <span class="eureka-mask-panel__icon eureka-mask-panel__icon--blue"><i class="ti ti-id"></i></span>
+                <h3 class="eureka-mask-panel__title">Identificazione</h3>
+            </div>
+            <div class="eureka-mask-panel__body">
+                <div class="eureka-mask-grid eureka-mask-grid--2">
+                    {% include "partials/mask_detail_field.html" with label="Codice" value=condizione.codice mono=True %}
+                    {% include "partials/mask_detail_field.html" with label="Descrizione" value=condizione.descrizione %}
+                    {% include "partials/mask_detail_field.html" with label="Tipo pagamento" value=condizione.tipo_pagamento %}
+                </div>
+            </div>
+        </div>
+
+        <div class="eureka-mask-panel">
+            <div class="eureka-mask-panel__head">
+                <span class="eureka-mask-panel__icon eureka-mask-panel__icon--green"><i class="ti ti-calendar-stats"></i></span>
+                <h3 class="eureka-mask-panel__title">Scadenze e rate</h3>
+            </div>
+            <div class="eureka-mask-panel__body">
+                {% if scadenze_riepilogo %}
+                <div class="eureka-scadenze-riepilogo">
+                    <i class="ti ti-info-circle me-1"></i>{{ scadenze_riepilogo }}
+                </div>
+                {% endif %}
+                <div class="eureka-mask-grid eureka-mask-grid--2">
+                    {% include "partials/mask_detail_field.html" with label="Numero rate" value=condizione.numero_rate %}
+                    {% include "partials/mask_detail_field.html" with label="Prima rata (gg)" value=condizione.prima_rata %}
+                    {% include "partials/mask_detail_field.html" with label="Intervallo (gg)" value=condizione.intervallo %}
+                    {% include "partials/mask_detail_field.html" with label="Fine mese" value=condizione.fine_mese|si_no %}
+                    {% include "partials/mask_detail_field.html" with label="Giorno fisso" value=condizione.giorno_fisso %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5 d-flex flex-column gap-3">
+        <div class="eureka-mask-panel">
+            <div class="eureka-mask-panel__head">
+                <span class="eureka-mask-panel__icon eureka-mask-panel__icon--teal"><i class="ti ti-building-bank"></i></span>
+                <h3 class="eureka-mask-panel__title">Banca collegata</h3>
+            </div>
+            <div class="eureka-mask-panel__body">
+                {% if banca_collegata %}
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Codice banca</div>
+                    <div class="eureka-mask-field__value">
+                        <a href="{% url 'banche:detail' banca_collegata.codice %}" class="fw-semibold text-decoration-none">{{ condizione.codice_banca }}</a>
+                        {% if banca_collegata.descrizione %}
+                        <span class="text-secondary"> — {{ banca_collegata.descrizione }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% elif condizione.codice_banca %}
+                {% include "partials/mask_detail_field.html" with label="Codice banca" value=condizione.codice_banca mono=True %}
+                {% else %}
+                <div class="eureka-mask-panel__empty">
+                    <i class="ti ti-building-bank"></i>
+                    <span>Nessuna banca associata a questa condizione.</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="eureka-mask-panel">
+            <div class="eureka-mask-panel__head">
+                <span class="eureka-mask-panel__icon eureka-mask-panel__icon--orange"><i class="ti ti-calendar-off"></i></span>
+                <h3 class="eureka-mask-panel__title">Esclusioni calendario</h3>
+            </div>
+            <div class="eureka-mask-panel__body">
+                {% if has_esclusioni %}
+                <div class="eureka-mask-grid eureka-mask-grid--2">
+                    {% include "partials/mask_detail_field.html" with label="Mese esclusione 1" value=condizione.mese_esclusione hide_empty=True %}
+                    {% include "partials/mask_detail_field.html" with label="Mese esclusione 2" value=condizione.mese_esclusione2 hide_empty=True %}
+                    {% include "partials/mask_detail_field.html" with label="GG mese esclus. 1" value=condizione.gg_mese_esclus hide_empty=True %}
+                    {% include "partials/mask_detail_field.html" with label="GG mese esclus. 2" value=condizione.gg_mese_esclus2 hide_empty=True %}
+                </div>
+                {% else %}
+                <div class="eureka-mask-panel__empty">
+                    <i class="ti ti-calendar-check"></i>
+                    <span>Nessuna regola di esclusione mensile configurata.</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if condizione.data_modifica or condizione.synced_at %}
+<div class="eureka-mask-audit">
+    {% if condizione.data_modifica %}
+    <span class="eureka-mask-audit__item">
+        <i class="ti ti-clock-edit"></i>
+        Ultima modifica:
+        <strong>{{ condizione.data_modifica|date:"d/m/Y" }}{% if condizione.ora_modifica %} {{ condizione.ora_modifica|time:"H:i" }}{% endif %}</strong>
+    </span>
+    {% endif %}
+    {% if condizione.synced_at %}
+    <span class="eureka-mask-audit__item">
+        <i class="ti ti-cloud-download"></i>
+        Ultimo sync: <strong>{{ condizione.synced_at|date:"d/m/Y H:i" }}</strong>
+    </span>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="eureka-mask-delete" id="eliminaCondizioneWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaCondizione">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaCondizione" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ condizione.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaCondizione">Annulla</button>
+                        <button type="submit" form="formEliminaCondizione" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaCondizione" method="post" action="{% url 'condizioni:delete' condizione.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaCondizione");
+  document.getElementById("btnApriEliminaCondizione")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaCondizione")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
 {% endblock %}

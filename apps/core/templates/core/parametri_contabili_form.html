@@ -1,0 +1,100 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}Parametri contabili · Eureka AI{% endblock %}
+
+{% block page_title %}Parametri contabili{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Parametri contabili</h2>
+            <div class="text-secondary">
+                Aliquota IVA spese e contropartite PDC
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'documenti:parametri_list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-file-settings"></i>
+                Parametri documento
+            </a>
+        </div>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" data-linked-lookups data-lookup-url="{{ lookup_url }}">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="ti ti-receipt-tax me-1"></i>
+                Aliquota IVA spese
+            </h3>
+        </div>
+        <div class="card-body">
+            <p class="text-secondary small mb-3">
+                Codice aliquota usata nel castelletto per le spese di testata
+                (imballo, trasporto, incasso, varie, bolli, art.&nbsp;15).
+                Se vuoto, si usa l’aliquota della prima riga merce.
+            </p>
+            <div class="row g-3">
+                {% include "partials/mask_linked_code.html" with field=form.aliquota_iva_spese label=labels.iva tipo="iva" col="col-md-6 col-lg-4" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="ti ti-book me-1"></i>
+                Contropartite PDC spese
+            </h3>
+        </div>
+        <div class="card-body">
+            <p class="text-secondary small mb-3">
+                Conto di contropartita (Piano dei Conti) per ciascuna voce di spesa.
+                Aprire l’elenco o digitare codice/descrizione per cercare tra le sole contropartite
+                (esclusi mastri e conti). I valori sono memorizzati per l’uso contabile futuro.
+            </p>
+            <div class="row g-3">
+                {% include "partials/mask_linked_code.html" with field=form.contropartita_spese_imballo label=labels.contropartita_spese_imballo tipo="pdc" col="col-md-6" %}
+                {% include "partials/mask_linked_code.html" with field=form.contropartita_spese_trasporto label=labels.contropartita_spese_trasporto tipo="pdc" col="col-md-6" %}
+                {% include "partials/mask_linked_code.html" with field=form.contropartita_spese_incasso label=labels.contropartita_spese_incasso tipo="pdc" col="col-md-6" %}
+                {% include "partials/mask_linked_code.html" with field=form.contropartita_spese_varie label=labels.contropartita_spese_varie tipo="pdc" col="col-md-6" %}
+                {% include "partials/mask_linked_code.html" with field=form.contropartita_spese_bolli label=labels.contropartita_spese_bolli tipo="pdc" col="col-md-6" %}
+                {% include "partials/mask_linked_code.html" with field=form.contropartita_spese_e15 label=labels.contropartita_spese_e15 tipo="pdc" col="col-md-6" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-0">
+                <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+                {{ form.note }}
+                {% if form.note.errors %}
+                    <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                Salva parametri
+            </button>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=19"></script>
+{% endblock %}

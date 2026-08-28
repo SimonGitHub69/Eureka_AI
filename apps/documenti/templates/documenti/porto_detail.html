@@ -1,0 +1,98 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ porto.descrizione|default:porto.pk }} · Porto · Eureka AI{% endblock %}
+{% block page_title %}Porto{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-package"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ porto.descrizione|default:porto.pk }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                {% if porto.cod_incoterm %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ porto.cod_incoterm }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'documenti:porto_edit' porto.pk %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'documenti:porto_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione</div>
+                <div class="eureka-mask-field__value">{{ porto.descrizione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Incoterm</div>
+                <div class="eureka-mask-field__value">{{ porto.cod_incoterm|default:"—" }}</div>
+            </div>
+            {% if porto.synced_at %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ porto.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% for name, value in campi %}
+            {% if name != "Descrizione" and name != "Cod_Incoterm" and name != "ID" %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaPortoWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaPorto">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaPorto" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ porto.descrizione|default:porto.pk }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaPorto">Annulla</button>
+                        <button type="submit" form="formEliminaPorto" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaPorto" method="post" action="{% url 'documenti:porto_delete' porto.pk %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaPorto");
+  document.getElementById("btnApriEliminaPorto")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaPorto")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

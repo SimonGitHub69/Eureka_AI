@@ -23,13 +23,16 @@ _PREZZO_UNITARIO = {
 
 
 class PrezzoUnitarioInput(forms.NumberInput):
-    """Prezzo unitario riga: 3 decimali (es. 12.500)."""
+    """Prezzo unitario riga: decimali da Parametri programma."""
 
     def format_value(self, value):
         if value in (None, ""):
             return None
         try:
-            return f"{float(value):.3f}"
+            from apps.core.prezzi import get_prezzo_decimali
+
+            dec = get_prezzo_decimali()
+            return f"{float(value):.{dec}f}"
         except (TypeError, ValueError):
             return value
 
@@ -129,7 +132,7 @@ class TestaDocumentoForm(forms.ModelForm):
             "cod_cau_trasp": "Causale trasporto",
             "iban": "IBAN",
             "cod_banca": "Banca",
-            "codice_sconto": "Codice",
+            "codice_sconto": "Codice Sconto",
             "sconto": "Sconto",
             "num_ordine_acq": "N. ordine acquisto",
             "data_ordine_acq": "Data ordine acquisto",
@@ -247,6 +250,20 @@ class TestaDocumentoForm(forms.ModelForm):
             if field is not None:
                 field.widget.attrs["readonly"] = True
                 field.widget.attrs["data-castelletto-field"] = name
+        # % sconto testata: solo da tabella Sconti via codice (lookup JS); non editabile
+        sconto_field = self.fields.get("sconto")
+        if sconto_field is not None:
+            attrs = sconto_field.widget.attrs
+            classes = (attrs.get("class") or "").split()
+            if "form-control" not in classes:
+                classes.append("form-control")
+            if "eureka-field-locked" not in classes:
+                classes.append("eureka-field-locked")
+            attrs["class"] = " ".join(classes)
+            attrs["readonly"] = True
+            attrs["tabindex"] = "-1"
+            attrs["aria-readonly"] = "true"
+            attrs["title"] = "Valorizzato dal codice sconto (tabella Sconti)"
 
     def _setup_serie_contatore(self) -> None:
         """Su Nuovo: combo Serie → contatore; alfa sincronizzata dalla selezione."""
@@ -274,7 +291,7 @@ class TestaDocumentoForm(forms.ModelForm):
             }
         field = forms.ModelChoiceField(
             queryset=ContatoreDocumento.objects.filter(pk__in=pks).order_by(
-                "serie_default", "codice", "label"
+                "esercizio", "serie_default", "codice", "label"
             ),
             label="Serie",
             required=has_propri,
@@ -385,6 +402,7 @@ class RigaDocumentoForm(forms.ModelForm):
             "unita_misura",
             "prezzo_unitario",
             "sconto",
+            "provvigione",
             "iva",
         ]
         labels = {
@@ -395,19 +413,23 @@ class RigaDocumentoForm(forms.ModelForm):
             "unita_misura": "U.M.",
             "prezzo_unitario": "Prezzo",
             "sconto": "Sconto",
+            "provvigione": "Provvigione",
             "iva": "IVA",
         }
         widgets = {
             "numero_riga": forms.NumberInput(attrs=_NUMBER),
             "quantita": forms.NumberInput(attrs=_NUMBER),
             "prezzo_unitario": PrezzoUnitarioInput(attrs=_PREZZO_UNITARIO),
+            "provvigione": forms.NumberInput(
+                attrs={**_NUMBER, "step": "0.01", "inputmode": "decimal"}
+            ),
         }
 
     def __init__(self, *args, visible_campos=None, **kwargs):
         super().__init__(*args, **kwargs)
         for name in self.fields:
             self.fields[name].required = False
-        apply_control_widgets(self)
+        apply_control_widgets(self, keep_textarea={"descrizione"})
         # Extra/empty form: nessun default 10 — lo assegna il JS (max+10) o il save.
         if not getattr(self.instance, "pk", None):
             if self.initial.get("numero_riga") in (10, "10"):
@@ -417,12 +439,27 @@ class RigaDocumentoForm(forms.ModelForm):
                 field.initial = None
         prezzo = self.fields.get("prezzo_unitario")
         if prezzo is not None:
-            prezzo.widget.attrs["step"] = "0.001"
+            from apps.core.prezzi import prezzo_input_step
+
+            prezzo.widget.attrs["step"] = prezzo_input_step()
             prezzo.widget.attrs["inputmode"] = "decimal"
         desc = self.fields.get("descrizione")
         if desc is not None:
+            # Textarea: i ritorni a capo (Enter / LF) devono restare in salvataggio e stampa.
+            # apply_control_widgets altrimenti converte i TextField in TextInput monoriga.
+            if not isinstance(desc.widget, forms.Textarea):
+                attrs = {
+                    k: v
+                    for k, v in desc.widget.attrs.items()
+                    if k not in {"type", "rows", "cols"}
+                }
+                attrs.setdefault("class", "form-control")
+                attrs.setdefault("autocomplete", "off")
+                desc.widget = forms.Textarea(attrs=attrs)
+            desc.widget.attrs["rows"] = "2"
             desc.widget.attrs["data-long-text-edit"] = "1"
             desc.widget.attrs["data-long-text-title"] = "Descrizione riga"
+            desc.widget.attrs.setdefault("spellcheck", "true")
         if visible_campos:
             visible = set(visible_campos)
             for name, field in self.fields.items():
@@ -443,6 +480,7 @@ class RigaDocumentoForm(forms.ModelForm):
                 "prezzo_unitario",
                 "iva",
                 "sconto",
+                "provvigione",
                 "unita_misura",
             )
         )
@@ -488,6 +526,7 @@ class RigaDocumentoInlineFormSet(BaseInlineFormSet):
                     "prezzo_unitario",
                     "iva",
                     "sconto",
+                    "provvigione",
                     "unita_misura",
                 )
             )
@@ -516,10 +555,19 @@ _NUMBER = {"class": "form-control", "inputmode": "numeric"}
 class ContatoreDocumentoForm(forms.ModelForm):
     class Meta:
         model = ContatoreDocumento
-        fields = ["codice", "label", "ultimo_numero", "serie_default"]
+        fields = [
+            "codice",
+            "label",
+            "tipo_contatore",
+            "esercizio",
+            "ultimo_numero",
+            "serie_default",
+        ]
         widgets = {
             "codice": forms.TextInput(attrs={**_CONTROL, "maxlength": "16"}),
             "label": forms.TextInput(attrs=_CONTROL),
+            "tipo_contatore": forms.Select(attrs=_SELECT),
+            "esercizio": forms.NumberInput(attrs={**_NUMBER, "min": "1900", "max": "9999"}),
             "ultimo_numero": forms.NumberInput(attrs={**_NUMBER, "min": "0"}),
             "serie_default": forms.TextInput(attrs={**_CONTROL, "maxlength": "16"}),
         }
@@ -528,10 +576,18 @@ class ContatoreDocumentoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["codice"].required = True
         self.fields["label"].required = True
+        self.fields["tipo_contatore"].required = True
+        self.fields["esercizio"].required = True
         self.fields["ultimo_numero"].required = False
         self.fields["serie_default"].required = False
         apply_control_widgets(self)
         self.fields["codice"].help_text = ""
+        self.fields["tipo_contatore"].help_text = (
+            "Documenti: numerazione fatture, ordini, DDT. Primanota: registrazioni contabili."
+        )
+        self.fields["esercizio"].help_text = (
+            "Anno contabile/fiscale di riferimento (es. 2026)."
+        )
         self.fields["ultimo_numero"].help_text = (
             "Imposta il valore di partenza (es. ultimo già emesso). "
             "Il prossimo documento riceverà questo valore + 1."
@@ -540,7 +596,8 @@ class ContatoreDocumentoForm(forms.ModelForm):
             "Opzionale: serie (alfa) precompilata sui nuovi documenti."
         )
         if codice_readonly:
-            self.fields["codice"].disabled = True
+            self.fields["codice"].widget.attrs["readonly"] = True
+            self.fields["codice"].widget.attrs["tabindex"] = "-1"
 
     def clean_codice(self):
         codice = (self.cleaned_data.get("codice") or "").strip().upper()
@@ -548,19 +605,39 @@ class ContatoreDocumentoForm(forms.ModelForm):
             raise forms.ValidationError("Il codice è obbligatorio.")
         if not codice.replace("_", "").isalnum():
             raise forms.ValidationError("Usa solo lettere, numeri e underscore (es. FAT, ORD_V).")
-        qs = ContatoreDocumento.objects.filter(codice=codice)
-        if self.instance and self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise forms.ValidationError("Esiste già un contatore con questo codice.")
         return codice
 
     def clean_ultimo_numero(self):
         value = self.cleaned_data.get("ultimo_numero")
         return 0 if value in (None, "") else value
 
+    def clean_esercizio(self):
+        value = self.cleaned_data.get("esercizio")
+        if value in (None, ""):
+            raise forms.ValidationError("L'esercizio è obbligatorio.")
+        if value < 1900 or value > 9999:
+            raise forms.ValidationError("Inserire un anno valido (1900–9999).")
+        return value
+
     def clean_serie_default(self):
         return (self.cleaned_data.get("serie_default") or "").strip().upper()
+
+    def clean(self):
+        cleaned = super().clean()
+        codice = cleaned.get("codice")
+        esercizio = cleaned.get("esercizio")
+        tipo = cleaned.get("tipo_contatore")
+        if codice and esercizio and tipo:
+            qs = ContatoreDocumento.objects.filter(
+                codice=codice, esercizio=esercizio, tipo_contatore=tipo
+            )
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(
+                    "Esiste già un contatore con lo stesso codice, esercizio e tipo."
+                )
+        return cleaned
 
 
 class TipoDocumentoForm(forms.ModelForm):
@@ -580,6 +657,7 @@ class TipoDocumentoForm(forms.ModelForm):
             "descrizione",
             "source_table_4d",
             "source_detail_4d",
+            "testo_mail",
         ]
         widgets = {
             "codice": forms.TextInput(attrs={**_CONTROL, "maxlength": "8"}),
@@ -595,6 +673,9 @@ class TipoDocumentoForm(forms.ModelForm):
             "descrizione": forms.TextInput(attrs=_CONTROL),
             "source_table_4d": forms.TextInput(attrs=_CONTROL),
             "source_detail_4d": forms.TextInput(attrs=_CONTROL),
+            "testo_mail": forms.Textarea(
+                attrs={**_CONTROL, "rows": "12", "class": "form-control w-100"}
+            ),
         }
 
     def __init__(self, *args, codice_readonly: bool = False, **kwargs):
@@ -605,12 +686,21 @@ class TipoDocumentoForm(forms.ModelForm):
         self.fields["clifor_tipo"].required = True
         self.fields["scadenze"].required = True
         self.fields["contatore"].required = False
-        self.fields["contatore"].queryset = ContatoreDocumento.objects.all()
+        qs_doc = ContatoreDocumento.objects.filter(
+            tipo_contatore=ContatoreDocumento.TIPO_DOCUMENTI
+        ).order_by("-esercizio", "codice")
+        self.fields["contatore"].queryset = qs_doc
         self.fields["contatore"].empty_label = "— nessun contatore (per tipo) —"
         self.fields["contatore"].label = "Contatore predefinito"
+        self.fields["contatore"].label_from_instance = (
+            lambda c: f"{c.codice} · {c.esercizio} — {c.label}"
+        )
         self.fields["contatori"].required = False
-        self.fields["contatori"].queryset = ContatoreDocumento.objects.all()
+        self.fields["contatori"].queryset = qs_doc
         self.fields["contatori"].label = "Contatori / serie"
+        self.fields["contatori"].label_from_instance = (
+            lambda c: f"{c.codice} · {c.esercizio} — {c.label}"
+        )
         self.fields["contatori"].help_text = (
             "Contatori di questo tipo nel combo Serie. In Nuovo documento "
             "compaiono anche quelli dei tipi affini (Preventivi↔Ordini, "
@@ -620,8 +710,12 @@ class TipoDocumentoForm(forms.ModelForm):
         self.fields["descrizione"].required = False
         self.fields["source_table_4d"].required = False
         self.fields["source_detail_4d"].required = False
+        self.fields["testo_mail"].required = False
         self.fields["ordine"].required = False
-        apply_control_widgets(self)
+        apply_control_widgets(self, keep_textarea={"testo_mail"})
+        self.fields["testo_mail"].widget.attrs["class"] = "form-control w-100"
+        self.fields["testo_mail"].widget.attrs["rows"] = "12"
+        self.fields["testo_mail"].widget.attrs.pop("cols", None)
         self.fields["codice"].help_text = ""
         self.fields["categoria"].help_text = ""
         self.fields["clifor_tipo"].help_text = ""
@@ -767,3 +861,54 @@ class AliquotaIvaSpeseForm(forms.ModelForm):
 
     def clean_aliquota_iva_spese(self):
         return (self.cleaned_data.get("aliquota_iva_spese") or "").strip()
+
+
+class InviaDocumentoMailForm(forms.Form):
+    """Invio documento via SMTP (Parametri mail)."""
+
+    destinatario = forms.CharField(
+        label="Destinatario",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "off",
+                "placeholder": "cliente@azienda.it",
+            }
+        ),
+    )
+    cc = forms.CharField(
+        label="CC",
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "off",
+                "placeholder": "opzionale, separati da virgola",
+            }
+        ),
+    )
+    oggetto = forms.CharField(
+        label="Oggetto",
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control", "autocomplete": "off"}),
+    )
+    messaggio = forms.CharField(
+        label="Messaggio",
+        widget=forms.Textarea(
+            attrs={"class": "form-control", "rows": 8, "autocomplete": "off"}
+        ),
+    )
+
+    def clean_destinatario(self):
+        from apps.documenti.mail_documento import parse_destinatari
+
+        raw = (self.cleaned_data.get("destinatario") or "").strip()
+        addrs = parse_destinatari(raw)
+        if not addrs:
+            raise forms.ValidationError("Inserisci almeno un indirizzo email valido.")
+        return ", ".join(addrs)
+
+    def clean_cc(self):
+        from apps.documenti.mail_documento import parse_destinatari
+
+        return ", ".join(parse_destinatari(self.cleaned_data.get("cc")))

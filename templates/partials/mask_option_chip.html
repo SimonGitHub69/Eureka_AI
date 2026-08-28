@@ -1,0 +1,19 @@
+{% comment %}
+Selectable option chip for boolean flags.
+Usage:
+  {% include "partials/mask_option_chip.html" with field=form.persona_fisica icon="ti-user" hint="Anagrafica persona fisica" %}
+{% endcomment %}
+<label class="eureka-option-chip" for="{{ field.id_for_label }}">
+    {{ field }}
+    <span class="eureka-option-chip__icon" aria-hidden="true">
+        <i class="ti {{ icon|default:'ti-checkbox' }}"></i>
+    </span>
+    <span class="eureka-option-chip__body">
+        <span class="eureka-option-chip__title">{{ field.label }}</span>
+        {% if hint %}<span class="eureka-option-chip__hint">{{ hint }}</span>{% endif %}
+    </span>
+    <span class="eureka-option-chip__mark" aria-hidden="true">
+        <i class="ti ti-check"></i>
+    </span>
+</label>
+{% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}

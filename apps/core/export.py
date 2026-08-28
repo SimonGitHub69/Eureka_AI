@@ -12,6 +12,7 @@ from django.shortcuts import render
 XLSX_CONTENT_TYPE = (
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
+CSV_CONTENT_TYPE = "text/csv; charset=utf-8"
 
 
 def normalize_export_fmt(fmt: str | None) -> str:
@@ -51,6 +52,41 @@ def export_bridge_response(request: HttpRequest, *, title: str = "Esportazione")
     )
 
 
+def build_xlsx_bytes(
+    *,
+    headers: Sequence[str],
+    rows: Iterable[Sequence[Any]],
+    sheet_title: str = "Dati",
+) -> bytes:
+    """Genera un workbook XLSX in memoria."""
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = (sheet_title or "Dati")[:31]
+    ws.append(list(headers))
+    for row in rows:
+        ws.append(list(row))
+    buffer = BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
+
+
+def build_csv_bytes(
+    *,
+    headers: Sequence[str],
+    rows: Iterable[Sequence[Any]],
+    delimiter: str = ";",
+) -> bytes:
+    """CSV con BOM UTF-8 (default separatore ';' per Excel italiano)."""
+    buffer = StringIO()
+    writer = csv.writer(buffer, delimiter=delimiter)
+    writer.writerow(list(headers))
+    for row in rows:
+        writer.writerow([_csv_cell(v) for v in row])
+    return ("\ufeff" + buffer.getvalue()).encode("utf-8")
+
+
 def export_table(
     *,
     filename: str,
@@ -70,36 +106,23 @@ def export_table(
     disposition = "attachment" if as_attachment else "inline"
 
     if fmt == "xlsx":
-        from openpyxl import Workbook
-
-        wb = Workbook()
-        ws = wb.active
-        ws.title = (sheet_title or "Dati")[:31]
-        ws.append(list(headers))
-        for row in rows:
-            ws.append(list(row))
-        buffer = BytesIO()
-        wb.save(buffer)
-        response = HttpResponse(buffer.getvalue(), content_type=XLSX_CONTENT_TYPE)
+        content = build_xlsx_bytes(
+            headers=headers, rows=rows, sheet_title=sheet_title
+        )
+        response = HttpResponse(content, content_type=XLSX_CONTENT_TYPE)
         response["Content-Disposition"] = f'{disposition}; filename="{stem}.xlsx"'
         response["X-Content-Type-Options"] = "nosniff"
         return response
 
-    buffer = StringIO()
-    writer = csv.writer(buffer, delimiter=";")
-    writer.writerow(list(headers))
-    for row in rows:
-        writer.writerow([_csv_cell(v) for v in row])
     csv_content_type = (
-        "application/octet-stream"
-        if as_attachment
-        else "text/csv; charset=utf-8"
+        "application/octet-stream" if as_attachment else CSV_CONTENT_TYPE
     )
-    response = HttpResponse(content_type=csv_content_type)
+    response = HttpResponse(
+        build_csv_bytes(headers=headers, rows=rows),
+        content_type=csv_content_type,
+    )
     response["Content-Disposition"] = f'{disposition}; filename="{stem}.csv"'
     response["X-Content-Type-Options"] = "nosniff"
-    response.write("\ufeff")
-    response.write(buffer.getvalue())
     return response
 
 

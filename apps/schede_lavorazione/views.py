@@ -10,7 +10,9 @@ from django.views import View
 from django.views.generic import ListView
 
 from apps.aziende.models import Azienda, AziendaDati
+from apps.core.mixins import RequireExtraMixin
 from apps.core.pagination import PerPageListMixin
+from apps.core.sorting import SortableListMixin
 from apps.schede_lavorazione.forms import (
     SchedaLavorazioneCreateForm,
     SchedaLavorazioneUpdateForm,
@@ -22,33 +24,45 @@ PRINT_MIN_ROWS = 10
 
 
 def _branding_azienda() -> dict:
-    """Logo azienda da AziendaDati (sola lettura)."""
-    dati = (
-        AziendaDati.objects.filter(is_active=True)
-        .exclude(logo__isnull=True)
-        .exclude(logo="")
-        .order_by("azienda_id")
-        .first()
-    )
+    """Logo azienda da AziendaDati (preferisce logo stampe documenti)."""
+    from django.db import transaction
+    from django.db.utils import OperationalError, ProgrammingError
+
+    from apps.aziende.configurazione import resolve_azienda_dati
+
+    dati = resolve_azienda_dati()
     if dati is None:
-        azienda = Azienda.objects.order_by("id").first()
+        try:
+            with transaction.atomic():
+                azienda = Azienda.objects.order_by("id").first()
+        except (ProgrammingError, OperationalError):
+            azienda = None
         if azienda:
             dati = AziendaDati.objects.filter(
                 is_active=True, azienda_id=azienda.id
             ).first()
 
     logo = None
-    if dati and dati.logo:
-        logo = dati.logo
+    if dati:
+        if dati.logo_documenti:
+            logo = dati.logo_documenti
+        elif dati.logo:
+            logo = dati.logo
 
     return {"logo": logo}
 
 
 
-class SchedaLavorazioneListView(LoginRequiredMixin, PerPageListMixin, ListView):
+class SchedaLavorazioneListView(
+    LoginRequiredMixin, RequireExtraMixin, SortableListMixin, PerPageListMixin, ListView
+):
     model = SchedaLavorazione
     template_name = "schede_lavorazione/scheda_list.html"
     context_object_name = "schede"
+    sortable_fields = ("data", "operatore_nome", "operatore_codice", "matricola", "id")
+    default_sort = "data"
+    default_dir = "desc"
+    sort_tiebreaker = "id"
     paginate_by = 50
 
     def get_queryset(self):
@@ -63,7 +77,7 @@ class SchedaLavorazioneListView(LoginRequiredMixin, PerPageListMixin, ListView):
             )
         if data:
             qs = qs.filter(data=data)
-        return qs
+        return self.apply_sorting(qs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -77,7 +91,7 @@ class SchedaLavorazioneListView(LoginRequiredMixin, PerPageListMixin, ListView):
         return context
 
 
-class SchedaLavorazioneCreateView(LoginRequiredMixin, View):
+class SchedaLavorazioneCreateView(LoginRequiredMixin, RequireExtraMixin, View):
     template_name = "schede_lavorazione/scheda_create.html"
 
     def _context(self, form):
@@ -103,7 +117,7 @@ class SchedaLavorazioneCreateView(LoginRequiredMixin, View):
         return render(request, self.template_name, self._context(form))
 
 
-class SchedaLavorazioneUpdateView(LoginRequiredMixin, View):
+class SchedaLavorazioneUpdateView(LoginRequiredMixin, RequireExtraMixin, View):
     """Modifica sola testata (data/operatore/matricola). Le righe non vengono toccate."""
 
     template_name = "schede_lavorazione/scheda_edit.html"
@@ -137,7 +151,7 @@ class SchedaLavorazioneUpdateView(LoginRequiredMixin, View):
         return render(request, self.template_name, self._context(form, scheda))
 
 
-class SchedaLavorazioneDetailView(LoginRequiredMixin, View):
+class SchedaLavorazioneDetailView(LoginRequiredMixin, RequireExtraMixin, View):
     template_name = "schede_lavorazione/scheda_detail.html"
 
     def get(self, request, pk):
@@ -176,7 +190,7 @@ class SchedaLavorazioneDetailView(LoginRequiredMixin, View):
         )
 
 
-class SchedaLavorazionePrintView(LoginRequiredMixin, View):
+class SchedaLavorazionePrintView(LoginRequiredMixin, RequireExtraMixin, View):
     """Stampa HTML della scheda di lavorazione."""
 
     template_name = "schede_lavorazione/scheda_print.html"
@@ -199,7 +213,7 @@ class SchedaLavorazionePrintView(LoginRequiredMixin, View):
         )
 
 
-class SchedaLavorazioneDeleteView(LoginRequiredMixin, View):
+class SchedaLavorazioneDeleteView(LoginRequiredMixin, RequireExtraMixin, View):
     def post(self, request, pk):
         scheda = get_object_or_404(SchedaLavorazione, pk=pk, is_active=True)
         for riga in scheda.righe.filter(is_active=True):
@@ -209,13 +223,13 @@ class SchedaLavorazioneDeleteView(LoginRequiredMixin, View):
         return redirect("schede_lavorazione:list")
 
 
-class LookupPezzoApiView(LoginRequiredMixin, View):
+class LookupPezzoApiView(LoginRequiredMixin, RequireExtraMixin, View):
     def get(self, request):
         codice = (request.GET.get("codice") or "").strip()
         return JsonResponse(lookup_pezzo(codice))
 
 
-class SaveRigheApiView(LoginRequiredMixin, View):
+class SaveRigheApiView(LoginRequiredMixin, RequireExtraMixin, View):
     def post(self, request, pk):
         scheda = get_object_or_404(SchedaLavorazione, pk=pk, is_active=True)
         try:

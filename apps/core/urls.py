@@ -1,8 +1,10 @@
 from django.urls import path
 
 from apps.articoli.views import ArticoloInventarioPrintView
+from apps.core.stampe import StampeHubView
 from apps.core.views import (
     AiAssistantView,
+    AiExportDownloadView,
     ComandiVocaliListView,
     ComandoVocaleDeleteView,
     ComandoVocaleDuplicateView,
@@ -31,6 +33,7 @@ from apps.core.views import (
 app_name = "core"
 
 urlpatterns = [
+    path("stampe/", StampeHubView.as_view(), name="stampe"),
     path(
         "stampe/inventario/",
         ArticoloInventarioPrintView.as_view(),
@@ -112,5 +115,10 @@ urlpatterns = [
     path("api/helper/open/", HelperOpenApiView.as_view(), name="helper_open"),
     path("api/helper/share/", HelperShareApiView.as_view(), name="helper_share"),
     path("api/ai/ask/", AiAssistantView.as_view(), name="ai_ask"),
+    path(
+        "api/ai/export/<str:token>/",
+        AiExportDownloadView.as_view(),
+        name="ai_export_download",
+    ),
     path("sw.js", ServiceWorkerView.as_view(), name="service_worker"),
 ]

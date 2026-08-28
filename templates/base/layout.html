@@ -41,19 +41,19 @@
     <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/variables.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}?v=compact-9">
-    <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}?v=bar-3">
+    <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}?v=bar-11">
     <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-3">
-    <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-16">
-    <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-34">
+    <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-19">
+    <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-35">
     {% if user.is_authenticated and eureka_voice_enabled %}
     <link rel="stylesheet" href="{% static 'eureka/css/voice-assistant.css' %}">
     {% endif %}
-    <link rel="stylesheet" href="{% static 'eureka/css/ai-assistant-modal.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'eureka/css/ai-assistant-modal.css' %}?v=20">
 
     {% block extra_css %}{% endblock %}
 </head>
 
-<body class="{% if eureka_navbar_fissa %}st-navbar-fixed{% endif %}{% if eureka_liste_fisse %} st-liste-fisse{% endif %}">
+<body class="{% if eureka_navbar_fissa %}st-navbar-fixed{% endif %}{% if eureka_liste_fisse %} st-liste-fisse{% endif %}"{% if back_url %} data-back-url="{{ back_url }}" data-back-label="{{ back_label }}"{% endif %}>
 <script>
 (function () {
     try {
@@ -109,13 +109,29 @@
                             <i class="ti ti-home"></i>
                         </a>
                     </div>
+                    {# Titolo maschera: non in barra (resto disponibile alle pagine figlie / screen reader) #}
+                    <span class="visually-hidden">{% block page_title %}{% endblock %}</span>
 
-                    <div class="eureka-navbar__title-wrap">
-                        <span class="eureka-navbar__eyebrow">Eureka! AI</span>
-                        <h1 class="eureka-navbar__title">
-                            {% block page_title %}Dashboard{% endblock %}
-                        </h1>
+                    {% if eureka_navbar_shortcut_groups %}
+                    <div class="eureka-navbar__shortcuts-wrap">
+                        {% for group in eureka_navbar_shortcut_groups %}
+                        <nav class="eureka-navbar__shortcuts eureka-navbar__shortcuts--tone-{{ group.tone }}"
+                             aria-label="Scorciatoie gruppo {{ group.gruppo }}">
+                            {% for sc in group.items %}
+                            <a href="{{ sc.href }}"
+                               class="eureka-navbar__shortcut"
+                               aria-label="{{ sc.label }}"
+                               title="{{ sc.label }}">
+                                <span class="eureka-navbar__shortcut-icon">
+                                    <i class="ti {{ sc.icon }}"></i>
+                                </span>
+                                <span class="eureka-navbar__shortcut-label">{{ sc.label }}</span>
+                            </a>
+                            {% endfor %}
+                        </nav>
+                        {% endfor %}
                     </div>
+                    {% endif %}
                 </div>
 
                 <div class="eureka-navbar__right">
@@ -207,7 +223,7 @@
     window.EUREKA_ERROR_SOUND_ENABLED = {% if eureka_error_sound_enabled %}true{% else %}false{% endif %};
     window.EUREKA_ERROR_SOUND_URL = "{{ eureka_error_sound_url|default:''|escapejs }}";
 </script>
-<script src="{% static 'eureka/js/error-feedback.js' %}?v=4"></script>
+<script src="{% static 'eureka/js/error-feedback.js' %}?v=5"></script>
 {% if user.is_authenticated and eureka_voice_enabled %}
 <script>
     window.EUREKA_VOICE_ENABLED = true;
@@ -253,8 +269,11 @@
         gruppi_articoli: "{% url 'gruppi_articoli:list' %}",
         gruppi_magazzini: "{% url 'gruppi_magazzini:list' %}",
         magazzini: "{% url 'magazzini:list' %}",
+        depositi: "{% url 'depositi:list' %}",
         causali_magazzino: "{% url 'causali_magazzino:list' %}",
         causali_maga: "{% url 'causali_magazzino:list' %}",
+        movimenti: "{% url 'movimenti:list' %}",
+        movimentit: "{% url 'movimenti:list' %}",
         stampi: "{% url 'stampi:list' %}",
         operatori: "{% url 'operatori:list' %}",
         timbrature: "{% url 'timbrature:list' %}",
@@ -289,8 +308,11 @@
         sync_gruppi_articoli: "{% url 'gruppi_articoli:sync' %}",
         sync_gruppi_magazzini: "{% url 'gruppi_magazzini:sync' %}",
         sync_magazzini: "{% url 'magazzini:sync' %}",
+        sync_depositi: "{% url 'depositi:sync' %}",
         sync_causali_magazzino: "{% url 'causali_magazzino:sync' %}",
         sync_causali_maga: "{% url 'causali_magazzino:sync' %}",
+        sync_movimenti: "{% url 'movimenti:sync' %}",
+        sync_movimentit: "{% url 'movimenti:sync' %}",
         sync_stampi: "{% url 'stampi:sync' %}",
         sync_carbon: "{% url 'carbon:sync' %}",
         sync_lavorazioni_extra: "{% url 'lavorazioni_extra:sync' %}",
@@ -306,7 +328,7 @@
 
 <!-- Modale Assistente AI -->
 <div class="modal modal-blur fade" id="eurekaAiPromptModal" tabindex="-1" aria-labelledby="eurekaAiPromptLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable eureka-ai-modal-dialog">
     <div class="modal-content eureka-ai-modal">
       <div class="eureka-ai-modal__accent" aria-hidden="true"></div>
       <div class="modal-header eureka-ai-modal__header">
@@ -319,51 +341,139 @@
             <div class="eureka-ai-modal__subtitle">Cerca ed elabora dati in linguaggio naturale</div>
           </div>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+        <div class="eureka-ai-modal__header-actions">
+          <button type="button" class="btn btn-icon btn-sm eureka-ai-modal__expand-btn" id="eurekaAiExpandBtn"
+                  title="Espandi modale" aria-label="Espandi modale" aria-pressed="false">
+            <i class="ti ti-arrows-maximize" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+        </div>
       </div>
       <div class="modal-body eureka-ai-modal__body">
-        <div class="eureka-ai-modal__hint">
-          <i class="ti ti-bulb eureka-ai-modal__hint-icon" aria-hidden="true"></i>
-          <div>
+        <div class="eureka-ai-modal__hint eureka-ai-collapse" data-eureka-ai-collapse
+             data-ai-collapse-key="hint" data-ai-collapse-default="open">
+          <div class="eureka-ai-collapse__header">
+            <button type="button" class="eureka-ai-collapse__toggle" data-ai-collapse-toggle
+                    aria-expanded="true" aria-controls="eurekaAiHintBody" title="Comprimi suggerimento">
+              <i class="ti ti-chevron-right eureka-ai-collapse__chevron" aria-hidden="true"></i>
+              <i class="ti ti-bulb eureka-ai-modal__hint-icon" aria-hidden="true"></i>
+              <span class="eureka-ai-collapse__title">Suggerimento</span>
+            </button>
+          </div>
+          <div class="eureka-ai-collapse__body" id="eurekaAiHintBody" data-ai-collapse-body>
             Descrivi cosa vuoi cercare o elaborare. Ad esempio:
             <em>"{{ eureka_ai_example_prompt }}"</em>
           </div>
         </div>
 
-        <div id="eurekaAiHistoryControls" class="eureka-ai-modal__history d-none">
-          <div class="eureka-ai-modal__history-header">
-            <div class="eureka-ai-modal__history-title">
-              <i class="ti ti-history" aria-hidden="true"></i>
-              Ricerche recenti
+        <div id="eurekaAiSavedControls" class="eureka-ai-modal__history eureka-ai-modal__saved eureka-ai-collapse"
+             data-eureka-ai-collapse data-ai-collapse-key="saved" data-ai-collapse-default="open">
+          <div class="eureka-ai-modal__history-header eureka-ai-collapse__header">
+            <button type="button" class="eureka-ai-collapse__toggle" data-ai-collapse-toggle
+                    aria-expanded="true" aria-controls="eurekaAiSavedBody" title="Comprimi ricerche salvate">
+              <i class="ti ti-chevron-right eureka-ai-collapse__chevron" aria-hidden="true"></i>
+              <span class="eureka-ai-modal__history-title">
+                <i class="ti ti-bookmark" aria-hidden="true"></i>
+                Ricerche salvate
+              </span>
+            </button>
+            <div class="eureka-ai-modal__saved-actions eureka-ai-collapse__actions">
+              <button type="button" class="eureka-ai-modal__history-action" id="eurekaAiExportSaved"
+                      title="Esporta salvate e recenti in un unico file">
+                <i class="ti ti-download" aria-hidden="true"></i>
+                Esporta blocco
+              </button>
+              <button type="button" class="eureka-ai-modal__history-action" id="eurekaAiImportSaved"
+                      title="Importa un blocco ricerche salvato in precedenza">
+                <i class="ti ti-upload" aria-hidden="true"></i>
+                Importa blocco
+              </button>
+              <input type="file" id="eurekaAiImportSavedFile" accept="application/json,.json,text/plain,.txt"
+                     class="d-none" aria-hidden="true">
+              <button type="button" class="eureka-ai-modal__history-clear d-none" id="eurekaAiClearSaved"
+                      title="Cancella tutte le ricerche salvate">
+                Cancella tutto
+              </button>
             </div>
-            <button type="button" class="eureka-ai-modal__history-clear" id="eurekaAiClearHistory"
-                    title="Cancella tutte le ricerche recenti">
-              Cancella tutto
-            </button>
           </div>
-          <div class="dropdown eureka-ai-modal__history-dropdown">
-            <button type="button" class="eureka-ai-modal__history-toggle dropdown-toggle w-100"
-                    id="eurekaAiPromptHistoryToggle"
-                    data-bs-toggle="dropdown" data-bs-display="static"
-                    aria-expanded="false" aria-label="Apri elenco ricerche recenti">
-              <i class="ti ti-list-search" aria-hidden="true"></i>
-              <span id="eurekaAiHistoryToggleLabel">Apri elenco</span>
-            </button>
-            <div class="dropdown-menu eureka-ai-modal__history-menu" id="eurekaAiPromptHistoryMenu"
-                 role="menu" aria-label="Elenco ricerche recenti"></div>
+          <div class="eureka-ai-collapse__body" id="eurekaAiSavedBody" data-ai-collapse-body>
+            <div class="dropdown eureka-ai-modal__history-dropdown">
+              <button type="button" class="eureka-ai-modal__history-toggle dropdown-toggle w-100"
+                      id="eurekaAiPromptSavedToggle"
+                      data-bs-toggle="dropdown" data-bs-display="static"
+                      aria-expanded="false" aria-label="Apri elenco ricerche salvate">
+                <i class="ti ti-bookmarks" aria-hidden="true"></i>
+                <span id="eurekaAiSavedToggleLabel">Nessuna ricerca salvata</span>
+              </button>
+              <div class="dropdown-menu eureka-ai-modal__history-menu" id="eurekaAiPromptSavedMenu"
+                   role="menu" aria-label="Elenco ricerche salvate"></div>
+            </div>
           </div>
         </div>
 
-        <div class="eureka-ai-modal__prompt">
-          <label for="eurekaAiPromptInput" class="eureka-ai-modal__prompt-label">La tua richiesta</label>
-          <div class="eureka-ai-modal__input-wrap">
-            <textarea class="form-control eureka-ai-modal__textarea" id="eurekaAiPromptInput" rows="4"
-                      placeholder="Scrivi o detta la tua richiesta…" autofocus></textarea>
-            <button type="button" class="btn btn-ghost-primary eureka-ai-modal__voice-btn" id="eurekaAiVoiceBtn"
-                    title="Dettatura vocale" aria-label="Dettatura vocale">
-              <i class="ti ti-microphone fs-3" aria-hidden="true"></i>
+        <div id="eurekaAiHistoryControls" class="eureka-ai-modal__history eureka-ai-collapse d-none"
+             data-eureka-ai-collapse data-ai-collapse-key="recent" data-ai-collapse-default="open">
+          <div class="eureka-ai-modal__history-header eureka-ai-collapse__header">
+            <button type="button" class="eureka-ai-collapse__toggle" data-ai-collapse-toggle
+                    aria-expanded="true" aria-controls="eurekaAiRecentBody" title="Comprimi ricerche recenti">
+              <i class="ti ti-chevron-right eureka-ai-collapse__chevron" aria-hidden="true"></i>
+              <span class="eureka-ai-modal__history-title">
+                <i class="ti ti-history" aria-hidden="true"></i>
+                Ricerche recenti
+              </span>
+            </button>
+            <div class="eureka-ai-modal__saved-actions eureka-ai-collapse__actions">
+              <button type="button" class="eureka-ai-modal__history-action" id="eurekaAiSaveAllRecent"
+                      title="Salva tutte le ricerche recenti tra le salvate">
+                <i class="ti ti-bookmark" aria-hidden="true"></i>
+                Salva tutte
+              </button>
+              <button type="button" class="eureka-ai-modal__history-clear" id="eurekaAiClearHistory"
+                      title="Cancella tutte le ricerche recenti">
+                Cancella tutto
+              </button>
+            </div>
+          </div>
+          <div class="eureka-ai-collapse__body" id="eurekaAiRecentBody" data-ai-collapse-body>
+            <div class="dropdown eureka-ai-modal__history-dropdown">
+              <button type="button" class="eureka-ai-modal__history-toggle dropdown-toggle w-100"
+                      id="eurekaAiPromptHistoryToggle"
+                      data-bs-toggle="dropdown" data-bs-display="static"
+                      aria-expanded="false" aria-label="Apri elenco ricerche recenti">
+                <i class="ti ti-list-search" aria-hidden="true"></i>
+                <span id="eurekaAiHistoryToggleLabel">Apri elenco</span>
+              </button>
+              <div class="dropdown-menu eureka-ai-modal__history-menu" id="eurekaAiPromptHistoryMenu"
+                   role="menu" aria-label="Elenco ricerche recenti"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="eureka-ai-modal__prompt eureka-ai-collapse" data-eureka-ai-collapse
+             data-ai-collapse-key="prompt" data-ai-collapse-default="open">
+          <div class="eureka-ai-modal__prompt-header eureka-ai-collapse__header">
+            <button type="button" class="eureka-ai-collapse__toggle" data-ai-collapse-toggle
+                    aria-expanded="true" aria-controls="eurekaAiPromptBody" title="Comprimi richiesta">
+              <i class="ti ti-chevron-right eureka-ai-collapse__chevron" aria-hidden="true"></i>
+              <span class="eureka-ai-modal__prompt-label eureka-ai-collapse__title">La tua richiesta</span>
+            </button>
+            <button type="button" class="eureka-ai-modal__save-btn eureka-ai-collapse__actions" id="eurekaAiSavePromptBtn"
+                    title="Salva la richiesta corrente tra le ricerche salvate">
+              <i class="ti ti-bookmark" aria-hidden="true"></i>
+              Salva ricerca
             </button>
           </div>
+          <div class="eureka-ai-collapse__body" id="eurekaAiPromptBody" data-ai-collapse-body>
+            <div class="eureka-ai-modal__input-wrap">
+              <textarea class="form-control eureka-ai-modal__textarea" id="eurekaAiPromptInput" rows="4"
+                        placeholder="Scrivi o detta la tua richiesta…" aria-label="La tua richiesta" autofocus></textarea>
+              <button type="button" class="btn btn-ghost-primary eureka-ai-modal__voice-btn" id="eurekaAiVoiceBtn"
+                      title="Dettatura vocale" aria-label="Dettatura vocale">
+                <i class="ti ti-microphone fs-3" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="eureka-ai-collapse__summary" data-ai-collapse-summary hidden aria-hidden="true"></div>
         </div>
 
         <div id="eurekaAiPromptResult" class="eureka-ai-modal__result d-none">
@@ -380,23 +490,484 @@
           <i class="ti ti-send me-1"></i> Invia
         </button>
       </div>
+      <div class="eureka-ai-modal__resize-handle" aria-hidden="true" title="Trascina per ridimensionare"></div>
     </div>
   </div>
 </div>
+
+<!-- Lightbox grafico Assistente AI -->
+<div id="eurekaAiChartLightbox" class="eureka-ai-chart-lightbox" aria-hidden="true" role="dialog"
+     aria-modal="true" aria-labelledby="eurekaAiChartLightboxTitle">
+  <div class="eureka-ai-chart-lightbox__backdrop" data-eureka-ai-chart-lightbox-dismiss></div>
+  <div class="eureka-ai-chart-lightbox__panel">
+    <div class="eureka-ai-chart-lightbox__header">
+      <h2 class="eureka-ai-chart-lightbox__title" id="eurekaAiChartLightboxTitle">Grafico</h2>
+      <div class="eureka-ai-chart-lightbox__header-actions">
+        <button type="button" class="btn btn-ghost-secondary btn-sm" id="eurekaAiChartLightboxPrintBtn"
+                title="Stampa grafico" aria-label="Stampa grafico">
+          <i class="ti ti-printer me-1" aria-hidden="true"></i>
+          Stampa
+        </button>
+        <button type="button" class="btn btn-icon btn-sm eureka-ai-modal__expand-btn" id="eurekaAiChartLightboxExpandBtn"
+                title="Espandi grafico" aria-label="Espandi grafico" aria-pressed="false">
+          <i class="ti ti-arrows-maximize" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="btn btn-ghost-secondary btn-sm eureka-ai-chart-lightbox__close"
+                data-eureka-ai-chart-lightbox-dismiss aria-label="Chiudi">Chiudi</button>
+      </div>
+    </div>
+    <div class="eureka-ai-chart-lightbox__body">
+      <div class="eureka-ai-chart-lightbox__chart-wrap">
+        <div class="eureka-ai-chart-lightbox__chart-host">
+          <canvas id="eurekaAiChartLightboxCanvas" aria-label="Grafico ingrandito"></canvas>
+        </div>
+      </div>
+      <p class="eureka-ai-modal__chart-hint eureka-ai-chart-lightbox__hint" id="eurekaAiChartLightboxHint"></p>
+      <p class="eureka-ai-modal__chart-detail" id="eurekaAiChartLightboxDetail" aria-live="polite">Seleziona un elemento per i dettagli</p>
+    </div>
+    <div class="eureka-ai-chart-lightbox__resize-handle" aria-hidden="true" title="Trascina per ridimensionare"></div>
+  </div>
+</div>
+
 <script>
 (function() {
   const modal = document.getElementById("eurekaAiPromptModal");
   if (!modal) return;
+  const dialog = modal.querySelector(".eureka-ai-modal-dialog");
+  const output = document.getElementById("eurekaAiPromptOutput");
+  const expandBtn = document.getElementById("eurekaAiExpandBtn");
+  const resizeHandle = modal.querySelector(".eureka-ai-modal__resize-handle");
+  const sizeStorageKey = "eureka-ai-modal-size";
+  const MIN_MODAL_W = 420;
+  const MIN_MODAL_H = 360;
+  const CHART_MODAL_MIN_W = 900;
+  const CHART_MODAL_MIN_H = 760;
+  let isMaximized = false;
+  let sizeBeforeMaximize = null;
+  let aiChartInstance = null;
+  let aiChartLightboxInstance = null;
+  let aiChartResizeObserver = null;
+  let aiChartReflowTimer = null;
+  let aiChartFitRetry = 0;
+  let lastAiChartData = null;
+  let isModalResizing = false;
+  const chartLightbox = document.getElementById("eurekaAiChartLightbox");
+  const chartLightboxPanel = chartLightbox?.querySelector(".eureka-ai-chart-lightbox__panel");
+  const chartLightboxExpandBtn = document.getElementById("eurekaAiChartLightboxExpandBtn");
+  const chartLightboxPrintBtn = document.getElementById("eurekaAiChartLightboxPrintBtn");
+  const chartLightboxResizeHandle = chartLightbox?.querySelector(".eureka-ai-chart-lightbox__resize-handle");
+  const chartLightboxSizeStorageKey = "eureka-ai-chart-lightbox-size";
+  const MIN_CHART_LIGHTBOX_W = 480;
+  const MIN_CHART_LIGHTBOX_H = 400;
+  let isChartLightboxMaximized = false;
+  let sizeBeforeChartLightboxMaximize = null;
+  let isChartLightboxResizing = false;
+
+  function getModalSizeLimits() {
+    return {
+      maxW: Math.max(MIN_MODAL_W, window.innerWidth - 32),
+      maxH: Math.max(MIN_MODAL_H, window.innerHeight - 32),
+    };
+  }
+
+  function clampModalSize(width, height) {
+    const limits = getModalSizeLimits();
+    return {
+      width: Math.min(Math.max(width, MIN_MODAL_W), limits.maxW),
+      height: Math.min(Math.max(height, MIN_MODAL_H), limits.maxH),
+    };
+  }
+
+  function readSavedModalSize() {
+    try {
+      const raw = window.localStorage.getItem(sizeStorageKey);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || typeof parsed.width !== "number" || typeof parsed.height !== "number") return null;
+      return clampModalSize(parsed.width, parsed.height);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeSavedModalSize(size) {
+    if (!size) return;
+    try {
+      window.localStorage.setItem(sizeStorageKey, JSON.stringify(size));
+    } catch (error) {
+      // Ignore storage failures.
+    }
+  }
+
+  function getDialogSize() {
+    if (!dialog) return null;
+    const rect = dialog.getBoundingClientRect();
+    return clampModalSize(Math.round(rect.width), Math.round(rect.height));
+  }
+
+  function applyDialogSize(size, persist) {
+    if (!dialog || !size) return;
+    dialog.classList.remove("is-maximized");
+    dialog.classList.add("is-resized");
+    dialog.style.setProperty("--eureka-ai-modal-width", size.width + "px");
+    dialog.style.setProperty("--eureka-ai-modal-height", size.height + "px");
+    isMaximized = false;
+    updateExpandButton(false);
+    if (persist) writeSavedModalSize(size);
+    reflowAiChart();
+  }
+
+  function clearDialogSize() {
+    if (!dialog) return;
+    dialog.classList.remove("is-resized", "is-maximized");
+    dialog.style.removeProperty("--eureka-ai-modal-width");
+    dialog.style.removeProperty("--eureka-ai-modal-height");
+    isMaximized = false;
+    sizeBeforeMaximize = null;
+    updateExpandButton(false);
+    reflowAiChart();
+  }
+
+  function updateExpandButton(maximized) {
+    if (!expandBtn) return;
+    expandBtn.setAttribute("aria-pressed", maximized ? "true" : "false");
+    expandBtn.title = maximized ? "Ripristina dimensioni" : "Espandi modale";
+    expandBtn.setAttribute("aria-label", expandBtn.title);
+    expandBtn.innerHTML = maximized
+      ? '<i class="ti ti-arrows-minimize" aria-hidden="true"></i>'
+      : '<i class="ti ti-arrows-maximize" aria-hidden="true"></i>';
+  }
+
+  function setMaximized(maximized) {
+    if (!dialog) return;
+    if (maximized) {
+      sizeBeforeMaximize = dialog.classList.contains("is-resized")
+        ? getDialogSize()
+        : (readSavedModalSize() || getDialogSize());
+      dialog.classList.remove("is-resized");
+      dialog.classList.add("is-maximized");
+      dialog.style.removeProperty("--eureka-ai-modal-width");
+      dialog.style.removeProperty("--eureka-ai-modal-height");
+      isMaximized = true;
+      updateExpandButton(true);
+    } else {
+      dialog.classList.remove("is-maximized");
+      isMaximized = false;
+      updateExpandButton(false);
+      const restore = sizeBeforeMaximize || readSavedModalSize();
+      if (restore) applyDialogSize(restore, false);
+      else clearDialogSize();
+      sizeBeforeMaximize = null;
+    }
+    reflowAiChart();
+  }
+
+  function toggleMaximized() {
+    setMaximized(!isMaximized);
+  }
+
+  function modalChartIsConstrained() {
+    return Boolean(dialog && (dialog.classList.contains("is-resized") || dialog.classList.contains("is-maximized")));
+  }
+
+  function fitAiChartToHost() {
+    if (!aiChartInstance) return;
+    const host = document.querySelector(".eureka-ai-modal__chart-host");
+    if (!host) return;
+    const wrap = host.closest(".eureka-ai-modal__chart-wrap");
+    let w = Math.floor(host.clientWidth);
+    let h = Math.floor(host.clientHeight);
+    if (h < 200 && wrap && !modalChartIsConstrained()) {
+      wrap.style.minHeight = "420px";
+      wrap.style.height = "min(52vh, 520px)";
+      w = Math.floor(host.clientWidth);
+      h = Math.floor(host.clientHeight);
+    }
+    const tooSmallToDraw = w < 50 || h < 50 || (h < 200 && !modalChartIsConstrained());
+    if (tooSmallToDraw) {
+      if (aiChartFitRetry < 16) {
+        aiChartFitRetry += 1;
+        window.requestAnimationFrame(fitAiChartToHost);
+      }
+      return;
+    }
+    aiChartFitRetry = 0;
+    const canvas = aiChartInstance.canvas;
+    if (!canvas) return;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    if (typeof aiChartInstance.resize === "function") {
+      aiChartInstance.resize(w, h);
+    }
+  }
+
+  function reflowAiChart() {
+    window.requestAnimationFrame(function() {
+      window.requestAnimationFrame(function() {
+        fitAiChartToHost();
+      });
+    });
+  }
+
+  function scheduleAiChartReflow() {
+    if (aiChartReflowTimer) window.clearTimeout(aiChartReflowTimer);
+    aiChartReflowTimer = window.setTimeout(function() {
+      aiChartReflowTimer = null;
+      fitAiChartToHost();
+    }, 16);
+  }
+
+  const aiCollapseStoragePrefix = "eureka-ai-card-collapse.";
+  const aiChartAutoCollapsed = new Set();
+  let aiChartCompactApplied = false;
+
+  function aiCollapseCards() {
+    return Array.from(modal.querySelectorAll("[data-eureka-ai-collapse]"));
+  }
+
+  function aiCollapseStorageKey(el) {
+    return aiCollapseStoragePrefix + ((el.getAttribute("data-ai-collapse-key") || "card").trim());
+  }
+
+  function readAiCollapseOpen(el) {
+    try {
+      const raw = window.localStorage.getItem(aiCollapseStorageKey(el));
+      if (raw === "1") return true;
+      if (raw === "0") return false;
+    } catch (error) {
+      // Ignore storage failures.
+    }
+    const forced = (el.getAttribute("data-ai-collapse-default") || "open").trim().toLowerCase();
+    return forced !== "collapsed" && forced !== "closed";
+  }
+
+  function writeAiCollapseOpen(el, open) {
+    try {
+      window.localStorage.setItem(aiCollapseStorageKey(el), open ? "1" : "0");
+    } catch (error) {
+      // Ignore storage failures.
+    }
+  }
+
+  function updateAiCollapseSummary(el) {
+    const summary = el.querySelector("[data-ai-collapse-summary]");
+    if (!summary) return;
+    if (el.getAttribute("data-ai-collapse-key") === "prompt") {
+      const text = (document.getElementById("eurekaAiPromptInput")?.value || "").trim().replace(/\s+/g, " ");
+      summary.textContent = text
+        ? (text.length > 120 ? text.slice(0, 117) + "…" : text)
+        : "Nessuna richiesta";
+    }
+  }
+
+  function setAiCollapseOpen(el, open, { persist = true, trackAuto = false } = {}) {
+    if (!el) return;
+    el.classList.toggle("is-collapsed", !open);
+    const toggle = el.querySelector("[data-ai-collapse-toggle]");
+    const label = (el.getAttribute("data-ai-collapse-key") || "sezione").trim();
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("title", open ? ("Comprimi " + label) : ("Espandi " + label));
+    }
+    const summary = el.querySelector("[data-ai-collapse-summary]");
+    if (summary) {
+      if (!open) updateAiCollapseSummary(el);
+      summary.hidden = open;
+      summary.setAttribute("aria-hidden", open ? "true" : "false");
+    }
+    if (persist) writeAiCollapseOpen(el, open);
+    if (trackAuto) {
+      const key = el.getAttribute("data-ai-collapse-key") || "";
+      if (!open) aiChartAutoCollapsed.add(key);
+      else aiChartAutoCollapsed.delete(key);
+    }
+  }
+
+  function initAiCollapseCards() {
+    aiCollapseCards().forEach((el) => {
+      setAiCollapseOpen(el, readAiCollapseOpen(el), { persist: false });
+      const toggle = el.querySelector("[data-ai-collapse-toggle]");
+      if (!toggle || toggle.dataset.aiCollapseBound === "1") return;
+      toggle.dataset.aiCollapseBound = "1";
+      toggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        const nextOpen = el.classList.contains("is-collapsed");
+        setAiCollapseOpen(el, nextOpen, { persist: true });
+        const key = el.getAttribute("data-ai-collapse-key") || "";
+        aiChartAutoCollapsed.delete(key);
+        reflowAiChart();
+      });
+    });
+  }
+
+  function setAiCardsCompactForChart(active) {
+    const keysForChart = new Set(["hint", "saved", "recent", "prompt"]);
+    if (active) {
+      if (aiChartCompactApplied) {
+        reflowAiChart();
+        return;
+      }
+      aiChartCompactApplied = true;
+      aiCollapseCards().forEach((el) => {
+        const key = el.getAttribute("data-ai-collapse-key") || "";
+        if (!keysForChart.has(key)) return;
+        if (!el.classList.contains("is-collapsed")) {
+          setAiCollapseOpen(el, false, { persist: false, trackAuto: true });
+        }
+      });
+    } else {
+      aiCollapseCards().forEach((el) => {
+        const key = el.getAttribute("data-ai-collapse-key") || "";
+        if (!aiChartAutoCollapsed.has(key)) return;
+        setAiCollapseOpen(el, readAiCollapseOpen(el), { persist: false });
+        aiChartAutoCollapsed.delete(key);
+      });
+      aiChartAutoCollapsed.clear();
+      aiChartCompactApplied = false;
+    }
+    reflowAiChart();
+  }
+
+  function setChartViewActive(active) {
+    if (output) output.classList.toggle("eureka-ai-modal__output--has-chart", active);
+    if (dialog) dialog.classList.toggle("is-chart-view", active);
+    setAiCardsCompactForChart(active);
+  }
+
+  function ensureChartModalLayout() {
+    if (!dialog) return;
+    setChartViewActive(true);
+    if (isMaximized) {
+      reflowAiChart();
+      return;
+    }
+    const target = clampModalSize(
+      CHART_MODAL_MIN_W,
+      Math.min(CHART_MODAL_MIN_H, window.innerHeight - 40)
+    );
+    if (dialog.classList.contains("is-resized")) {
+      const current = getDialogSize();
+      if (!current || current.width < target.width || current.height < target.height) {
+        applyDialogSize(target, false);
+        return;
+      }
+    }
+    reflowAiChart();
+  }
+
+  function disconnectAiChartObserver() {
+    if (aiChartReflowTimer) {
+      window.clearTimeout(aiChartReflowTimer);
+      aiChartReflowTimer = null;
+    }
+    if (!aiChartResizeObserver) return;
+    aiChartResizeObserver.disconnect();
+    aiChartResizeObserver = null;
+  }
+
+  function observeAiChartContainer(chartWrap) {
+    disconnectAiChartObserver();
+    if (typeof ResizeObserver === "undefined") return;
+    aiChartResizeObserver = new ResizeObserver(function() { scheduleAiChartReflow(); });
+    [dialog, output, chartWrap].forEach(function(node) {
+      if (node) aiChartResizeObserver.observe(node);
+    });
+    const chartHost = chartWrap ? chartWrap.querySelector(".eureka-ai-modal__chart-host") : null;
+    if (chartHost) aiChartResizeObserver.observe(chartHost);
+  }
+
+  function restoreModalLayout() {
+    const saved = readSavedModalSize();
+    if (saved) applyDialogSize(saved, false);
+    else clearDialogSize();
+  }
+
+  expandBtn?.addEventListener("click", toggleMaximized);
+
+  if (resizeHandle && dialog) {
+    let dragStart = null;
+
+    function onResizePointerMove(event) {
+      if (!dragStart) return;
+      const limits = getModalSizeLimits();
+      const next = clampModalSize(
+        dragStart.width + (event.clientX - dragStart.x),
+        dragStart.height + (event.clientY - dragStart.y)
+      );
+      dialog.classList.remove("is-maximized");
+      dialog.classList.add("is-resized");
+      dialog.style.setProperty("--eureka-ai-modal-width", next.width + "px");
+      dialog.style.setProperty("--eureka-ai-modal-height", next.height + "px");
+      isMaximized = false;
+      updateExpandButton(false);
+      reflowAiChart();
+    }
+
+    function stopResizeDrag(event) {
+      if (!dragStart) return;
+      dragStart = null;
+      isModalResizing = false;
+      document.body.classList.remove("eureka-ai-modal--resizing");
+      document.removeEventListener("pointermove", onResizePointerMove);
+      document.removeEventListener("pointerup", stopResizeDrag);
+      document.removeEventListener("pointercancel", stopResizeDrag);
+      const size = getDialogSize();
+      if (size) writeSavedModalSize(size);
+      if (event) event.preventDefault();
+    }
+
+    resizeHandle.addEventListener("pointerdown", function(event) {
+      if (event.button !== 0 || window.matchMedia("(max-width: 575.98px)").matches) return;
+      event.preventDefault();
+      event.stopPropagation();
+      isModalResizing = true;
+      const current = getDialogSize();
+      if (!current) return;
+      dragStart = { x: event.clientX, y: event.clientY, width: current.width, height: current.height };
+      document.body.classList.add("eureka-ai-modal--resizing");
+      document.addEventListener("pointermove", onResizePointerMove);
+      document.addEventListener("pointerup", stopResizeDrag);
+      document.addEventListener("pointercancel", stopResizeDrag);
+    });
+  }
+
+  window.addEventListener("resize", function() {
+    if (!dialog) return;
+    if (isMaximized) {
+      reflowAiChart();
+      return;
+    }
+    if (dialog.classList.contains("is-resized")) {
+      const current = getDialogSize();
+      if (current) {
+        dialog.style.setProperty("--eureka-ai-modal-width", current.width + "px");
+        dialog.style.setProperty("--eureka-ai-modal-height", current.height + "px");
+        writeSavedModalSize(current);
+      }
+      reflowAiChart();
+    }
+  });
+
   const input = document.getElementById("eurekaAiPromptInput");
   const sendBtn = document.getElementById("eurekaAiPromptSend");
   const resultBox = document.getElementById("eurekaAiPromptResult");
-  const output = document.getElementById("eurekaAiPromptOutput");
   const historyControls = document.getElementById("eurekaAiHistoryControls");
   const historyMenu = document.getElementById("eurekaAiPromptHistoryMenu");
   const historyToggle = document.getElementById("eurekaAiPromptHistoryToggle");
   const historyToggleLabel = document.getElementById("eurekaAiHistoryToggleLabel");
   const clearHistoryBtn = document.getElementById("eurekaAiClearHistory");
+  const savedMenu = document.getElementById("eurekaAiPromptSavedMenu");
+  const savedToggle = document.getElementById("eurekaAiPromptSavedToggle");
+  const savedToggleLabel = document.getElementById("eurekaAiSavedToggleLabel");
+  const clearSavedBtn = document.getElementById("eurekaAiClearSaved");
+  const savePromptBtn = document.getElementById("eurekaAiSavePromptBtn");
+  const exportSavedBtn = document.getElementById("eurekaAiExportSaved");
+  const importSavedBtn = document.getElementById("eurekaAiImportSaved");
+  const importSavedFile = document.getElementById("eurekaAiImportSavedFile");
+  const saveAllRecentBtn = document.getElementById("eurekaAiSaveAllRecent");
   const historyStorageKey = "eureka-ai-prompt-history";
+  const savedStorageKey = "eureka-ai-prompt-saved";
+  const searchBlockType = "eureka-ai-searches";
+  const savedLimit = 50;
   const configuredHistoryLimit = Number("{{ eureka_ai_recent_searches_limit|default:10|escapejs }}");
   const historyLimit = Number.isFinite(configuredHistoryLimit) && configuredHistoryLimit > 0
     ? Math.min(Math.trunc(configuredHistoryLimit), 100)
@@ -418,6 +989,183 @@
     } catch (error) {
       // Ignore storage failures and keep current behavior.
     }
+  }
+
+  function normalizeSavedEntry(entry) {
+    if (!entry || typeof entry !== "object") return null;
+    const prompt = typeof entry.prompt === "string" ? entry.prompt.trim() : "";
+    if (!prompt) return null;
+    const name = typeof entry.name === "string" && entry.name.trim()
+      ? entry.name.trim()
+      : prompt.slice(0, 80);
+    const id = typeof entry.id === "string" && entry.id
+      ? entry.id
+      : ("s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+    const savedAt = typeof entry.savedAt === "number" ? entry.savedAt : Date.now();
+    return { id, name, prompt, savedAt };
+  }
+
+  function readSavedSearches() {
+    try {
+      const raw = window.localStorage.getItem(savedStorageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(normalizeSavedEntry).filter(Boolean).slice(0, savedLimit);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeSavedSearches(items) {
+    try {
+      window.localStorage.setItem(
+        savedStorageKey,
+        JSON.stringify(items.slice(0, savedLimit).map(normalizeSavedEntry).filter(Boolean))
+      );
+    } catch (error) {
+      // Ignore storage failures and keep current behavior.
+    }
+  }
+
+  function defaultSavedName(prompt) {
+    const cleaned = (prompt || "").trim().replace(/\s+/g, " ");
+    if (cleaned.length <= 80) return cleaned;
+    return cleaned.slice(0, 77) + "…";
+  }
+
+  function buildSearchBlock() {
+    return {
+      version: 1,
+      type: searchBlockType,
+      exportedAt: new Date().toISOString(),
+      saved: readSavedSearches(),
+      recent: readPromptHistory().slice(0, historyLimit),
+    };
+  }
+
+  function downloadSearchBlock() {
+    const block = buildSearchBlock();
+    if (!block.saved.length && !block.recent.length) {
+      window.alert("Non ci sono ricerche da esportare.");
+      return;
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([JSON.stringify(block, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "eureka-ai-ricerche-" + stamp + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function mergeSavedFromImport(incoming, { replace }) {
+    const normalized = (Array.isArray(incoming) ? incoming : [])
+      .map(normalizeSavedEntry)
+      .filter(Boolean);
+    if (replace) {
+      writeSavedSearches(normalized);
+      return normalized.length;
+    }
+    const byPrompt = new Map();
+    readSavedSearches().forEach((item) => byPrompt.set(item.prompt, item));
+    normalized.forEach((item) => {
+      const prev = byPrompt.get(item.prompt);
+      byPrompt.set(item.prompt, prev ? { ...prev, name: item.name || prev.name, savedAt: item.savedAt || prev.savedAt } : item);
+    });
+    const merged = Array.from(byPrompt.values())
+      .sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    writeSavedSearches(merged);
+    return normalized.length;
+  }
+
+  function importSearchBlock(rawText) {
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (error) {
+      window.alert("File non valido: non è un JSON di ricerche Eureka.");
+      return false;
+    }
+    let savedIncoming = [];
+    let recentIncoming = [];
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (parsed.type && parsed.type !== searchBlockType) {
+        window.alert("Questo file non è un blocco ricerche della bacchetta magica.");
+        return false;
+      }
+      savedIncoming = Array.isArray(parsed.saved) ? parsed.saved : [];
+      recentIncoming = Array.isArray(parsed.recent) ? parsed.recent : [];
+    } else if (Array.isArray(parsed)) {
+      // Compatibilità: array di stringhe o di oggetti {name, prompt}
+      savedIncoming = parsed.map((item) => {
+        if (typeof item === "string") return { name: defaultSavedName(item), prompt: item };
+        return item;
+      });
+    } else {
+      window.alert("Formato blocco non riconosciuto.");
+      return false;
+    }
+
+    const replace = window.confirm(
+      "Sostituire le ricerche salvate con il blocco importato?\n\n"
+      + "OK = sostituisci tutto\n"
+      + "Annulla = unisci al blocco attuale (senza duplicati)"
+    );
+
+    const addedSaved = mergeSavedFromImport(savedIncoming, { replace });
+    if (recentIncoming.length) {
+      const recent = [];
+      recentIncoming.forEach((item) => {
+        const prompt = typeof item === "string" ? item.trim() : "";
+        if (prompt && !recent.includes(prompt)) recent.push(prompt);
+      });
+      const mergedRecent = replace
+        ? recent
+        : recent.concat(readPromptHistory().filter((p) => !recent.includes(p)));
+      writePromptHistory(mergedRecent);
+    }
+    renderSavedSearches();
+    renderPromptHistory();
+    window.alert(
+      "Blocco importato: "
+      + addedSaved + " salvate"
+      + (recentIncoming.length ? (", " + recentIncoming.length + " recenti") : "")
+      + "."
+    );
+    return true;
+  }
+
+  function saveAllRecentToSaved() {
+    const history = readPromptHistory();
+    if (!history.length) {
+      window.alert("Non ci sono ricerche recenti da salvare.");
+      return;
+    }
+    const byPrompt = new Map();
+    readSavedSearches().forEach((item) => byPrompt.set(item.prompt, item));
+    let added = 0;
+    history.forEach((prompt) => {
+      if (byPrompt.has(prompt)) return;
+      byPrompt.set(prompt, {
+        id: "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        name: defaultSavedName(prompt),
+        prompt,
+        savedAt: Date.now(),
+      });
+      added += 1;
+    });
+    const merged = Array.from(byPrompt.values())
+      .sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    writeSavedSearches(merged);
+    renderSavedSearches();
+    window.alert(
+      added
+        ? ("Salvate " + added + " ricerche recenti nel blocco.")
+        : "Le ricerche recenti erano già tutte salvate."
+    );
   }
 
   function renderPromptHistory() {
@@ -450,6 +1198,14 @@
       itemBtn.appendChild(numSpan);
       itemBtn.appendChild(textSpan);
 
+      const pinBtn = document.createElement("button");
+      pinBtn.type = "button";
+      pinBtn.className = "eureka-ai-modal__history-remove eureka-ai-history-save";
+      pinBtn.dataset.index = String(index);
+      pinBtn.setAttribute("aria-label", "Salva ricerca");
+      pinBtn.title = "Salva";
+      pinBtn.innerHTML = '<i class="ti ti-bookmark" aria-hidden="true"></i>';
+
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "eureka-ai-modal__history-remove eureka-ai-history-remove";
@@ -459,6 +1215,7 @@
       removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
 
       row.appendChild(itemBtn);
+      row.appendChild(pinBtn);
       row.appendChild(removeBtn);
       historyMenu.appendChild(row);
     });
@@ -469,6 +1226,75 @@
         : "Apri elenco (" + history.length + " ricerche)";
     }
   }
+
+  function renderSavedSearches() {
+    if (!savedMenu) return;
+    const saved = readSavedSearches();
+    savedMenu.innerHTML = "";
+    if (clearSavedBtn) {
+      clearSavedBtn.classList.toggle("d-none", !saved.length);
+    }
+    if (!saved.length) {
+      if (savedToggleLabel) savedToggleLabel.textContent = "Nessuna ricerca salvata";
+      if (savedToggle) savedToggle.disabled = true;
+      return;
+    }
+    if (savedToggle) savedToggle.disabled = false;
+    saved.forEach((entry, index) => {
+      const row = document.createElement("div");
+      row.className = "eureka-ai-modal__history-item";
+
+      const itemBtn = document.createElement("button");
+      itemBtn.type = "button";
+      itemBtn.className = "eureka-ai-modal__history-text eureka-ai-saved-item";
+      itemBtn.dataset.index = String(index);
+      itemBtn.dataset.id = entry.id;
+      itemBtn.setAttribute("role", "menuitem");
+      itemBtn.title = entry.prompt;
+
+      const numSpan = document.createElement("span");
+      numSpan.className = "eureka-ai-modal__history-num";
+      numSpan.innerHTML = '<i class="ti ti-bookmark" aria-hidden="true"></i>';
+
+      const textWrap = document.createElement("span");
+      textWrap.className = "eureka-ai-modal__saved-text";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "eureka-ai-modal__saved-name";
+      nameSpan.textContent = entry.name;
+
+      const promptSpan = document.createElement("span");
+      promptSpan.className = "eureka-ai-modal__history-prompt";
+      promptSpan.textContent = entry.prompt;
+
+      textWrap.appendChild(nameSpan);
+      if (entry.name !== entry.prompt) {
+        textWrap.appendChild(promptSpan);
+      }
+
+      itemBtn.appendChild(numSpan);
+      itemBtn.appendChild(textWrap);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "eureka-ai-modal__history-remove eureka-ai-saved-remove";
+      removeBtn.dataset.index = String(index);
+      removeBtn.dataset.id = entry.id;
+      removeBtn.setAttribute("aria-label", "Elimina ricerca salvata");
+      removeBtn.title = "Elimina";
+      removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+
+      row.appendChild(itemBtn);
+      row.appendChild(removeBtn);
+      savedMenu.appendChild(row);
+    });
+    if (savedToggleLabel) {
+      savedToggleLabel.textContent = saved.length === 1
+        ? "Apri elenco (1 salvata)"
+        : "Apri elenco (" + saved.length + " salvate)";
+    }
+  }
+
   function applyPromptToInput(prompt) {
     if (!input || !prompt) return;
     input.value = prompt;
@@ -494,11 +1320,60 @@
     renderPromptHistory();
   }
 
+  function saveCurrentPrompt(promptOverride) {
+    const promptText = (promptOverride || input?.value || "").trim();
+    if (!promptText) {
+      if (input) input.focus();
+      return false;
+    }
+    const suggested = defaultSavedName(promptText);
+    const entered = window.prompt("Nome della ricerca salvata:", suggested);
+    if (entered === null) return false;
+    const name = (entered || "").trim() || suggested;
+    const existing = readSavedSearches();
+    const withoutDup = existing.filter(item => item.prompt !== promptText);
+    withoutDup.unshift({
+      id: "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      name,
+      prompt: promptText,
+      savedAt: Date.now(),
+    });
+    writeSavedSearches(withoutDup);
+    renderSavedSearches();
+    if (savePromptBtn) {
+      const original = savePromptBtn.innerHTML;
+      savePromptBtn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Salvata';
+      savePromptBtn.classList.add("is-saved");
+      window.setTimeout(() => {
+        savePromptBtn.innerHTML = original;
+        savePromptBtn.classList.remove("is-saved");
+      }, 1200);
+    }
+    return true;
+  }
+
+  function removeSavedAtIndex(index) {
+    const saved = readSavedSearches();
+    if (index < 0 || index >= saved.length) return;
+    saved.splice(index, 1);
+    writeSavedSearches(saved);
+    renderSavedSearches();
+  }
+
   modal.addEventListener("shown.bs.modal", () => {
+    restoreModalLayout();
+    initAiCollapseCards();
     renderPromptHistory();
+    renderSavedSearches();
     if (input) input.focus();
+    reflowAiChart();
   });
   modal.addEventListener("hidden.bs.modal", () => {
+    closeAiChartLightbox();
+    lastAiChartData = null;
+    destroyAiChart();
+    setChartViewActive(false);
+    setMaximized(false);
     if (input) input.value = "";
     if (resultBox) resultBox.classList.add("d-none");
     if (output) output.textContent = "";
@@ -531,6 +1406,1219 @@
 
   let lastPrompt = "";
 
+  function destroyAiChart() {
+    disconnectAiChartObserver();
+    aiChartFitRetry = 0;
+    document.querySelectorAll(".eureka-ai-modal__chart-wrap").forEach(function(el) {
+      el.classList.remove("eureka-ai-modal__chart-wrap--pie");
+      el.style.minHeight = "";
+      el.style.height = "";
+    });
+    if (aiChartInstance) {
+      clearAiChartSelectTimer(aiChartInstance);
+      aiChartInstance.destroy();
+      aiChartInstance = null;
+    }
+  }
+
+  function destroyAiChartLightbox() {
+    document.querySelectorAll(".eureka-ai-chart-lightbox__chart-wrap").forEach(function(el) {
+      el.classList.remove("eureka-ai-chart-lightbox__chart-wrap--pie");
+    });
+    if (aiChartLightboxInstance) {
+      clearAiChartSelectTimer(aiChartLightboxInstance);
+      aiChartLightboxInstance.destroy();
+      aiChartLightboxInstance = null;
+    }
+  }
+
+  function getChartLightboxSizeLimits() {
+    return {
+      maxW: Math.max(MIN_CHART_LIGHTBOX_W, window.innerWidth - 32),
+      maxH: Math.max(MIN_CHART_LIGHTBOX_H, window.innerHeight - 32),
+    };
+  }
+
+  function clampChartLightboxSize(width, height) {
+    const limits = getChartLightboxSizeLimits();
+    return {
+      width: Math.min(Math.max(width, MIN_CHART_LIGHTBOX_W), limits.maxW),
+      height: Math.min(Math.max(height, MIN_CHART_LIGHTBOX_H), limits.maxH),
+    };
+  }
+
+  function readSavedChartLightboxSize() {
+    try {
+      const raw = window.localStorage.getItem(chartLightboxSizeStorageKey);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || typeof parsed.width !== "number" || typeof parsed.height !== "number") return null;
+      return clampChartLightboxSize(parsed.width, parsed.height);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeSavedChartLightboxSize(size) {
+    if (!size) return;
+    try {
+      window.localStorage.setItem(chartLightboxSizeStorageKey, JSON.stringify(size));
+    } catch (error) {
+      // Ignore storage failures.
+    }
+  }
+
+  function getChartLightboxPanelSize() {
+    if (!chartLightboxPanel) return null;
+    const rect = chartLightboxPanel.getBoundingClientRect();
+    return clampChartLightboxSize(Math.round(rect.width), Math.round(rect.height));
+  }
+
+  function reflowChartLightboxChart() {
+    window.requestAnimationFrame(function() {
+      window.requestAnimationFrame(function() {
+        fitAiChartLightbox();
+      });
+    });
+  }
+
+  function updateChartLightboxExpandButton(maximized) {
+    if (!chartLightboxExpandBtn) return;
+    chartLightboxExpandBtn.setAttribute("aria-pressed", maximized ? "true" : "false");
+    chartLightboxExpandBtn.title = maximized ? "Ripristina dimensioni" : "Espandi grafico";
+    chartLightboxExpandBtn.setAttribute("aria-label", chartLightboxExpandBtn.title);
+    chartLightboxExpandBtn.innerHTML = maximized
+      ? '<i class="ti ti-arrows-minimize" aria-hidden="true"></i>'
+      : '<i class="ti ti-arrows-maximize" aria-hidden="true"></i>';
+  }
+
+  function applyChartLightboxSize(size, persist) {
+    if (!chartLightboxPanel || !size) return;
+    chartLightboxPanel.classList.remove("is-maximized");
+    chartLightboxPanel.classList.add("is-resized");
+    chartLightboxPanel.style.setProperty("--eureka-ai-chart-lightbox-width", size.width + "px");
+    chartLightboxPanel.style.setProperty("--eureka-ai-chart-lightbox-height", size.height + "px");
+    isChartLightboxMaximized = false;
+    updateChartLightboxExpandButton(false);
+    if (persist) writeSavedChartLightboxSize(size);
+    reflowChartLightboxChart();
+  }
+
+  function clearChartLightboxPanelSize() {
+    if (!chartLightboxPanel) return;
+    chartLightboxPanel.classList.remove("is-resized", "is-maximized");
+    chartLightboxPanel.style.removeProperty("--eureka-ai-chart-lightbox-width");
+    chartLightboxPanel.style.removeProperty("--eureka-ai-chart-lightbox-height");
+    isChartLightboxMaximized = false;
+    sizeBeforeChartLightboxMaximize = null;
+    updateChartLightboxExpandButton(false);
+    reflowChartLightboxChart();
+  }
+
+  function setChartLightboxMaximized(maximized) {
+    if (!chartLightboxPanel) return;
+    if (maximized) {
+      sizeBeforeChartLightboxMaximize = chartLightboxPanel.classList.contains("is-resized")
+        ? getChartLightboxPanelSize()
+        : (readSavedChartLightboxSize() || getChartLightboxPanelSize());
+      chartLightboxPanel.classList.remove("is-resized");
+      chartLightboxPanel.classList.add("is-maximized");
+      chartLightboxPanel.style.removeProperty("--eureka-ai-chart-lightbox-width");
+      chartLightboxPanel.style.removeProperty("--eureka-ai-chart-lightbox-height");
+      isChartLightboxMaximized = true;
+      updateChartLightboxExpandButton(true);
+    } else {
+      chartLightboxPanel.classList.remove("is-maximized");
+      isChartLightboxMaximized = false;
+      updateChartLightboxExpandButton(false);
+      const restore = sizeBeforeChartLightboxMaximize || readSavedChartLightboxSize();
+      if (restore) applyChartLightboxSize(restore, false);
+      else clearChartLightboxPanelSize();
+      sizeBeforeChartLightboxMaximize = null;
+    }
+    reflowChartLightboxChart();
+  }
+
+  function toggleChartLightboxMaximized() {
+    setChartLightboxMaximized(!isChartLightboxMaximized);
+  }
+
+  function restoreChartLightboxLayout() {
+    const saved = readSavedChartLightboxSize();
+    if (saved) applyChartLightboxSize(saved, false);
+    else clearChartLightboxPanelSize();
+  }
+
+  function closeAiChartLightbox() {
+    if (!chartLightbox || !chartLightbox.classList.contains("is-open")) return;
+    destroyAiChartLightbox();
+    chartLightbox.classList.remove("is-open");
+    chartLightbox.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("eureka-ai-chart-lightbox-open");
+    clearChartLightboxPanelSize();
+  }
+
+  function fitAiChartLightbox() {
+    if (!aiChartLightboxInstance) return;
+    const host = document.querySelector(".eureka-ai-chart-lightbox__chart-host");
+    if (!host) return;
+    const w = Math.floor(host.clientWidth);
+    const h = Math.floor(host.clientHeight);
+    if (w < 50 || h < 50) return;
+    const canvas = aiChartLightboxInstance.canvas;
+    if (!canvas) return;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    if (typeof aiChartLightboxInstance.resize === "function") {
+      aiChartLightboxInstance.resize(w, h);
+    }
+  }
+
+  function initAiChartLightbox(chartData) {
+    const canvas = document.getElementById("eurekaAiChartLightboxCanvas");
+    if (!canvas || !window.Chart || !chartData) return;
+    const chartWrap = canvas.closest(".eureka-ai-chart-lightbox__chart-wrap");
+    const chartHost = canvas.closest(".eureka-ai-chart-lightbox__chart-host") || chartWrap;
+    if (!chartWrap || !chartHost) return;
+    destroyAiChartLightbox();
+    const spec = buildAiChartConfig(chartData, {
+      legendFontSize: 11,
+      legendBoxWidth: 10,
+      legendPadding: 8,
+      piePercentageMinPct: 2,
+      piePercentageMinRadius: 28,
+      detailLineId: "eurekaAiChartLightboxDetail",
+    });
+    if (spec.isPie) {
+      chartWrap.classList.add("eureka-ai-chart-lightbox__chart-wrap--pie");
+    }
+    const preW = Math.floor(chartHost.clientWidth);
+    const preH = Math.floor(chartHost.clientHeight);
+    if (preW >= 50 && preH >= 50) {
+      canvas.style.width = preW + "px";
+      canvas.style.height = preH + "px";
+    }
+    aiChartLightboxInstance = new Chart(canvas, {
+      type: spec.chartType,
+      data: {
+        labels: spec.chartLabels,
+        datasets: spec.datasets,
+      },
+      options: spec.options,
+      plugins: spec.plugins,
+    });
+    aiChartLightboxInstance.$aiDetailLineId = spec.detailLineId;
+    aiChartLightboxInstance.$aiShowPercentages = spec.showPercentages;
+    aiChartLightboxInstance.$aiPaletteSolids = spec.paletteSolids.slice();
+    aiChartLightboxInstance.$aiPaletteBorders = spec.paletteBorders.slice();
+    updateAiChartDetailLine(spec.detailLineId, "", "Seleziona un elemento per i dettagli");
+    const lightboxHint = document.getElementById("eurekaAiChartLightboxHint");
+    if (lightboxHint) {
+      lightboxHint.innerHTML = '<i class="ti ti-info-circle" aria-hidden="true"></i> ' + getAiChartHintText(chartData);
+    }
+    window.requestAnimationFrame(function() {
+      window.requestAnimationFrame(function() {
+        fitAiChartLightbox();
+        window.setTimeout(fitAiChartLightbox, 50);
+      });
+    });
+  }
+
+  function openAiChartLightbox() {
+    if (!lastAiChartData || !chartLightbox) return;
+    closeAiChartLightbox();
+    restoreChartLightboxLayout();
+    const titleEl = document.getElementById("eurekaAiChartLightboxTitle");
+    if (titleEl) {
+      titleEl.textContent = lastAiChartData.title || "Grafico";
+    }
+    chartLightbox.classList.add("is-open");
+    chartLightbox.setAttribute("aria-hidden", "false");
+    document.body.classList.add("eureka-ai-chart-lightbox-open");
+    loadChartJs(function() {
+      window.requestAnimationFrame(function() {
+        window.requestAnimationFrame(function() {
+          initAiChartLightbox(lastAiChartData);
+        });
+      });
+    });
+  }
+
+  function shouldOpenChartLightbox(event) {
+    if (!lastAiChartData || isModalResizing) return false;
+    if (document.body.classList.contains("eureka-ai-modal--resizing")) return false;
+    if (event.target.closest(".eureka-ai-modal__resize-handle")) return false;
+    if (event.target.closest(".eureka-ai-modal__chart-hint, .eureka-ai-modal__chart-detail")) return false;
+    if (event.target.closest(".eureka-ai-modal__chart-actions")) return false;
+    if (event.target.closest(".eureka-ai-modal__chart-expand-btn")) return true;
+    if (event.target.closest("canvas")) return false;
+    return Boolean(event.target.closest(".eureka-ai-modal__chart-wrap--clickable"));
+  }
+
+  function escapeAiChartHtml(text) {
+    return String(text == null ? "" : text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function exportAiChartImage(chart) {
+    const src = chart && chart.canvas;
+    if (!src) return "";
+    const out = document.createElement("canvas");
+    out.width = src.width;
+    out.height = src.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return "";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(src, 0, 0);
+    return out.toDataURL("image/png");
+  }
+
+  function openAiChartPrintWindow(printWindow, dataUrl, title) {
+    const safeTitle = escapeAiChartHtml(title || "Grafico");
+    const dateStr = escapeAiChartHtml(new Date().toLocaleDateString("it-IT"));
+    const html = "<!doctype html><html lang='it'><head><meta charset='utf-8'>"
+      + "<title>" + safeTitle + " · Stampa</title>"
+      + "<style>"
+      + "@page{size:A4 landscape;margin:12mm}"
+      + "html,body{margin:0;padding:0;background:#fff;color:#1e293b;"
+      + "font-family:system-ui,-apple-system,Segoe UI,sans-serif}"
+      + ".sheet{min-height:100vh;display:flex;flex-direction:column;padding:8mm}"
+      + ".head{display:flex;align-items:flex-end;justify-content:space-between;"
+      + "gap:16px;padding-bottom:10px;border-bottom:2px solid #1e40af;margin-bottom:16px}"
+      + ".brand{font-size:12px;font-weight:600;color:#1e40af;letter-spacing:.04em;text-transform:uppercase}"
+      + "h1{margin:4px 0 0;font-size:20px;line-height:1.25;color:#1e293b}"
+      + ".date{font-size:12px;color:#64748b;white-space:nowrap}"
+      + ".chart{flex:1;display:flex;align-items:center;justify-content:center}"
+      + "img{max-width:100%;max-height:calc(100vh - 48mm);height:auto;display:block}"
+      + "</style></head><body><article class='sheet'><header class='head'><div>"
+      + "<div class='brand'>Eureka AI</div><h1>" + safeTitle + "</h1></div>"
+      + "<div class='date'>" + dateStr + "</div></header>"
+      + "<div class='chart'><img src='" + dataUrl + "' alt='" + safeTitle + "'></div>"
+      + "</article></body></html>";
+
+    function triggerPrint(win) {
+      if (!win || win.closed) return;
+      try {
+        win.focus();
+        win.print();
+      } catch (error) {
+        // Ignore print failures (popup closed).
+      }
+    }
+
+    function writeAndPrint(win) {
+      if (!win || win.closed) return false;
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      const img = win.document.querySelector("img");
+      if (img && !img.complete) {
+        img.onload = function() { triggerPrint(win); };
+        img.onerror = function() { triggerPrint(win); };
+      } else {
+        window.setTimeout(function() { triggerPrint(win); }, 50);
+      }
+      return true;
+    }
+
+    if (writeAndPrint(printWindow)) return;
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+    document.body.appendChild(iframe);
+    writeAndPrint(iframe.contentWindow);
+    window.setTimeout(function() {
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+    }, 4000);
+  }
+
+  function printAiChart() {
+    if (!lastAiChartData) return;
+    const printWindow = window.open("about:blank", "eureka-ai-chart-print");
+    function renderAndPrint() {
+      const host = document.createElement("div");
+      host.style.cssText = "position:fixed;left:-9999px;top:0;width:1100px;height:700px;pointer-events:none;";
+      const canvas = document.createElement("canvas");
+      canvas.width = 1100;
+      canvas.height = 700;
+      canvas.style.width = "1100px";
+      canvas.style.height = "700px";
+      host.appendChild(canvas);
+      document.body.appendChild(host);
+      const spec = buildAiChartConfig(lastAiChartData, {
+        forceLight: true,
+        legendFontSize: 13,
+        legendBoxWidth: 12,
+        legendPadding: 10,
+        piePercentageMinPct: 2,
+        piePercentageMinRadius: 28,
+      });
+      spec.options.animation = false;
+      spec.options.responsive = false;
+      spec.options.maintainAspectRatio = false;
+      spec.options.devicePixelRatio = 2;
+      spec.options.onClick = undefined;
+      spec.options.onHover = undefined;
+      if (spec.options.plugins && spec.options.plugins.tooltip) {
+        spec.options.plugins.tooltip.enabled = false;
+      }
+      let printChart = null;
+      try {
+        printChart = new Chart(canvas, {
+          type: spec.chartType,
+          data: {
+            labels: spec.chartLabels,
+            datasets: spec.datasets,
+          },
+          options: spec.options,
+          plugins: spec.plugins,
+        });
+        printChart.resize(1100, 700);
+        printChart.update("none");
+        const dataUrl = exportAiChartImage(printChart);
+        openAiChartPrintWindow(printWindow, dataUrl, lastAiChartData.title || "Grafico");
+      } finally {
+        if (printChart) printChart.destroy();
+        if (host.parentNode) host.parentNode.removeChild(host);
+      }
+    }
+    if (!window.Chart) {
+      loadChartJs(renderAndPrint);
+      return;
+    }
+    renderAndPrint();
+  }
+
+  function formatAiChartRegistrations(count) {
+    const n = Number(count) || 0;
+    const formatted = n.toLocaleString("it-IT");
+    return n === 1 ? "1 registrazione" : formatted + " registrazioni";
+  }
+
+  function getAiChartPercentage(dataset, index) {
+    const value = Number(dataset.data[index]) || 0;
+    const total = (dataset.data || []).reduce(function(sum, v) {
+      return sum + Number(v);
+    }, 0);
+    if (dataset.percentages && dataset.percentages[index] !== undefined) {
+      return dataset.percentages[index];
+    }
+    return total ? Math.round((value / total) * 100) : 0;
+  }
+
+  function formatAiChartDetailLine(label, value, pct) {
+    const month = label || "";
+    const regs = formatAiChartRegistrations(value);
+    if (pct !== null && pct !== undefined) {
+      return month + ": " + pct + "% — " + regs;
+    }
+    return month + ": " + regs;
+  }
+
+  function updateAiChartDetailLine(elementId, text, emptyText) {
+    const el = elementId ? document.getElementById(elementId) : null;
+    if (!el) return;
+    el.textContent = text || emptyText || "";
+    el.classList.toggle("is-active", Boolean(text));
+  }
+
+  function getAiChartHintText(chartData) {
+    const isPie = chartData && (chartData.type === "pie" || chartData.type === "doughnut");
+    const target = isPie ? "fette" : "barre";
+    return "Passa il mouse sulle " + target + " · Clicca per ingrandire · Legenda cliccabile";
+  }
+
+  function dimAiChartColor(color) {
+    if (typeof color === "string" && color.indexOf("rgba(") === 0) {
+      return color.replace(/,\s*[\d.]+\)$/, ", 0.16)");
+    }
+    return color;
+  }
+
+  function normalizeAiChartColors(color, length) {
+    if (Array.isArray(color)) return color.slice();
+    return new Array(length).fill(color);
+  }
+
+  function storeAiChartOriginalColors(chart) {
+    const ds = chart.data.datasets[0];
+    if (!ds) return;
+    const len = (ds.data || []).length;
+    if (!chart.$aiOriginalBg) {
+      chart.$aiOriginalBg = chart.$aiPaletteSolids
+        ? chart.$aiPaletteSolids.slice(0, len)
+        : normalizeAiChartColors(ds.backgroundColor, len);
+    }
+    if (!chart.$aiOriginalBorder) {
+      chart.$aiOriginalBorder = normalizeAiChartColors(ds.borderColor, len);
+    }
+  }
+
+  function applyAiChartHighlight(chart, selectedIndex) {
+    const ds = chart.data.datasets[0];
+    if (!ds) return;
+    storeAiChartOriginalColors(chart);
+    const bg = chart.$aiOriginalBg;
+    const bd = chart.$aiOriginalBorder;
+    if (selectedIndex === null || selectedIndex === undefined) {
+      ds.backgroundColor = bg.slice();
+      ds.borderColor = bd.slice();
+    } else {
+      ds.backgroundColor = bg.map(function(color, i) {
+        return i === selectedIndex ? color : dimAiChartColor(color);
+      });
+      ds.borderColor = bd.map(function(color, i) {
+        return i === selectedIndex ? color : dimAiChartColor(color);
+      });
+    }
+    chart.$aiSelectedIndex = selectedIndex;
+    chart.update("active");
+  }
+
+  function handleAiChartElementClick(chart, element, detailLineId) {
+    if (!element) return;
+    const dataset = chart.data.datasets[element.datasetIndex];
+    const index = element.index;
+    const label = chart.data.labels[index];
+    const value = dataset.data[index];
+    const showPercentages = Boolean(chart.$aiShowPercentages);
+    const pct = showPercentages ? getAiChartPercentage(dataset, index) : null;
+    const newSelected = chart.$aiSelectedIndex === index ? null : index;
+    applyAiChartHighlight(chart, newSelected);
+    if (newSelected === null) {
+      updateAiChartDetailLine(detailLineId, "", "Seleziona un elemento per i dettagli");
+      return;
+    }
+    updateAiChartDetailLine(detailLineId, formatAiChartDetailLine(label, value, pct));
+  }
+
+  function clearAiChartSelectTimer(chart) {
+    if (!chart || !chart.$aiSelectTimer) return;
+    window.clearTimeout(chart.$aiSelectTimer);
+    chart.$aiSelectTimer = null;
+  }
+
+  function scheduleAiChartElementClick(chart, element, detailLineId) {
+    clearAiChartSelectTimer(chart);
+    chart.$aiSelectTimer = window.setTimeout(function() {
+      chart.$aiSelectTimer = null;
+      handleAiChartElementClick(chart, element, detailLineId);
+    }, 220);
+  }
+
+  function bindAiChartLightboxOpen(chartHost, chartRef) {
+    if (!chartHost || chartHost.dataset.aiDblclickBound === "1") return;
+    chartHost.dataset.aiDblclickBound = "1";
+    chartHost.addEventListener("dblclick", function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const chart = typeof chartRef === "function" ? chartRef() : chartRef;
+      if (chart) clearAiChartSelectTimer(chart);
+      openAiChartLightbox();
+    });
+  }
+
+  function renderAiChartHtml(chartData) {
+    let html = "";
+    if (chartData.title) {
+      html += "<p class='eureka-ai-modal__chart-title mb-2'>" + chartData.title + "</p>";
+    }
+    html += '<div class="eureka-ai-modal__chart-wrap eureka-ai-modal__chart-wrap--clickable" title="Clicca per ingrandire" role="button" tabindex="0" aria-label="Grafico risultati, clicca per ingrandire"><div class="eureka-ai-modal__chart-actions"><button type="button" class="eureka-ai-modal__chart-print-btn" title="Stampa grafico" aria-label="Stampa grafico"><i class="ti ti-printer" aria-hidden="true"></i></button><button type="button" class="eureka-ai-modal__chart-expand-btn" title="Ingrandisci grafico" aria-label="Ingrandisci grafico"><i class="ti ti-arrows-maximize" aria-hidden="true"></i></button></div><div class="eureka-ai-modal__chart-host"><canvas id="eurekaAiChartCanvas" aria-label="Grafico risultati"></canvas></div></div>';
+    html += '<p class="eureka-ai-modal__chart-hint"><i class="ti ti-info-circle" aria-hidden="true"></i> ' + getAiChartHintText(chartData) + "</p>";
+    html += '<p class="eureka-ai-modal__chart-detail" id="eurekaAiChartDetail" aria-live="polite">Seleziona un elemento per i dettagli</p>';
+    return html;
+  }
+
+  function getAiChartFontFamily() {
+    const rootStyle = window.getComputedStyle(document.documentElement);
+    const fromTheme = (rootStyle.getPropertyValue("--bs-body-font-family") || "").trim();
+    if (fromTheme) return fromTheme;
+    const bodyStyle = window.getComputedStyle(document.body);
+    return (bodyStyle.fontFamily || "system-ui, -apple-system, sans-serif").trim();
+  }
+
+  function getAiChartTheme(forceLight) {
+    const isDark = !forceLight && document.documentElement.getAttribute("data-bs-theme") === "dark";
+    return {
+      isDark: isDark,
+      gridColor: isDark ? "rgba(148, 163, 184, 0.12)" : "#e2e8f0",
+      textColor: isDark ? "#94a3b8" : "#64748b",
+      bodyTextColor: isDark ? "#e2e8f0" : "#1e293b",
+      tooltipBg: isDark ? "rgba(30, 41, 59, 0.97)" : "rgba(255, 255, 255, 0.98)",
+      tooltipBorder: isDark ? "rgba(148, 163, 184, 0.18)" : "#e2e8f0",
+      sliceBorder: isDark ? "#1e293b" : "#ffffff",
+      fontFamily: getAiChartFontFamily(),
+    };
+  }
+
+  function getAiChartCategoricalPalette(isDark) {
+    if (isDark) {
+      return [
+        { solid: "rgba(96, 165, 250, 0.82)", border: "rgba(147, 197, 253, 0.95)", top: "rgba(96, 165, 250, 0.88)", bottom: "rgba(59, 130, 246, 0.68)" },
+        { solid: "rgba(45, 212, 191, 0.78)", border: "rgba(94, 234, 212, 0.92)", top: "rgba(45, 212, 191, 0.84)", bottom: "rgba(20, 184, 166, 0.62)" },
+        { solid: "rgba(148, 163, 184, 0.78)", border: "rgba(203, 213, 225, 0.88)", top: "rgba(148, 163, 184, 0.84)", bottom: "rgba(100, 116, 139, 0.58)" },
+        { solid: "rgba(56, 189, 248, 0.78)", border: "rgba(125, 211, 252, 0.92)", top: "rgba(56, 189, 248, 0.84)", bottom: "rgba(14, 165, 233, 0.62)" },
+        { solid: "rgba(52, 211, 153, 0.76)", border: "rgba(110, 231, 183, 0.90)", top: "rgba(52, 211, 153, 0.82)", bottom: "rgba(16, 185, 129, 0.58)" },
+        { solid: "rgba(100, 116, 139, 0.76)", border: "rgba(148, 163, 184, 0.88)", top: "rgba(100, 116, 139, 0.82)", bottom: "rgba(71, 85, 105, 0.58)" },
+        { solid: "rgba(59, 130, 246, 0.80)", border: "rgba(147, 197, 253, 0.92)", top: "rgba(59, 130, 246, 0.86)", bottom: "rgba(37, 99, 235, 0.62)" },
+        { solid: "rgba(34, 211, 238, 0.76)", border: "rgba(103, 232, 249, 0.90)", top: "rgba(34, 211, 238, 0.82)", bottom: "rgba(6, 182, 212, 0.58)" },
+        { solid: "rgba(71, 85, 105, 0.78)", border: "rgba(148, 163, 184, 0.85)", top: "rgba(71, 85, 105, 0.84)", bottom: "rgba(51, 65, 85, 0.58)" },
+        { solid: "rgba(14, 165, 233, 0.78)", border: "rgba(56, 189, 248, 0.92)", top: "rgba(14, 165, 233, 0.84)", bottom: "rgba(2, 132, 199, 0.62)" },
+        { solid: "rgba(20, 184, 166, 0.76)", border: "rgba(45, 212, 191, 0.90)", top: "rgba(20, 184, 166, 0.82)", bottom: "rgba(13, 148, 136, 0.58)" },
+        { solid: "rgba(251, 191, 36, 0.72)", border: "rgba(253, 224, 71, 0.88)", top: "rgba(251, 191, 36, 0.78)", bottom: "rgba(217, 119, 6, 0.55)" },
+      ];
+    }
+    return [
+      { solid: "rgba(32, 107, 196, 0.88)", border: "rgba(26, 86, 166, 1)", top: "rgba(32, 107, 196, 0.92)", bottom: "rgba(32, 107, 196, 0.72)" },
+      { solid: "rgba(14, 116, 144, 0.85)", border: "rgba(14, 116, 144, 1)", top: "rgba(14, 116, 144, 0.90)", bottom: "rgba(14, 116, 144, 0.68)" },
+      { solid: "rgba(51, 65, 85, 0.82)", border: "rgba(51, 65, 85, 1)", top: "rgba(51, 65, 85, 0.88)", bottom: "rgba(51, 65, 85, 0.65)" },
+      { solid: "rgba(37, 99, 235, 0.85)", border: "rgba(37, 99, 235, 1)", top: "rgba(37, 99, 235, 0.90)", bottom: "rgba(37, 99, 235, 0.68)" },
+      { solid: "rgba(13, 148, 136, 0.85)", border: "rgba(13, 148, 136, 1)", top: "rgba(13, 148, 136, 0.90)", bottom: "rgba(13, 148, 136, 0.68)" },
+      { solid: "rgba(71, 85, 105, 0.80)", border: "rgba(71, 85, 105, 1)", top: "rgba(71, 85, 105, 0.86)", bottom: "rgba(71, 85, 105, 0.62)" },
+      { solid: "rgba(2, 132, 199, 0.85)", border: "rgba(2, 132, 199, 1)", top: "rgba(2, 132, 199, 0.90)", bottom: "rgba(2, 132, 199, 0.68)" },
+      { solid: "rgba(30, 64, 175, 0.85)", border: "rgba(30, 64, 175, 1)", top: "rgba(30, 64, 175, 0.90)", bottom: "rgba(30, 64, 175, 0.68)" },
+      { solid: "rgba(100, 116, 139, 0.78)", border: "rgba(100, 116, 139, 1)", top: "rgba(100, 116, 139, 0.84)", bottom: "rgba(100, 116, 139, 0.60)" },
+      { solid: "rgba(8, 145, 178, 0.85)", border: "rgba(8, 145, 178, 1)", top: "rgba(8, 145, 178, 0.90)", bottom: "rgba(8, 145, 178, 0.68)" },
+      { solid: "rgba(15, 118, 110, 0.85)", border: "rgba(15, 118, 110, 1)", top: "rgba(15, 118, 110, 0.90)", bottom: "rgba(15, 118, 110, 0.68)" },
+      { solid: "rgba(180, 83, 9, 0.82)", border: "rgba(180, 83, 9, 1)", top: "rgba(217, 119, 6, 0.88)", bottom: "rgba(180, 83, 9, 0.65)" },
+    ];
+  }
+
+  function getAiChartSequentialPalette(isDark) {
+    if (isDark) {
+      return [
+        { solid: "rgba(30, 58, 138, 0.88)", border: "rgba(59, 130, 246, 0.95)", top: "rgba(37, 99, 235, 0.90)", bottom: "rgba(30, 58, 138, 0.68)" },
+        { solid: "rgba(37, 99, 235, 0.86)", border: "rgba(96, 165, 250, 0.95)", top: "rgba(59, 130, 246, 0.90)", bottom: "rgba(37, 99, 235, 0.66)" },
+        { solid: "rgba(59, 130, 246, 0.84)", border: "rgba(147, 197, 253, 0.95)", top: "rgba(96, 165, 250, 0.88)", bottom: "rgba(59, 130, 246, 0.64)" },
+        { solid: "rgba(32, 107, 196, 0.84)", border: "rgba(96, 165, 250, 0.92)", top: "rgba(59, 130, 246, 0.88)", bottom: "rgba(32, 107, 196, 0.64)" },
+        { solid: "rgba(96, 165, 250, 0.82)", border: "rgba(147, 197, 253, 0.92)", top: "rgba(125, 211, 252, 0.86)", bottom: "rgba(96, 165, 250, 0.62)" },
+        { solid: "rgba(125, 211, 252, 0.78)", border: "rgba(186, 230, 253, 0.90)", top: "rgba(147, 197, 253, 0.84)", bottom: "rgba(125, 211, 252, 0.58)" },
+      ];
+    }
+    return [
+      { solid: "rgba(30, 58, 138, 0.90)", border: "rgba(30, 58, 138, 1)", top: "rgba(30, 58, 138, 0.94)", bottom: "rgba(30, 58, 138, 0.72)" },
+      { solid: "rgba(30, 64, 175, 0.88)", border: "rgba(30, 64, 175, 1)", top: "rgba(30, 64, 175, 0.92)", bottom: "rgba(30, 64, 175, 0.70)" },
+      { solid: "rgba(37, 99, 235, 0.86)", border: "rgba(37, 99, 235, 1)", top: "rgba(37, 99, 235, 0.90)", bottom: "rgba(37, 99, 235, 0.68)" },
+      { solid: "rgba(32, 107, 196, 0.86)", border: "rgba(26, 86, 166, 1)", top: "rgba(32, 107, 196, 0.90)", bottom: "rgba(32, 107, 196, 0.68)" },
+      { solid: "rgba(59, 130, 246, 0.84)", border: "rgba(59, 130, 246, 1)", top: "rgba(59, 130, 246, 0.88)", bottom: "rgba(59, 130, 246, 0.66)" },
+      { solid: "rgba(96, 165, 250, 0.82)", border: "rgba(96, 165, 250, 1)", top: "rgba(96, 165, 250, 0.86)", bottom: "rgba(96, 165, 250, 0.64)" },
+    ];
+  }
+
+  function getAiChartPaletteEntries(count, chartKind, forceLight) {
+    chartKind = chartKind || "bar";
+    const isDark = !forceLight && document.documentElement.getAttribute("data-bs-theme") === "dark";
+    const isPie = chartKind === "pie";
+    const useSequential = !isPie && (chartKind === "bar" || chartKind === "horizontalBar" || chartKind === "line" || chartKind === "area" || chartKind === "radar");
+    const base = useSequential ? getAiChartSequentialPalette(isDark) : getAiChartCategoricalPalette(isDark);
+    const entries = [];
+    for (let i = 0; i < count; i++) {
+      if (useSequential && count > base.length) {
+        const t = count <= 1 ? 0 : i / (count - 1);
+        const fromIdx = Math.floor(t * (base.length - 1));
+        const toIdx = Math.min(fromIdx + 1, base.length - 1);
+        const blend = (t * (base.length - 1)) - fromIdx;
+        const a = base[fromIdx];
+        const b = base[toIdx];
+        entries.push(blend < 0.5 ? a : b);
+      } else {
+        entries.push(base[i % base.length]);
+      }
+    }
+    return entries;
+  }
+
+  function isAiChartDimmedColor(color) {
+    return typeof color === "string" && /,\s*0\.16\)/.test(color);
+  }
+
+  function createAiChartBarGradient(ctx, chartArea, entry) {
+    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+    gradient.addColorStop(0, entry.bottom);
+    gradient.addColorStop(1, entry.top);
+    return gradient;
+  }
+
+  function createAiChartLineFillGradient(ctx, chartArea, entry) {
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, entry.top.replace(/,\s*[\d.]+\)/, ", 0.22)"));
+    gradient.addColorStop(0.85, entry.bottom.replace(/,\s*[\d.]+\)/, ", 0.04)"));
+    gradient.addColorStop(1, entry.bottom.replace(/,\s*[\d.]+\)/, ", 0)"));
+    return gradient;
+  }
+
+  function buildAiChartGradientPlugin(paletteEntries, chartKind) {
+    chartKind = chartKind || "bar";
+    const isPie = chartKind === "pie";
+    const isLineFill = chartKind === "area";
+    return {
+      id: "aiChartGradients",
+      afterLayout: function(chart) {
+        if (isPie) return;
+        const chartArea = chart.chartArea;
+        if (!chartArea || chartArea.width <= 0 || chartArea.height <= 0) return;
+        const dataset = chart.data.datasets[0];
+        if (!dataset || !dataset.data || !dataset.data.length) return;
+        const ctx = chart.ctx;
+        const solids = chart.$aiPaletteSolids || paletteEntries.map(function(entry) { return entry.solid; });
+        const currentBg = normalizeAiChartColors(dataset.backgroundColor, dataset.data.length);
+        if (isLineFill) {
+          const entry = paletteEntries[0];
+          if (!isAiChartDimmedColor(currentBg[0])) {
+            dataset.backgroundColor = createAiChartLineFillGradient(ctx, chartArea, entry);
+          }
+        } else if (chartKind !== "line" && chartKind !== "radar") {
+          dataset.backgroundColor = currentBg.map(function(color, index) {
+            if (isAiChartDimmedColor(color)) return color;
+            const entry = paletteEntries[index % paletteEntries.length];
+            return createAiChartBarGradient(ctx, chartArea, entry);
+          });
+        }
+        if (!chart.$aiPaletteSolids) {
+          chart.$aiPaletteSolids = solids.slice();
+          chart.$aiPaletteBorders = paletteEntries.map(function(entry) { return entry.border; });
+        }
+      },
+    };
+  }
+
+  function buildAiPiePercentagePlugin(chartLabels, minPct, minRadius) {
+    minPct = minPct === undefined ? 4 : minPct;
+    minRadius = minRadius === undefined ? 36 : minRadius;
+    return {
+      id: "aiPiePercentageLabels",
+      afterDatasetsDraw: function(chart) {
+        const chartType = chart.config.type;
+        if (chartType !== "pie" && chartType !== "doughnut") return;
+        const dataset = chart.data.datasets[0];
+        if (!dataset || !dataset.data || !dataset.data.length) return;
+        const total = dataset.data.reduce(function(sum, value) {
+          return sum + Number(value);
+        }, 0);
+        if (!total) return;
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        const fontFamily = getAiChartFontFamily();
+        meta.data.forEach(function(arc, index) {
+          const value = Number(dataset.data[index]);
+          const pct = dataset.percentages && dataset.percentages[index] !== undefined
+            ? dataset.percentages[index]
+            : Math.round((value / total) * 100);
+          if (pct <= 0 || pct < minPct) return;
+          const outerRadius = arc.outerRadius || 0;
+          if (outerRadius < minRadius) return;
+          const pos = arc.tooltipPosition();
+          const monthLabel = chartLabels && chartLabels[index] ? chartLabels[index] + " " : "";
+          const text = monthLabel + pct + "%";
+          const fontSize = Math.max(10, Math.min(13, Math.round(outerRadius / 8)));
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "500 " + fontSize + "px " + fontFamily;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "rgba(15, 23, 42, 0.35)";
+          ctx.shadowBlur = 2;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 1;
+          ctx.fillText(text, pos.x, pos.y);
+          ctx.restore();
+        });
+      },
+    };
+  }
+
+  function buildAiChartConfig(chartData, overrides) {
+    overrides = overrides || {};
+    const forceLight = Boolean(overrides.forceLight);
+    const theme = getAiChartTheme(forceLight);
+    const isDark = theme.isDark;
+    const gridColor = theme.gridColor;
+    const textColor = theme.textColor;
+    const tooltipBg = theme.tooltipBg;
+    const tooltipBorder = theme.tooltipBorder;
+    const sliceBorder = theme.sliceBorder;
+    const fontFamily = theme.fontFamily;
+    const rawType = chartData.type || "bar";
+    const isPie = rawType === "pie" || rawType === "doughnut";
+    const isArea = rawType === "area";
+    const isLine = rawType === "line" || isArea;
+    const isHorizontalBar = rawType === "horizontalBar";
+    const isRadar = rawType === "radar";
+    const isBar = rawType === "bar" || isHorizontalBar;
+    let chartKind = "bar";
+    if (isPie) chartKind = "pie";
+    else if (isArea) chartKind = "area";
+    else if (isLine) chartKind = "line";
+    else if (isRadar) chartKind = "radar";
+    else if (isHorizontalBar) chartKind = "horizontalBar";
+    let chartType = "bar";
+    if (isPie) chartType = "doughnut";
+    else if (isLine || isArea) chartType = "line";
+    else if (isRadar) chartType = "radar";
+    const showPercentages = Boolean(chartData.showPercentages) || isPie;
+    const chartLabels = chartData.labels || [];
+    const detailLineId = overrides.detailLineId || null;
+    const legendFontSize = overrides.legendFontSize !== undefined
+      ? overrides.legendFontSize
+      : 11;
+    const legendBoxWidth = overrides.legendBoxWidth !== undefined ? overrides.legendBoxWidth : (isPie ? 10 : 12);
+    const legendPadding = overrides.legendPadding !== undefined ? overrides.legendPadding : (isPie ? 6 : 8);
+    const firstDatasetLen = ((chartData.datasets || [])[0] || {}).data || [];
+    const paletteEntries = getAiChartPaletteEntries(
+      firstDatasetLen.length || chartLabels.length || 12,
+      chartKind,
+      forceLight
+    );
+    const paletteSolids = paletteEntries.map(function(entry) { return entry.solid; });
+    const paletteBorders = paletteEntries.map(function(entry) { return entry.border; });
+    const primaryEntry = paletteEntries[0] || paletteEntries[paletteEntries.length - 1];
+    const datasets = (chartData.datasets || []).map(function(ds) {
+      const dataLen = (ds.data || []).length;
+      const entries = getAiChartPaletteEntries(dataLen, chartKind, forceLight);
+      if (isPie) {
+        return Object.assign({}, ds, {
+          backgroundColor: entries.map(function(entry) { return entry.solid; }),
+          borderColor: new Array(dataLen).fill(sliceBorder),
+          borderWidth: 1,
+          borderAlign: "inner",
+          hoverBorderWidth: 1,
+          hoverOffset: 4,
+          spacing: 0,
+        });
+      }
+      if (isLine || isArea) {
+        return Object.assign({}, ds, {
+          borderColor: primaryEntry.border,
+          backgroundColor: isArea
+            ? primaryEntry.solid.replace(/,\s*[\d.]+\)/, ", 0.12)")
+            : "transparent",
+          fill: isArea,
+          tension: 0.2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: primaryEntry.border,
+          pointBorderColor: sliceBorder,
+          pointBorderWidth: 1.5,
+          pointHoverBorderWidth: 1.5,
+          borderWidth: 2,
+          spanGaps: false,
+        });
+      }
+      if (isRadar) {
+        return Object.assign({}, ds, {
+          backgroundColor: primaryEntry.solid.replace(/,\s*[\d.]+\)/, ", 0.15)"),
+          borderColor: primaryEntry.border,
+          borderWidth: 1.5,
+          pointRadius: 2.5,
+          pointHoverRadius: 4,
+          pointBackgroundColor: primaryEntry.border,
+          pointBorderColor: sliceBorder,
+          pointBorderWidth: 1,
+          fill: true,
+        });
+      }
+      return Object.assign({}, ds, {
+        backgroundColor: entries.map(function(entry) { return entry.solid; }),
+        borderColor: entries.map(function(entry) { return entry.border; }),
+        borderWidth: 0,
+        borderRadius: isHorizontalBar ? 3 : 4,
+        borderSkipped: false,
+        hoverBorderWidth: 0,
+        maxBarThickness: isHorizontalBar ? 40 : 48,
+      });
+    });
+    const plugins = [buildAiChartGradientPlugin(paletteEntries, chartKind)];
+    if (isPie && showPercentages) {
+      plugins.push(buildAiPiePercentagePlugin(
+        chartLabels,
+        overrides.piePercentageMinPct,
+        overrides.piePercentageMinRadius
+      ));
+    }
+    const options = {
+      responsive: false,
+      maintainAspectRatio: false,
+      devicePixelRatio: window.devicePixelRatio || 1,
+      animation: {
+        duration: 400,
+        easing: "easeOutQuad",
+        animateRotate: isPie,
+        animateScale: false,
+        delay: function(context) {
+          if (context.type === "data" && context.mode === "default") {
+            return context.dataIndex * 12;
+          }
+          return 0;
+        },
+      },
+      transitions: {
+        active: {
+          animation: {
+            duration: 200,
+            easing: "easeOutQuad",
+          },
+        },
+      },
+      layout: isPie
+        ? { padding: { top: 4, bottom: 4, left: 4, right: 4 } }
+        : (isRadar
+          ? { padding: { top: 8, right: 12, bottom: 8, left: 12 } }
+          : { padding: { top: 4, right: 8, bottom: 0, left: 8 } }),
+      onClick: function(event, elements, chart) {
+        if (!elements.length) return;
+        if (event.native && typeof event.native.stopPropagation === "function") {
+          event.native.stopPropagation();
+        }
+        scheduleAiChartElementClick(chart, elements[0], chart.$aiDetailLineId || detailLineId);
+      },
+      onHover: function(event, elements, chart) {
+        const canvas = chart.canvas;
+        if (!canvas) return;
+        canvas.style.cursor = elements.length ? "pointer" : "";
+      },
+      plugins: {
+        legend: {
+          display: isPie || isRadar || isLine || (chartLabels.length > 1) || datasets.length > 1,
+          position: (isPie || isRadar) ? "bottom" : "top",
+          onClick: function(event, legendItem, legend) {
+            const chart = legend.chart;
+            const index = legendItem.index;
+            chart.toggleDataVisibility(index);
+            chart.update();
+          },
+          onHover: function(event, legendItem) {
+            if (event.native && event.native.target) {
+              event.native.target.style.cursor = legendItem ? "pointer" : "default";
+            }
+          },
+          labels: {
+            color: textColor,
+            boxWidth: legendBoxWidth,
+            padding: legendPadding,
+            usePointStyle: isPie,
+            pointStyle: isPie ? "circle" : "rect",
+            font: {
+              size: legendFontSize,
+              family: fontFamily,
+              weight: "500",
+            },
+            generateLabels: function(chart) {
+              const dataset = chart.data.datasets[0] || { data: [] };
+              const meta = chart.getDatasetMeta(0);
+              const solids = chart.$aiPaletteSolids || paletteSolids;
+              const borders = chart.$aiPaletteBorders || paletteBorders;
+              const total = (dataset.data || []).reduce(function(sum, value) {
+                return sum + Number(value);
+              }, 0);
+              return (chart.data.labels || []).map(function(label, index) {
+                const value = Number(dataset.data[index]);
+                const pct = dataset.percentages && dataset.percentages[index] !== undefined
+                  ? dataset.percentages[index]
+                  : (total ? Math.round((value / total) * 100) : 0);
+                let text = String(label);
+                if (showPercentages && value > 0) {
+                  text += " (" + pct + "%)";
+                }
+                const hidden = meta && meta.data && meta.data[index] ? meta.data[index].hidden : false;
+                const fill = solids[index % solids.length];
+                const stroke = isPie ? sliceBorder : (borders[index % borders.length] || fill);
+                if (!isPie && !Array.isArray(dataset.backgroundColor)) {
+                  return {
+                    text: text,
+                    fillStyle: fill,
+                    strokeStyle: stroke,
+                    lineWidth: dataset.borderWidth || 0,
+                    hidden: hidden,
+                    index: index,
+                  };
+                }
+                if (isPie) {
+                  text = showPercentages ? (label + " (" + pct + "%)") : String(label);
+                }
+                return {
+                  text: text,
+                  fillStyle: fill,
+                  strokeStyle: stroke,
+                  lineWidth: isPie ? 1 : (dataset.borderWidth || 0),
+                  hidden: hidden,
+                  index: index,
+                };
+              });
+            },
+          },
+        },
+        tooltip: {
+          backgroundColor: tooltipBg,
+          titleColor: isDark ? "#f1f5f9" : "#1e293b",
+          bodyColor: isDark ? "#cbd5e1" : "#475569",
+          footerColor: isDark ? "#94a3b8" : "#64748b",
+          borderColor: tooltipBorder,
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 6,
+          displayColors: true,
+          boxPadding: 4,
+          titleFont: { family: fontFamily, size: 12, weight: "600" },
+          bodyFont: { family: fontFamily, size: 11, weight: "400" },
+          footerFont: { family: fontFamily, size: 11, weight: "400" },
+          callbacks: {
+            title: function(items) {
+              if (!items.length) return "";
+              return items[0].label || "";
+            },
+            label: function(context) {
+              const dataset = context.dataset;
+              let rawValue = context.parsed;
+              if (context.parsed && typeof context.parsed === "object") {
+                if (context.parsed.y !== undefined) {
+                  rawValue = context.parsed.y;
+                } else if (context.parsed.x !== undefined) {
+                  rawValue = context.parsed.x;
+                } else if (context.parsed.r !== undefined) {
+                  rawValue = context.parsed.r;
+                }
+              }
+              const value = Number(rawValue) || 0;
+              const lines = [formatAiChartRegistrations(value)];
+              if (showPercentages) {
+                lines.push(getAiChartPercentage(dataset, context.dataIndex) + " % del totale");
+              }
+              return lines;
+            },
+            afterLabel: function(context) {
+              const datasetLabel = context.dataset && context.dataset.label;
+              if (datasetLabel && !isPie) {
+                return datasetLabel;
+              }
+              return "";
+            },
+          },
+        },
+      },
+    };
+    if (isPie) {
+      options.cutout = "35%";
+      options.radius = "90%";
+    }
+    if (isHorizontalBar) {
+      options.indexAxis = "y";
+    }
+    if (isRadar) {
+      options.scales = {
+        r: {
+          beginAtZero: true,
+          ticks: {
+            display: false,
+            stepSize: 1,
+          },
+          grid: {
+            color: gridColor,
+            circular: true,
+          },
+          angleLines: {
+            color: gridColor,
+          },
+          pointLabels: {
+            color: textColor,
+            font: { family: fontFamily, size: 10, weight: "500" },
+            padding: 4,
+          },
+          border: { display: false },
+        },
+      };
+    } else if (!isPie) {
+      const valueAxis = {
+        beginAtZero: true,
+        ticks: {
+          color: textColor,
+          precision: 0,
+          font: { family: fontFamily, size: 10, weight: "500" },
+          padding: 4,
+          callback: function(value) {
+            if (typeof value === "number" && Number.isFinite(value)) {
+              return value.toLocaleString("it-IT");
+            }
+            return value;
+          },
+        },
+        grid: {
+          color: gridColor,
+          drawBorder: false,
+          lineWidth: 1,
+        },
+        border: { display: false },
+      };
+      const categoryAxis = {
+        ticks: {
+          color: textColor,
+          font: { family: fontFamily, size: 10, weight: "500" },
+          maxRotation: 0,
+          autoSkip: true,
+          padding: 4,
+        },
+        grid: { display: false },
+        border: { display: false },
+      };
+      options.scales = isHorizontalBar
+        ? { x: valueAxis, y: categoryAxis }
+        : { y: valueAxis, x: categoryAxis };
+    }
+    return {
+      chartType: chartType,
+      isPie: isPie,
+      chartLabels: chartLabels,
+      datasets: datasets,
+      options: options,
+      plugins: plugins,
+      showPercentages: showPercentages,
+      detailLineId: detailLineId,
+      paletteEntries: paletteEntries,
+      paletteSolids: paletteSolids,
+      paletteBorders: paletteBorders,
+    };
+  }
+
+  function initAiChart(chartData, layoutAttempt) {
+    layoutAttempt = layoutAttempt || 0;
+    const canvas = document.getElementById("eurekaAiChartCanvas");
+    if (!canvas || !window.Chart || !chartData) return;
+    const chartWrap = canvas.closest(".eureka-ai-modal__chart-wrap");
+    const chartHost = canvas.closest(".eureka-ai-modal__chart-host") || chartWrap;
+    if (!chartWrap) return;
+    if (layoutAttempt === 0) destroyAiChart();
+    const spec = buildAiChartConfig(chartData, {
+      detailLineId: "eurekaAiChartDetail",
+    });
+    if (spec.isPie) {
+      chartWrap.classList.add("eureka-ai-modal__chart-wrap--pie");
+    }
+    const hostRect = chartHost ? chartHost.getBoundingClientRect() : chartWrap.getBoundingClientRect();
+    if ((hostRect.width < 80 || hostRect.height < 200) && layoutAttempt < 16) {
+      window.requestAnimationFrame(function() {
+        initAiChart(chartData, layoutAttempt + 1);
+      });
+      return;
+    }
+    if (layoutAttempt > 0) destroyAiChart();
+    const preW = Math.floor(chartHost.clientWidth);
+    const preH = Math.floor(chartHost.clientHeight);
+    if (preW >= 50 && preH >= 50) {
+      canvas.style.width = preW + "px";
+      canvas.style.height = preH + "px";
+    }
+    aiChartInstance = new Chart(canvas, {
+      type: spec.chartType,
+      data: {
+        labels: spec.chartLabels,
+        datasets: spec.datasets,
+      },
+      options: spec.options,
+      plugins: spec.plugins,
+    });
+    aiChartInstance.$aiDetailLineId = spec.detailLineId;
+    aiChartInstance.$aiShowPercentages = spec.showPercentages;
+    aiChartInstance.$aiPaletteSolids = spec.paletteSolids.slice();
+    aiChartInstance.$aiPaletteBorders = spec.paletteBorders.slice();
+    bindAiChartLightboxOpen(chartHost, function() { return aiChartInstance; });
+    lastAiChartData = chartData;
+    observeAiChartContainer(chartWrap);
+    window.requestAnimationFrame(function() {
+      window.requestAnimationFrame(function() {
+        fitAiChartToHost();
+        window.setTimeout(fitAiChartToHost, 50);
+      });
+    });
+  }
+
+  function loadChartJs(callback) {
+    if (window.Chart) {
+      callback();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js";
+    script.onload = callback;
+    script.onerror = function() {
+      const el = document.getElementById("eurekaAiChartCanvas");
+      if (el && el.parentElement) {
+        el.parentElement.innerHTML = '<p class="text-secondary mb-0">Impossibile caricare la libreria grafici.</p>';
+      }
+    };
+    document.head.appendChild(script);
+  }
+
+  function renderChartResponse(data) {
+    let html = "";
+    if (data.spiegazione) {
+      html += "<p class='text-secondary mb-2'>" + data.spiegazione + "</p>";
+    }
+{% if eureka_ai_debug_sql %}
+    if (data.sql) {
+      html += '<details class="mb-2"><summary class="text-secondary" style="cursor:pointer">Query SQL</summary><pre class="bg-dark text-light p-2 rounded mt-1" style="font-size:.95rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;max-height:320px;overflow:auto">' + data.sql + "</pre></details>";
+    }
+{% endif %}
+    html += renderAiChartHtml(data.chart);
+    if (data.conteggio !== undefined && data.conteggio !== null) {
+      html += "<p class='text-secondary mb-0 mt-2'>" + data.conteggio + " registrazion" + (data.conteggio === 1 ? "e" : "i") + " nel dettaglio.</p>";
+    }
+    html += renderAiExportActions(data, {showList: true, showLoadAll: true});
+    ensureChartModalLayout();
+    output.innerHTML = html;
+    loadChartJs(function() {
+      window.requestAnimationFrame(function() {
+        window.requestAnimationFrame(function() {
+          initAiChart(data.chart);
+        });
+      });
+    });
+    const loadAllBtn = document.getElementById("eurekaAiLoadAll");
+    if (loadAllBtn) loadAllBtn.addEventListener("click", () => send(999999, true));
+  }
+
+  function triggerAiExportDownload(data) {
+    if (!data?.download_url) return false;
+    const link = document.createElement("a");
+    const filename = data.download_filename || "export.xlsx";
+    link.href = data.download_url;
+    link.download = filename;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return true;
+  }
+
+  function renderAiExportActions(data, options) {
+    const opts = options || {};
+    const showList = opts.showList !== false;
+    const showLoadAll = !!opts.showLoadAll;
+    let btns = "";
+    if (data?.download_url) {
+      const label = data.download_filename || "export.xlsx";
+      const isCsv = /\.csv$/i.test(label);
+      const btnText = isCsv ? "Scarica CSV" : "Scarica Excel";
+      btns += '<a href="' + data.download_url + '" class="btn btn-primary btn-sm me-2" download="' + label + '"><i class="ti ti-download me-1"></i>' + btnText + '</a>';
+    }
+    if (showList && data?.list_url) {
+      const openListLabel = data.has_more
+        ? "Apri lista (200)"
+        : ("Apri lista (" + (data.conteggio ?? 0) + ")");
+      btns += '<a href="' + data.list_url + '" class="btn btn-outline-primary btn-sm me-2"><i class="ti ti-external-link me-1"></i>' + openListLabel + '</a>';
+    }
+    if (showLoadAll && data?.has_more) {
+      const totalCountPart = (data.total_count !== undefined && data.total_count !== null)
+        ? (" " + data.total_count)
+        : "";
+      btns += '<button type="button" class="btn btn-outline-primary btn-sm" id="eurekaAiLoadAll"><i class="ti ti-list me-1"></i>Tutti' + totalCountPart + '</button>';
+    }
+    if (!btns) return "";
+    return '<div class="text-center mt-3">' + btns + "</div>";
+  }
+
   function send(limit, openListDirect) {
     const text = (input?.value || "").trim();
     if (!text) return;
@@ -539,6 +2627,10 @@
     sendBtn.disabled = true;
     sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Elaborazione…';
     resultBox.classList.remove("d-none");
+    closeAiChartLightbox();
+    lastAiChartData = null;
+    destroyAiChart();
+    setChartViewActive(false);
     output.innerHTML = '<div class="eureka-ai-modal__loading"><span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span><div class="eureka-ai-modal__loading-text"><strong>Elaborazione in corso…</strong><p class="text-secondary mb-0">L\'assistente sta analizzando la tua richiesta.</p></div></div>';
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content
                 || document.querySelector("[name=csrfmiddlewaretoken]")?.value
@@ -552,6 +2644,28 @@
     })
     .then(r => r.json())
     .then(data => {
+      const exported = triggerAiExportDownload(data);
+
+      // Grafico: resta nel modale (no redirect automatico alla lista).
+      if (data?.chart) {
+        renderChartResponse(data);
+        return;
+      }
+
+      if (exported) {
+        let html = "";
+        if (data.errore) {
+          html += '<div class="alert alert-danger py-1 mb-2">' + data.errore + "</div>";
+        }
+        if (data.spiegazione) {
+          html += "<p class='text-secondary mb-2'>" + data.spiegazione + "</p>";
+        }
+        html += "<p class='text-secondary mb-2'>File Excel pronto: <strong>" + (data.conteggio ?? 0) + "</strong> righe.</p>";
+        html += renderAiExportActions(data, {showList: true, showLoadAll: false});
+        output.innerHTML = html || "<p>File pronto.</p>";
+        return;
+      }
+
       // Se richiesto esplicitamente (es. click su "Tutti"), apri subito la lista.
       if (openListDirect && data?.list_url) {
         window.location.href = data.list_url;
@@ -642,6 +2756,15 @@
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   });
   historyMenu?.addEventListener("click", (e) => {
+    const saveBtn = e.target.closest(".eureka-ai-history-save");
+    if (saveBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const history = readPromptHistory();
+      const prompt = history[Number(saveBtn.dataset.index)];
+      saveCurrentPrompt(prompt);
+      return;
+    }
     const removeBtn = e.target.closest(".eureka-ai-history-remove");
     if (removeBtn) {
       e.preventDefault();
@@ -672,7 +2795,186 @@
     renderPromptHistory();
     if (input) input.focus();
   });
+  savePromptBtn?.addEventListener("click", () => {
+    saveCurrentPrompt();
+  });
+  exportSavedBtn?.addEventListener("click", () => {
+    downloadSearchBlock();
+  });
+  importSavedBtn?.addEventListener("click", () => {
+    importSavedFile?.click();
+  });
+  importSavedFile?.addEventListener("change", () => {
+    const file = importSavedFile.files && importSavedFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      importSearchBlock(String(reader.result || ""));
+      importSavedFile.value = "";
+    };
+    reader.onerror = () => {
+      window.alert("Impossibile leggere il file selezionato.");
+      importSavedFile.value = "";
+    };
+    reader.readAsText(file, "utf-8");
+  });
+  saveAllRecentBtn?.addEventListener("click", () => {
+    saveAllRecentToSaved();
+  });
+  savedMenu?.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest(".eureka-ai-saved-remove");
+    if (removeBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      removeSavedAtIndex(Number(removeBtn.dataset.index));
+      if (input) input.focus();
+      return;
+    }
+    const itemBtn = e.target.closest(".eureka-ai-saved-item");
+    if (!itemBtn) return;
+    e.preventDefault();
+    const saved = readSavedSearches();
+    const entry = saved[Number(itemBtn.dataset.index)];
+    applyPromptToInput(entry?.prompt);
+    if (savedToggle && window.bootstrap?.Dropdown) {
+      window.bootstrap.Dropdown.getInstance(savedToggle)?.hide();
+    }
+  });
+  clearSavedBtn?.addEventListener("click", () => {
+    try {
+      window.localStorage.removeItem(savedStorageKey);
+    } catch (error) {
+      // Ignore storage failures and keep current behavior.
+    }
+    if (savedToggle && window.bootstrap?.Dropdown) {
+      window.bootstrap.Dropdown.getInstance(savedToggle)?.hide();
+    }
+    renderSavedSearches();
+    if (input) input.focus();
+  });
   renderPromptHistory();
+  renderSavedSearches();
+
+  output?.addEventListener("click", function(event) {
+    if (event.target.closest(".eureka-ai-modal__chart-print-btn")) {
+      event.preventDefault();
+      event.stopPropagation();
+      printAiChart();
+      return;
+    }
+    if (event.target.closest(".eureka-ai-modal__chart-expand-btn")) {
+      event.preventDefault();
+      event.stopPropagation();
+      openAiChartLightbox();
+      return;
+    }
+    if (!shouldOpenChartLightbox(event)) return;
+    event.preventDefault();
+    openAiChartLightbox();
+  });
+
+  output?.addEventListener("keydown", function(event) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (!shouldOpenChartLightbox(event)) return;
+    event.preventDefault();
+    openAiChartLightbox();
+  });
+
+  chartLightboxPrintBtn?.addEventListener("click", function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    printAiChart();
+  });
+
+  chartLightboxExpandBtn?.addEventListener("click", function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleChartLightboxMaximized();
+  });
+
+  if (chartLightboxResizeHandle && chartLightboxPanel) {
+    let chartLightboxDragStart = null;
+
+    function onChartLightboxResizeMove(event) {
+      if (!chartLightboxDragStart) return;
+      const next = clampChartLightboxSize(
+        chartLightboxDragStart.width + (event.clientX - chartLightboxDragStart.x),
+        chartLightboxDragStart.height + (event.clientY - chartLightboxDragStart.y)
+      );
+      chartLightboxPanel.classList.remove("is-maximized");
+      chartLightboxPanel.classList.add("is-resized");
+      chartLightboxPanel.style.setProperty("--eureka-ai-chart-lightbox-width", next.width + "px");
+      chartLightboxPanel.style.setProperty("--eureka-ai-chart-lightbox-height", next.height + "px");
+      isChartLightboxMaximized = false;
+      updateChartLightboxExpandButton(false);
+      reflowChartLightboxChart();
+    }
+
+    function stopChartLightboxResize(event) {
+      if (!chartLightboxDragStart) return;
+      chartLightboxDragStart = null;
+      isChartLightboxResizing = false;
+      document.body.classList.remove("eureka-ai-chart-lightbox--resizing");
+      document.removeEventListener("pointermove", onChartLightboxResizeMove);
+      document.removeEventListener("pointerup", stopChartLightboxResize);
+      document.removeEventListener("pointercancel", stopChartLightboxResize);
+      const size = getChartLightboxPanelSize();
+      if (size) writeSavedChartLightboxSize(size);
+      if (event) event.preventDefault();
+    }
+
+    chartLightboxResizeHandle.addEventListener("pointerdown", function(event) {
+      if (event.button !== 0 || window.matchMedia("(max-width: 575.98px)").matches) return;
+      event.preventDefault();
+      event.stopPropagation();
+      isChartLightboxResizing = true;
+      const current = getChartLightboxPanelSize();
+      if (!current) return;
+      chartLightboxDragStart = {
+        x: event.clientX,
+        y: event.clientY,
+        width: current.width,
+        height: current.height,
+      };
+      document.body.classList.add("eureka-ai-chart-lightbox--resizing");
+      document.addEventListener("pointermove", onChartLightboxResizeMove);
+      document.addEventListener("pointerup", stopChartLightboxResize);
+      document.addEventListener("pointercancel", stopChartLightboxResize);
+    });
+  }
+
+  chartLightbox?.addEventListener("click", function(event) {
+    if (event.target.closest(".eureka-ai-chart-lightbox__resize-handle")) return;
+    if (event.target.closest("[data-eureka-ai-chart-lightbox-dismiss]")) {
+      event.preventDefault();
+      closeAiChartLightbox();
+    }
+  });
+
+  document.addEventListener("keydown", function(event) {
+    if (event.key !== "Escape") return;
+    if (!chartLightbox || !chartLightbox.classList.contains("is-open")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    closeAiChartLightbox();
+  }, true);
+
+  window.addEventListener("resize", function() {
+    if (!chartLightbox || !chartLightbox.classList.contains("is-open") || !chartLightboxPanel) return;
+    if (isChartLightboxMaximized) {
+      reflowChartLightboxChart();
+      return;
+    }
+    if (chartLightboxPanel.classList.contains("is-resized")) {
+      const current = getChartLightboxPanelSize();
+      if (current) {
+        chartLightboxPanel.style.setProperty("--eureka-ai-chart-lightbox-width", current.width + "px");
+        chartLightboxPanel.style.setProperty("--eureka-ai-chart-lightbox-height", current.height + "px");
+        writeSavedChartLightboxSize(current);
+      }
+    }
+    reflowChartLightboxChart();
+  });
 
   // --- Dettatura vocale ---
   const voiceBtn = document.getElementById("eurekaAiVoiceBtn");
@@ -734,6 +3036,39 @@
     voiceBtn.disabled = true;
     voiceBtn.title = "Dettatura vocale non supportata dal browser";
   }
+})();
+
+(function () {
+  const nextVal = window.location.pathname + window.location.search;
+  if (!nextVal) return;
+  const skipRe = /\/(edit|create|nuov|sync|stampa|export)(\/|\?|$)/i;
+  document.querySelectorAll(".eureka-tlist, [data-eureka-list-next]").forEach((root) => {
+    root.querySelectorAll("tbody a[href]").forEach((anchor) => {
+    const href = anchor.getAttribute("href");
+    if (!href || href.startsWith("#") || href.includes("next=") || href.includes("list_back=")) return;
+    if (skipRe.test(href)) return;
+    try {
+      const url = new URL(href, window.location.origin);
+      if (url.origin !== window.location.origin) return;
+      url.searchParams.set("next", nextVal);
+      anchor.setAttribute("href", url.pathname + url.search + url.hash);
+    } catch (error) { /* ignore */ }
+    });
+  });
+})();
+
+(function () {
+  const backUrl = document.body.dataset.backUrl;
+  if (!backUrl) return;
+  const actions = document.querySelector(".eureka-mask-hero__actions");
+  if (!actions) return;
+  if ([...actions.querySelectorAll("a[href]")].some((anchor) => anchor.getAttribute("href") === backUrl)) return;
+  const label = document.body.dataset.backLabel || "Torna all'elenco";
+  const link = document.createElement("a");
+  link.href = backUrl;
+  link.className = "btn btn-outline-primary btn-sm eureka-list-back";
+  link.innerHTML = '<i class="ti ti-arrow-left"></i> ' + label;
+  actions.insertBefore(link, actions.firstChild);
 })();
 </script>
 

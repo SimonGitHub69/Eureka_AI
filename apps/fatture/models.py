@@ -75,7 +75,7 @@ class Fattura(models.Model):
         db_table = "fatture"
         verbose_name = "Fattura"
         verbose_name_plural = "Fatture"
-        ordering = ["-data_fattura", "-numero_fatt"]
+        ordering = ["-data_fattura", "-numero_fatt", "alfa"]
 
     def __str__(self):
         return f"{self.numero_documento} ({self.id_testa})"
@@ -142,8 +142,15 @@ class Fattura(models.Model):
 
 
 def annotate_cliente_ragione_sociale(queryset):
-    """LEFT JOIN logico fatture.Cliente -> clienti.Codice via Subquery (no FK)."""
-    from apps.anagrafiche.models import Cliente
+    """LEFT JOIN logico fatture.Cliente -> clienti.Codice via Subquery (no FK).
+
+    Se la tabella mirror ``clienti`` manca (es. dopo Azzera tabelle), lascia il
+    queryset senza annotation: in UI resta solo il codice cliente.
+    """
+    from apps.anagrafiche.models import Cliente, clienti_mirror_available
+
+    if not clienti_mirror_available():
+        return queryset
 
     cliente_base = Cliente.objects.filter(codice=OuterRef("cliente"))
     return queryset.annotate(

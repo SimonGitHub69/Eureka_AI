@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import re
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, unquote, urlparse
+
+from apps.core.pagination import LIST_COUNT_EXCLUDE_GET
 
 
 def safe_internal_path(raw: str, *, host: str) -> str | None:
@@ -33,13 +35,55 @@ def next_from_request(request) -> str | None:
     return safe_internal_path(raw, host=request.get_host())
 
 
-def related_back(request) -> tuple[str | None, str]:
-    """Se ``next`` punta a una maschera nota, restituisce (url, label)."""
+_BACK_QUERY_EXCLUDE = LIST_COUNT_EXCLUDE_GET | frozenset(
+    {
+        "next",
+        "list_back",
+        "from",
+        "distinta_back",
+    }
+)
+
+
+def _path_has_list_filters(path: str) -> bool:
+    """True se l'URL di elenco contiene filtri/ricerca oltre paginazione e ordinamento."""
+    query = urlparse(path).query
+    if not query:
+        return False
+    params = parse_qs(query, keep_blank_values=True)
+    if params.get("ai") == ["1"]:
+        return True
+    for key, values in params.items():
+        if key in _BACK_QUERY_EXCLUDE:
+            continue
+        if any(str(value or "").strip() for value in values):
+            return True
+    return False
+
+
+def _resolve_back_path(request) -> str | None:
     path = next_from_request(request)
+    if path:
+        return path
+    raw = unquote((request.GET.get("list_back") or "").strip())
+    if not raw:
+        return None
+    return safe_internal_path(raw, host=request.get_host())
+
+
+def list_back_label(path: str) -> str:
+    return "Torna alla selezione" if _path_has_list_filters(path) else "Torna all'elenco"
+
+
+def related_back(request) -> tuple[str | None, str]:
+    """Restituisce (url, label) per tornare all'elenco o alla maschera correlata."""
+    path = _resolve_back_path(request)
     if not path:
         return None, ""
     lower = path.lower()
-    if "/primanota/" in lower:
+    if "/partitario" in lower:
+        return path, "Torna al partitario"
+    if re.search(r"/primanota/\d+", lower):
         return path, "Torna alla registrazione"
     if re.search(r"/movimenti/\d+", lower):
         return path, "Torna al movimento"
@@ -47,7 +91,7 @@ def related_back(request) -> tuple[str | None, str]:
         if "#" not in path:
             path = f"{path}#articolo-movimenti"
         return path, "Torna ai movimenti"
-    return None, ""
+    return path, list_back_label(path)
 
 
 def back_to_primanota(request) -> tuple[str | None, str]:

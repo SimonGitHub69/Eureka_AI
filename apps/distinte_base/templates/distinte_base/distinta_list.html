@@ -5,40 +5,49 @@
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-hierarchy-2"></i></span>
         <div>
-            <h2 class="page-title">Distinte base</h2>
-            <div class="text-secondary">
+            <h2 class="page-title mb-0">Distinte base</h2>
+            <div class="text-secondary mt-1">
                 Distinte base importate da 4D (<code>Distinte_Base</code>)
-                · collegamento articoli via <code>CodiceDB</code> / <code>Codice_Art</code>
-                {% if totale %}· {{ totale }} righe{% endif %}
+                · collegamento via <code>CodiceDB</code> / <code>Codice_Art</code>
+                {% include "partials/tlist_count.html" with list_count_total_label="righe" %}
             </div>
         </div>
     </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="distinte_base:print_list" %}
+        <a href="{% url 'distinte_base:create' %}{% if codice_db %}?codice_db={{ codice_db|urlencode }}{% endif %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuova riga
+        </a>
+    </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'distinte_base:list' %}">
-            <div class="row g-2 align-items-end">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
                 <div class="col-lg-4">
-                    <label class="form-label" for="distinteSearch">Ricerca</label>
                     <div class="input-icon">
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
                         <input type="text" id="distinteSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, componente, descrizione...">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" for="distinteCodiceDb">Codice distinta (CodiceDB)</label>
-                    <input type="text" id="distinteCodiceDb" name="codice_db" value="{{ codice_db }}" class="form-control" placeholder="Articolo padre">
+                    <input type="text" id="distinteCodiceDb" name="codice_db" value="{{ codice_db }}" class="form-control" placeholder="Codice distinta (padre)">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label" for="distinteCodiceArt">Codice art. (Codice_Art)</label>
-                    <input type="text" id="distinteCodiceArt" name="codice_art" value="{{ codice_art }}" class="form-control" placeholder="Componente">
+                    <input type="text" id="distinteCodiceArt" name="codice_art" value="{{ codice_art }}" class="form-control" placeholder="Codice art. (componente)">
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100"><i class="ti ti-filter"></i> Filtra</button>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="ti ti-filter"></i> Filtra</button>
                     {% if has_filters %}
                     <a href="{% url 'distinte_base:list' %}" class="btn btn-outline-secondary" title="Reset"><i class="ti ti-x"></i></a>
                     {% endif %}
@@ -50,15 +59,14 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
-                <tr>
-                    <th>CodiceDB</th>
-                    <th>Codice_Art</th>
-                    <th>Descrizione</th>
-                    <th class="text-end">Qta</th>
-                    <th>UM</th>
-                    <th>Fase</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "codice_db" "Distinta / componente" default_dir="asc" %}
+                    {% sort_th "qta" "Qta" align="end" default_dir="desc" %}
+                    {% sort_th "um" "UM" default_dir="asc" %}
+                    {% sort_th "fase" "Fase" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -66,37 +74,57 @@
                 {% for r in righe %}
                 <tr>
                     <td>
-                        {% if r.codice_db %}
-                        <a href="{% url 'articoli:detail' r.codice_db %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}" class="fw-semibold text-decoration-none">{{ r.codice_db }}</a>
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if r.codice_art %}
-                        {% if r.codice_db %}
-                        {% url 'articoli:detail' r.codice_db as parent_articolo_url %}
-                        <a href="{% url 'articoli:detail' r.codice_art %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}&amp;distinta_back={{ parent_articolo_url|urlencode }}" class="text-decoration-none">{{ r.codice_art }}</a>
-                        {% else %}
-                        <a href="{% url 'articoli:detail' r.codice_art %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}" class="text-decoration-none">{{ r.codice_art }}</a>
-                        {% endif %}
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 320px;" title="{{ r.descrizione }}">{{ r.descrizione|default:"—" }}</span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-azure-lt text-azure">
+                                <i class="ti ti-hierarchy-2"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'distinte_base:detail' r.id %}?list_back={{ request.get_full_path|urlencode }}" class="eureka-tlist-name text-truncate d-block" style="max-width: 420px;" title="{{ r.descrizione }}">
+                                    {{ r.descrizione|default:r.codice_art|default:r.id }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    {% if r.codice_db %}
+                                    <a href="{% url 'articoli:detail' r.codice_db %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}" class="text-decoration-none">{{ r.codice_db }}</a>
+                                    {% else %}—{% endif %}
+                                    →
+                                    {% if r.codice_art %}
+                                    {% if r.codice_db %}
+                                    {% url 'articoli:detail' r.codice_db as parent_articolo_url %}
+                                    <a href="{% url 'articoli:detail' r.codice_art %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}&amp;distinta_back={{ parent_articolo_url|urlencode }}" class="text-decoration-none">{{ r.codice_art }}</a>
+                                    {% else %}
+                                    <a href="{% url 'articoli:detail' r.codice_art %}?from=distinta&amp;list_back={{ request.get_full_path|urlencode }}" class="text-decoration-none">{{ r.codice_art }}</a>
+                                    {% endif %}
+                                    {% else %}—{% endif %}
+                                    <span class="text-secondary ms-1">#{{ r.id }}</span>
+                                </span>
+                            </div>
+                        </div>
                     </td>
                     <td class="text-end">{% if r.qta is not None %}{{ r.qta }}{% else %}—{% endif %}</td>
                     <td>{{ r.um|default:"—" }}</td>
-                    <td>{{ r.fase|default:"—" }}</td>
                     <td>
-                        <a href="{% url 'distinte_base:detail' r.id %}?list_back={{ request.get_full_path|urlencode }}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
+                        {% if r.fase %}
+                        <span class="eureka-tlist-chip">{{ r.fase }}</span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'distinte_base:edit' r.id %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-secondary py-5">
-                        Nessuna riga distinta trovata
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'distinte_base:list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="5">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-hierarchy-2"></i></div>
+                            Nessuna riga distinta trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'distinte_base:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -104,6 +132,8 @@
         </table>
     </div>
     {% include "partials/pagination.html" %}
+</div>
+
 </div>
 
 {% endblock %}

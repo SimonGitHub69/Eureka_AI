@@ -60,6 +60,23 @@ def voice_commands(request):
             error_sound_enabled = True
             error_sound_url = ""
 
+    navbar_shortcut_groups = []
+    navbar_shortcuts = []
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        try:
+            from apps.core.dashboard_shortcuts import (
+                build_navbar_shortcut_groups,
+                build_navbar_shortcuts,
+            )
+
+            navbar_shortcut_groups = build_navbar_shortcut_groups(request)
+            navbar_shortcuts = [
+                item for group in navbar_shortcut_groups for item in group["items"]
+            ]
+        except Exception:
+            navbar_shortcut_groups = []
+            navbar_shortcuts = []
+
     return {
         "eureka_voice_enabled": enabled,
         "eureka_navbar_fissa": navbar_fissa,
@@ -67,6 +84,8 @@ def voice_commands(request):
         "eureka_voice_commands_json": commands_json,
         "eureka_error_sound_enabled": error_sound_enabled,
         "eureka_error_sound_url": error_sound_url,
+        "eureka_navbar_shortcut_groups": navbar_shortcut_groups,
+        "eureka_navbar_shortcuts": navbar_shortcuts,
         **pc_ctx,
     }
 
@@ -133,6 +152,17 @@ def programma_documenti(request):
         "eureka_doc_menu_any": any(flags.values()) or bool(extra),
         "eureka_extra_menu": extra_flags,
         "eureka_extra_carbon": bool(extra_flags.get("CARBON")),
+    }
+
+
+def list_back(request):
+    """Pulsante «Torna alla selezione/elenco» su maschere dettaglio (query ``next``)."""
+    from apps.core.navigation import related_back
+
+    back_url, back_label = related_back(request)
+    return {
+        "back_url": back_url,
+        "back_label": back_label,
     }
 
 

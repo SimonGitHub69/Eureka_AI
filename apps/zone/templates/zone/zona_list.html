@@ -1,0 +1,109 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Zone · Eureka AI{% endblock %}
+{% block page_title %}Zone{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-world"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Zone</h2>
+            <div class="text-secondary mt-1">
+                Zone importate da 4D (<code>Zone</code>)
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="zone:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="zone:export_list" %}
+        <a href="{% url 'zone:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuova zona
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'zone:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'zone:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for z in zone %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-azure-lt text-azure">
+                                <i class="ti ti-world"></i>
+                            </span>
+                            <a href="{% url 'zone:detail' z.codice %}" class="eureka-tlist-name">{{ z.codice }}</a>
+                        </div>
+                    </td>
+                    <td>{{ z.descrizione|default:"—" }}</td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'zone:edit' z.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-world"></i></div>
+                            Nessuna zona trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'zone:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

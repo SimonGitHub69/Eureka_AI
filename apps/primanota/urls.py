@@ -6,6 +6,7 @@ from apps.primanota.views import (
     PrimanotaDeleteView,
     PrimanotaDetailView,
     PrimanotaListView,
+    PrimanotaPrintListView,
     PrimanotaProssimoNumeroView,
     PrimanotaRigaCreateView,
     PrimanotaRigaDeleteView,
@@ -17,6 +18,7 @@ from apps.primanota.views import (
 app_name = "primanota"
 urlpatterns = [
     path("primanota/", PrimanotaListView.as_view(), name="list"),
+    path("primanota/stampa/", PrimanotaPrintListView.as_view(), name="print_list"),
     path("primanota/nuova/", PrimanotaCreateView.as_view(), name="create"),
     path(
         "primanota/prossimo-numero/",

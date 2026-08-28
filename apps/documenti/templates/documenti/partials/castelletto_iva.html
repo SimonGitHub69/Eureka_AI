@@ -65,14 +65,7 @@
                 </div>
             </div>
             <div class="eureka-doc-castelletto__side-box">
-                <div class="eureka-doc-castelletto__side-label d-flex align-items-center justify-content-between gap-2">
-                    <span>Totale Peso</span>
-                    {% if interactive %}
-                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" data-castelletto-calc-peso title="Calcola peso dagli articoli">
-                        Calc
-                    </button>
-                    {% endif %}
-                </div>
+                <div class="eureka-doc-castelletto__side-label">Totale Peso</div>
                 <div class="eureka-doc-castelletto__side-value" data-castelletto-peso data-totale-peso>
                     {% if castelletto and castelletto.totale_peso != None %}
                     {{ castelletto.totale_peso|euro }}

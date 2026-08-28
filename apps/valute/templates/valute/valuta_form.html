@@ -1,0 +1,196 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Valute · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--valute">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--valute">{% if is_create %}<i class="ti ti-currency-dollar"></i>{% else %}{{ currency_symbol }}{% endif %}</span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                {% if is_create %}
+                Nuova valuta
+                {% else %}
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ valuta.codice }}</span>
+                {% if valuta.descrizione %}<span class="badge bg-secondary-lt">{{ valuta.descrizione }}</span>{% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'valute:detail' valuta.codice %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Dettaglio</a>
+        {% endif %}
+        <a href="{% url 'valute:list' %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list"></i> Elenco</a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" id="valutaForm" class="eureka-mask-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+    {% if formset.non_form_errors %}<div class="alert alert-danger py-2">{{ formset.non_form_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-id"></i></span>
+                Anagrafica
+            </h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-8 col-sm-8" %}
+                {% include "partials/mask_field.html" with field=form.abbrev col="col-4 col-sm-2" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--valute-storico mb-3" data-valuta-cambi>
+        <div class="card-header eureka-mask-card__header">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-chart-line"></i></span>
+                Storico cambi
+            </h3>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                {% if not is_create %}
+                <a href="{% url 'valute:cambio_create' valuta.codice %}" class="btn btn-outline-light btn-sm">
+                    <i class="ti ti-plus"></i> Nuovo cambio
+                </a>
+                {% endif %}
+                <button type="button" class="btn btn-outline-light btn-sm" data-cambi-add>
+                    <i class="ti ti-plus"></i> Agg. riga
+                </button>
+                <button type="button" class="btn btn-outline-light btn-sm" data-cambi-del disabled>
+                    <i class="ti ti-trash"></i> Canc. riga
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            {{ formset.management_form }}
+            <table class="table table-vcenter card-table mb-0 eureka-cambi-table">
+                <thead>
+                    <tr>
+                        <th class="w-1"></th>
+                        <th>Data</th>
+                        <th class="text-end">Cambio (€)</th>
+                    </tr>
+                </thead>
+                <tbody data-cambi-body>
+                    {% for f in formset %}
+                    <tr class="cambi-row{% if f.DELETE.value %} d-none{% endif %}" data-cambi-row>
+                        <td class="align-middle">
+                            <input type="radio" name="_cambi_sel" class="form-check-input" data-cambi-sel title="Seleziona riga">
+                            {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                            {% if f.DELETE %}<div class="visually-hidden">{{ f.DELETE }}</div>{% endif %}
+                        </td>
+                        <td>
+                            {{ f.data }}
+                            {% if f.data.errors %}<div class="invalid-feedback d-block">{{ f.data.errors|striptags }}</div>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {{ f.cambio }}
+                            {% if f.cambio.errors %}<div class="invalid-feedback d-block">{{ f.cambio.errors|striptags }}</div>{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-secondary py-3">Nessuna riga. Usa «Agg. riga» o «Nuovo cambio».</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <template data-cambi-empty>
+            <tr class="cambi-row" data-cambi-row>
+                <td class="align-middle">
+                    <input type="radio" name="_cambi_sel" class="form-check-input" data-cambi-sel title="Seleziona riga">
+                    {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                    {% if formset.empty_form.DELETE %}<div class="visually-hidden">{{ formset.empty_form.DELETE }}</div>{% endif %}
+                </td>
+                <td>{{ formset.empty_form.data }}</td>
+                <td class="text-end">{{ formset.empty_form.cambio }}</td>
+            </tr>
+        </template>
+    </div>
+
+    <div class="eureka-mask-actions">
+        {% if is_create %}
+        <a href="{% url 'valute:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% else %}
+        <a href="{% url 'valute:detail' valuta.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const root = document.querySelector("[data-valuta-cambi]");
+  if (!root) return;
+  const body = root.querySelector("[data-cambi-body]");
+  const emptyTpl = root.querySelector("[data-cambi-empty]");
+  const totalInput = document.getElementById("id_{{ formset.prefix }}-TOTAL_FORMS");
+  const addBtn = root.querySelector("[data-cambi-add]");
+  const delBtn = root.querySelector("[data-cambi-del]");
+
+  function visibleRows() {
+    return Array.from(body.querySelectorAll("[data-cambi-row]")).filter(
+      (row) => !row.classList.contains("d-none")
+    );
+  }
+
+  function selectedRow() {
+    const sel = body.querySelector("[data-cambi-sel]:checked");
+    return sel ? sel.closest("[data-cambi-row]") : null;
+  }
+
+  function refreshDel() {
+    delBtn.disabled = !selectedRow();
+  }
+
+  body.addEventListener("change", (e) => {
+    if (e.target.matches("[data-cambi-sel]")) refreshDel();
+  });
+
+  addBtn.addEventListener("click", () => {
+    const idx = parseInt(totalInput.value, 10);
+    const html = emptyTpl.innerHTML.replaceAll("__prefix__", String(idx));
+    body.insertAdjacentHTML("beforeend", html);
+    totalInput.value = String(idx + 1);
+    const rows = visibleRows();
+    const last = rows[rows.length - 1];
+    if (last) {
+      const radio = last.querySelector("[data-cambi-sel]");
+      if (radio) radio.checked = true;
+    }
+    refreshDel();
+  });
+
+  delBtn.addEventListener("click", () => {
+    const row = selectedRow();
+    if (!row) return;
+    const del = row.querySelector(`input[name$="-DELETE"]`);
+    if (del) {
+      del.checked = true;
+      row.classList.add("d-none");
+    } else {
+      row.remove();
+    }
+    refreshDel();
+  });
+
+  refreshDel();
+})();
+</script>
+{% endblock %}

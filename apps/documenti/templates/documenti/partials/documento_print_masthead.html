@@ -1,0 +1,89 @@
+{# Blocco testata documento (logo + metadati) — ripetuto in thead su ogni pagina in stampa #}
+<header class="doc-print-header">
+    {% if print_azienda_logo_url %}
+    <img
+        class="doc-print-header__logo"
+        src="{{ print_azienda_logo_url }}"
+        alt="Logo {{ print_azienda_ragione_sociale }}"
+    >
+    {% elif print_azienda_initials %}
+    <div class="doc-print-header__initials">{{ print_azienda_initials }}</div>
+    {% endif %}
+</header>
+
+<section class="doc-print-top">
+    <div class="doc-print-top__left">
+        <div class="doc-print-title-row">
+            <h1 class="doc-print-title">
+                {{ print_title_it }}{% if print_title_en %} / {{ print_title_en }}{% endif %}
+            </h1>
+        </div>
+        <div class="doc-print-id-row">
+            <div class="doc-print-cell">
+                <div class="lbl">Num. Doc. / Number</div>
+                <div class="val val--lg">{{ documento.numero_documento }}</div>
+            </div>
+            <div class="doc-print-cell">
+                <div class="lbl">Data Doc. / Date</div>
+                <div class="val val--md">{% if documento.data_documento %}{{ documento.data_documento|date:"d/m/Y" }}{% endif %}</div>
+            </div>
+            <div class="doc-print-cell">
+                <div class="lbl">Pag. / Page</div>
+                <div class="val doc-print-page-num"></div>
+            </div>
+        </div>
+        <div class="doc-print-rif-row">
+            <div class="doc-print-cell">
+                <div class="lbl">Rif. Ordine / Order</div>
+                <div class="val">{{ rif_ordine }}</div>
+            </div>
+            <div class="doc-print-cell">
+                <div class="lbl">Valuta / Currency</div>
+                <div class="val">{{ valuta }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="doc-print-top__dest">
+        <div class="doc-print-dest__name">{{ destinazione.nome }}</div>
+        {% if destinazione.indirizzo %}<div>{{ destinazione.indirizzo }}</div>{% endif %}
+        {% if destinazione.cap or destinazione.localita or destinazione.provincia %}
+        <div>{{ destinazione.cap }} {{ destinazione.localita }}{% if destinazione.provincia %} {{ destinazione.provincia }}{% endif %}</div>
+        {% endif %}
+        {% if destinazione.nazione %}<div>{{ destinazione.nazione }}</div>{% endif %}
+    </div>
+</section>
+
+<section class="doc-print-cli-row">
+    <div class="doc-print-cell">
+        <div class="lbl">Cli / Cust code</div>
+        <div class="val">{{ documento.codice_clifor }}</div>
+    </div>
+    <div class="doc-print-cell">
+        <div class="lbl">P. IVA Cliente / VAT Id</div>
+        <div class="val">{{ cliente_piva }}</div>
+    </div>
+    <div class="doc-print-cell">
+        <div class="lbl">Codice fiscale Cliente</div>
+        <div class="val">{{ cliente_cf }}</div>
+    </div>
+    <div class="doc-print-cell">
+        <div class="lbl">Agente / Agent</div>
+        <div class="val">{{ agente_label|default:documento.codice_agente }}</div>
+    </div>
+    <div class="doc-print-cell">
+        <div class="lbl">Condizioni di pagamento / Payment terms</div>
+        <div class="val">{{ pagamento_display|default:documento.cod_pagamento }}</div>
+    </div>
+</section>
+
+<section class="doc-print-bank-row">
+    <div class="lbl">Banca / Bank</div>
+    <div class="val">
+        {% if banca_label %}{{ banca_label }}{% endif %}
+        {% if documento.iban %}
+            {% if banca_label %} · {% endif %}IBAN {{ documento.iban }}
+        {% elif banca.iban %}
+            {% if banca_label %} · {% endif %}IBAN {{ banca.iban }}
+        {% endif %}
+    </div>
+</section>

@@ -1,0 +1,281 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Gruppi articoli · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-folders"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if is_create %}Nuovo gruppo articolo{% else %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ gruppo_articolo.codice }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'gruppi_articoli:detail' gruppo_articolo.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        <a href="{% url 'gruppi_articoli:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" id="gruppo-articolo-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card eureka-mask-card">
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-8 col-sm-7" %}
+                {% include "partials/mask_field.html" with field=form.f_disattivato col="col-sm-3" check=1 %}
+            </div>
+
+            {% for section in form.style_section_rows %}
+            <div class="eureka-style-section{% if forloop.first or section.flags.errors or section.fore.errors or section.back.errors %} is-open{% endif %}" data-style-section="{{ section.widget_id }}">
+                <button type="button" class="eureka-style-section__toggle" aria-expanded="{% if forloop.first or section.flags.errors or section.fore.errors or section.back.errors %}true{% else %}false{% endif %}">
+                    <span class="eureka-style-section__title">
+                        <i class="ti ti-chevron-right eureka-style-section__chevron"></i>
+                        {{ section.title }}
+                    </span>
+                    <span class="eureka-style-section__summary">
+                        <span class="eureka-rgb-swatch eureka-rgb-swatch--sm" data-swatch-fore title="Testo"></span>
+                        <span class="eureka-rgb-swatch eureka-rgb-swatch--sm" data-swatch-back title="Sfondo"></span>
+                    </span>
+                </button>
+                <div class="eureka-style-section__body">
+                    <div class="row g-compact align-items-start">
+                        <div class="col-12 col-md-4">
+                            <div class="form-label">{{ section.flags.label }}</div>
+                            {{ section.flags }}
+                            {{ section.font }}
+                            {% if section.flags.errors %}<div class="invalid-feedback d-block">{{ section.flags.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label" for="{{ section.fore.id_for_label }}">{{ section.fore.label }}</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ section.fore }}
+                                <span class="eureka-rgb-swatch" data-swatch-fore-body title="Anteprima testo"></span>
+                            </div>
+                            {% if section.fore.errors %}<div class="invalid-feedback d-block">{{ section.fore.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label" for="{{ section.back.id_for_label }}">{{ section.back.label }}</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ section.back }}
+                                <span class="eureka-rgb-swatch" data-swatch-back-body title="Anteprima sfondo"></span>
+                            </div>
+                            {% if section.back.errors %}<div class="invalid-feedback d-block">{{ section.back.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-12">
+                            <div class="eureka-rgb-preview" data-rgb-preview>Anteprima testo su sfondo</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2 py-2">
+            {% if is_create %}
+            <a href="{% url 'gruppi_articoli:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% else %}
+            <a href="{% url 'gruppi_articoli:detail' gruppo_articolo.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="ti ti-device-floppy"></i> Salva
+            </button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+<style>
+.eureka-style-section {
+    margin-top: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.55rem;
+    background: #fff;
+    overflow: hidden;
+}
+.eureka-style-section__toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border: 0;
+    background: #f8fafc;
+    cursor: pointer;
+    text-align: left;
+}
+.eureka-style-section__toggle:hover {
+    background: #f1f5f9;
+}
+.eureka-style-section__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    color: var(--tblr-secondary, #667382);
+    text-transform: uppercase;
+}
+.eureka-style-section__chevron {
+    transition: transform .15s ease;
+    font-size: 1rem;
+}
+.eureka-style-section.is-open .eureka-style-section__chevron {
+    transform: rotate(90deg);
+}
+.eureka-style-section__summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.eureka-style-section__body {
+    display: none;
+    padding: 0.75rem 0.85rem 0.85rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.eureka-style-section.is-open .eureka-style-section__body {
+    display: block;
+}
+.eureka-rgb-swatch {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.4rem;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    flex-shrink: 0;
+}
+.eureka-rgb-swatch--sm {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 0.3rem;
+}
+.eureka-rgb-preview {
+    margin-top: 0.15rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-weight: 600;
+}
+.form-control-color {
+    width: 3rem;
+    height: 2.1rem;
+    padding: 0.2rem;
+}
+.eureka-font-style {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    background: #f8fafc;
+    max-width: 14rem;
+}
+.eureka-font-style__item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+}
+.eureka-font-style__item input {
+    margin: 0;
+}
+.eureka-font-style__item--bold .eureka-font-style__label { font-weight: 700; }
+.eureka-font-style__item--italic .eureka-font-style__label { font-style: italic; }
+.eureka-font-style__item--underline .eureka-font-style__label { text-decoration: underline; }
+</style>
+<script>
+(function () {
+    function bindSection(section) {
+        const toggle = section.querySelector(".eureka-style-section__toggle");
+        const fore = section.querySelector('input[type="color"][name*="rgb_color_fore"]');
+        const back = section.querySelector('input[type="color"][name*="rgb_color_back"]');
+        const swatchesFore = section.querySelectorAll("[data-swatch-fore], [data-swatch-fore-body]");
+        const swatchesBack = section.querySelectorAll("[data-swatch-back], [data-swatch-back-body]");
+        const combo = section.querySelector("[data-rgb-preview]");
+        const wrap = section.querySelector(".eureka-font-style");
+        const hidden = section.querySelector('input[type="hidden"][name^="font_style"]');
+
+        if (toggle) {
+            toggle.addEventListener("click", () => {
+                const open = section.classList.toggle("is-open");
+                toggle.setAttribute("aria-expanded", open ? "true" : "false");
+            });
+        }
+
+        function syncRgb() {
+            if (!fore || !back) return;
+            const f = fore.value || "#000000";
+            const b = back.value || "#ffffff";
+            swatchesFore.forEach((el) => { el.style.background = f; });
+            swatchesBack.forEach((el) => { el.style.background = b; });
+            if (combo) {
+                combo.style.color = f;
+                combo.style.background = b;
+            }
+        }
+        if (fore && back) {
+            fore.addEventListener("input", syncRgb);
+            back.addEventListener("input", syncRgb);
+            syncRgb();
+        }
+
+        if (!wrap) return;
+        const boxes = Array.from(wrap.querySelectorAll('input[type="checkbox"]'));
+        const byVal = Object.fromEntries(boxes.map((el) => [el.value, el]));
+        function encode() {
+            return ["plain", "bold", "italic", "underline"]
+                .map((k) => (byVal[k] && byVal[k].checked ? "1" : "0"))
+                .join("");
+        }
+        function syncHidden() {
+            if (hidden) hidden.value = encode();
+            if (combo) {
+                combo.style.fontWeight = byVal.bold && byVal.bold.checked ? "700" : "600";
+                combo.style.fontStyle = byVal.italic && byVal.italic.checked ? "italic" : "normal";
+                combo.style.textDecoration = byVal.underline && byVal.underline.checked ? "underline" : "none";
+            }
+        }
+        boxes.forEach((box) => {
+            box.addEventListener("change", () => {
+                if (box.value === "plain" && box.checked) {
+                    ["bold", "italic", "underline"].forEach((k) => {
+                        if (byVal[k]) byVal[k].checked = false;
+                    });
+                } else if (box.value !== "plain" && box.checked) {
+                    if (byVal.plain) byVal.plain.checked = false;
+                }
+                if (!boxes.some((el) => el.checked) && byVal.plain) {
+                    byVal.plain.checked = true;
+                }
+                syncHidden();
+            });
+        });
+        syncHidden();
+    }
+
+    document.querySelectorAll(".eureka-style-section").forEach(bindSection);
+})();
+</script>
+
+{% endblock %}

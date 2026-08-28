@@ -35,6 +35,9 @@ class ModificaColumnSpec:
     ora_col: str | None = None
     single_col: str | None = None
     data_pg_type: str | None = None
+    # Se True, ignora l'auto-detect (es. DataModifica presente ma non valorizzata)
+    # e usa sempre data_col/ora_col dell'override.
+    force_columns: bool = False
 
 
 # Fallback esplicito per tabelle 4D quando l'introspection ODBC non rileva le colonne.
@@ -80,6 +83,22 @@ MODIFICA_TABLE_OVERRIDES: dict[str, ModificaColumnSpec] = {
         data_col="DataModifica",
         ora_col="OraModifica",
         data_pg_type="timestamp",
+    ),
+    # DataModifica/OraModifica esistono ma in 4D non sono valorizzate (sempre vuote via ODBC).
+    # Incrementale su DataRegistraz/OraRegistraz (testa) e DataMov (dettaglio).
+    "MovimentiT": ModificaColumnSpec(
+        mode="split",
+        data_col="DataRegistraz",
+        ora_col="OraRegistraz",
+        data_pg_type="timestamp",
+        force_columns=True,
+    ),
+    "MovimentiT_Dettaglio": ModificaColumnSpec(
+        mode="split",
+        data_col="DataMov",
+        ora_col=None,
+        data_pg_type="timestamp",
+        force_columns=True,
     ),
 }
 
@@ -144,8 +163,9 @@ def _resolve_table_override(
     return ModificaColumnSpec(
         mode="split",
         data_col=data_col or override.data_col,
-        ora_col=ora_col or override.ora_col,
+        ora_col=ora_col if ora_col is not None else override.ora_col,
         data_pg_type=data_pg_type,
+        force_columns=override.force_columns,
     )
 
 
@@ -191,6 +211,11 @@ def detect_modifica_columns(
 ) -> ModificaColumnSpec | None:
     """Individua colonne modifica nella introspection ODBC."""
     names = _column_names(columns)
+    if source_table:
+        override = MODIFICA_TABLE_OVERRIDES.get(source_table)
+        if override is not None and override.force_columns:
+            return _resolve_table_override(columns, names, source_table)
+
     single = _pick_column(names, MODIFICA_SINGLE_ALIASES)
     if single:
         return ModificaColumnSpec(mode="single", single_col=single)
@@ -460,7 +485,10 @@ def format_incremental_message(
     full: bool = False,
     fallback_full: bool = False,
     fallback_reason: str | None = None,
+    pk_incremental: bool = False,
 ) -> str:
+    if pk_incremental:
+        return f"Sync incrementale per ID (> ultimo in PostgreSQL): {rows} righe importate."
     if full:
         return f"Sincronizzazione completa: {rows} righe importate."
     if fallback_full:

@@ -120,18 +120,35 @@ def _progressivo_hex(progressivo: int | None, fallback: int) -> str:
 
 
 def resolve_iva(codice: str | None) -> tuple[Decimal, str | None]:
-    code = _txt(codice).upper()
+    code = _txt(codice)
     if not code:
         return Decimal("22"), None
-    if code in IVA_MAP:
-        return IVA_MAP[code]
-    m = re.match(r"^(\d{1,2}(?:\.\d+)?)", code)
+
+    # Preferisci anagrafica AliquoteIva sincronizzata da 4D
+    try:
+        from apps.aliquote.models import Aliquota
+
+        row = (
+            Aliquota.objects.filter(codice__iexact=code)
+            .only("percentuale", "natura_cod_ese_edi")
+            .first()
+        )
+        if row is not None:
+            natura = row.natura_sdi or None
+            return row.aliquota_sdi, natura
+    except Exception:
+        pass
+
+    code_u = code.upper()
+    if code_u in IVA_MAP:
+        return IVA_MAP[code_u]
+    m = re.match(r"^(\d{1,2}(?:\.\d+)?)", code_u)
     if m:
         aliq = Decimal(m.group(1))
         natura = None
         if aliq == 0:
             natura = "N2.2"
-        elif any(x in code for x in ("RC", "PM", "SP")):
+        elif any(x in code_u for x in ("RC", "PM", "SP")):
             natura = "N6.1"
         return aliq, natura
     return Decimal("0"), "N2.2"
@@ -584,13 +601,28 @@ def build_fatturapa(
 
     importo_el.text = _fmt_money(totale_doc)
 
-    # Pagamento (opzionale)
+    importo_el.text = _fmt_money(totale_doc)
+
+    # Pagamento (opzionale): ModalitaPagamento da CondizioniPag.PagFattElettPA
     iban = _txt(fattura.iban)
-    if iban or _txt(fattura.cod_pagamento):
+    cod_pag = _txt(fattura.cod_pagamento)
+    modalita = ""
+    if cod_pag:
+        from apps.condizioni.models import Condizione
+
+        cond = Condizione.objects.filter(codice=cod_pag).only("pag_fatt_elett_pa").first()
+        if cond:
+            modalita = _txt(cond.pag_fatt_elett_pa).upper()
+    if not modalita:
+        modalita = "MP05" if iban else ("MP01" if cod_pag else "")
+    if not re.fullmatch(r"MP\d{2}", modalita):
+        modalita = "MP05" if iban else "MP01"
+
+    if iban or cod_pag or modalita:
         pag = _sub(body, "DatiPagamento")
         _sub(pag, "CondizioniPagamento", "TP02")
         dett = _sub(pag, "DettaglioPagamento")
-        _sub(dett, "ModalitaPagamento", "MP05" if iban else "MP01")
+        _sub(dett, "ModalitaPagamento", modalita)
         _sub(dett, "ImportoPagamento", _fmt_money(totale_doc))
         if iban:
             _sub(dett, "IBAN", re.sub(r"\s+", "", iban).upper())

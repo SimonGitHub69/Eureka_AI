@@ -1,0 +1,43 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Documenti · Eureka AI{% endblock %}
+{% block page_title %}Documenti{% endblock %}
+
+{% block content %}
+<div class="eureka-tlist">
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-files"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Documenti</h2>
+            <div class="text-secondary mt-1">Schema unificato per ordini, preventivi, DDT e fatture</div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards">
+    {% for tipo in tipi %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{% url 'documenti:list' tipo_doc=tipo.codice %}" class="card card-link card-link-pop text-reset text-decoration-none">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-primary-lt me-2">{{ tipo.codice }}</span>
+                    <strong>{{ tipo.label }}</strong>
+                </div>
+                {% if tipo.descrizione %}
+                <p class="text-secondary small mb-0">{{ tipo.descrizione }}</p>
+                {% endif %}
+                {% if tipo.source_table_4d %}
+                <p class="text-muted small mt-2 mb-0"><code>{{ tipo.source_table_4d }}</code></p>
+                {% endif %}
+            </div>
+        </a>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-warning">Nessun tipo documento configurato. Eseguire <code>sync_documenti_4d --seed-tipi</code>.</div>
+    </div>
+    {% endfor %}
+</div>
+</div>
+{% endblock %}

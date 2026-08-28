@@ -1,0 +1,107 @@
+/* Long-text expand/edit control (documento note, riga descrizione, …) */
+
+.eureka-long-text {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.eureka-long-text > .form-control,
+.eureka-long-text > textarea.form-control,
+.eureka-long-text > input.form-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.eureka-long-text__btn {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 0;
+  color: var(--tblr-secondary, #667382);
+}
+
+.eureka-long-text__btn--expand {
+  color: var(--tblr-primary, #206bc4);
+  background: rgba(var(--tblr-primary-rgb, 32, 107, 196), 0.1);
+  border: 1px solid rgba(var(--tblr-primary-rgb, 32, 107, 196), 0.22);
+  border-radius: var(--tblr-border-radius, 4px);
+  opacity: 1;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eureka-long-text__btn--expand .ti {
+  font-size: 1rem;
+  stroke-width: 1.75;
+}
+
+.eureka-long-text__btn--expand:hover,
+.eureka-long-text__btn--expand:focus-visible {
+  color: #fff;
+  background: var(--tblr-primary, #206bc4);
+  border-color: var(--tblr-primary, #206bc4);
+  box-shadow: 0 0 0 0.15rem rgba(var(--tblr-primary-rgb, 32, 107, 196), 0.22);
+}
+
+.eureka-long-text > textarea.form-control + .eureka-long-text__btn {
+  margin-top: 0.15rem;
+}
+
+.eureka-long-text-view {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+.eureka-long-text-view__text {
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.eureka-long-text-view--expandable .eureka-long-text-view__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(28rem, 100%);
+}
+
+.eureka-long-text-view .eureka-long-text__btn {
+  flex-shrink: 0;
+  margin-top: -0.1rem;
+}
+
+.eureka-long-text-modal__textarea {
+  min-height: min(60vh, 28rem);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.eureka-long-text-modal__textarea[readonly] {
+  background-color: var(--tblr-bg-surface-secondary, #f6f8fb);
+  cursor: default;
+}
+
+[data-bs-theme="dark"] .eureka-long-text-modal__textarea[readonly] {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-bs-theme="dark"] .eureka-long-text__btn--expand {
+  background: rgba(var(--tblr-primary-rgb, 32, 107, 196), 0.16);
+  border-color: rgba(var(--tblr-primary-rgb, 32, 107, 196), 0.35);
+}
+
+/* Compact table cells: keep icon tight but readable */
+#righeTable .eureka-long-text {
+  min-width: 10rem;
+}
+
+#righeTable .eureka-long-text__btn--expand {
+  padding: 0.28rem;
+  min-width: 1.65rem;
+  min-height: 1.65rem;
+}

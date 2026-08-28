@@ -1,0 +1,170 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ destinazione.ragione_sociale|default:destinazione.codice_dest }} · Destinazioni diverse · Eureka AI{% endblock %}
+{% block page_title %}Destinazione diversa{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-map-pin"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ destinazione.ragione_sociale|default:"Destinazione" }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ destinazione.codice }} · {{ destinazione.codice_dest|default:destinazione.id }}</span>
+                {% if destinazione.tipo == "F" %}
+                <span class="badge bg-orange-lt">Fornitore</span>
+                {% else %}
+                <span class="badge bg-azure-lt">Cliente</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'destinazioni:edit' destinazione.pk %}{% if from_anagrafica %}?from=anagrafica{% endif %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        {% if return_url %}
+        <a href="{{ return_url }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Anagrafica
+        </a>
+        {% else %}
+        <a href="{% url 'destinazioni:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice Cli/For</div>
+                <div class="eureka-mask-field__value">
+                    {% if anagrafica_url %}
+                    <a href="{{ anagrafica_url }}">{{ destinazione.codice }}</a>
+                    {% else %}
+                    {{ destinazione.codice|default:"—" }}
+                    {% endif %}
+                    {% if anagrafica %}
+                    <span class="text-secondary">· {{ anagrafica.ragione_sociale|default:anagrafica.codice }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice destinazione</div>
+                <div class="eureka-mask-field__value">{{ destinazione.codice_dest|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ragione sociale</div>
+                <div class="eureka-mask-field__value">{{ destinazione.ragione_sociale|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Indirizzo</div>
+                <div class="eureka-mask-field__value">{{ destinazione.indirizzo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">CAP</div>
+                <div class="eureka-mask-field__value">{{ destinazione.cap|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Città</div>
+                <div class="eureka-mask-field__value">{{ destinazione.citta|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Provincia</div>
+                <div class="eureka-mask-field__value">{{ destinazione.provincia|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Telefono</div>
+                <div class="eureka-mask-field__value">{{ destinazione.telefono|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email</div>
+                <div class="eureka-mask-field__value">{{ destinazione.email|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Nazione</div>
+                <div class="eureka-mask-field__value">{{ destinazione.cod_nazione|default:"—" }}{% if destinazione.desc_nazione %} · {{ destinazione.desc_nazione }}{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice ISO</div>
+                <div class="eureka-mask-field__value">{{ destinazione.codice_iso|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Punto vendita</div>
+                <div class="eureka-mask-field__value">{{ destinazione.punto_vendita|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cod. esenz. IVA</div>
+                <div class="eureka-mask-field__value">{{ destinazione.cod_esenz_iva|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Prezzi bolle</div>
+                <div class="eureka-mask-field__value">{% if destinazione.prezzi_bolle %}Sì{% elif destinazione.prezzi_bolle == False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Black list</div>
+                <div class="eureka-mask-field__value">{% if destinazione.black_list %}Sì{% elif destinazione.black_list == False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultima modifica</div>
+                <div class="eureka-mask-field__value">
+                    {% if destinazione.data_modifica %}{{ destinazione.data_modifica|date:"d/m/Y" }}{% else %}—{% endif %}
+                    {% if destinazione.ora_modifica %} {{ destinazione.ora_modifica|time:"H:i" }}{% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">
+                    {% if destinazione.synced_at %}{{ destinazione.synced_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaDestinazioneWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaDestinazione">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaDestinazione" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ destinazione.codice }} {{ destinazione.codice_dest|default:destinazione.id }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaDestinazione">Annulla</button>
+                        <button type="submit" form="formEliminaDestinazione" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaDestinazione" method="post" action="{% url 'destinazioni:delete' destinazione.pk %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+    {% if from_anagrafica %}<input type="hidden" name="from" value="anagrafica">{% endif %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaDestinazione");
+  document.getElementById("btnApriEliminaDestinazione")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaDestinazione")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

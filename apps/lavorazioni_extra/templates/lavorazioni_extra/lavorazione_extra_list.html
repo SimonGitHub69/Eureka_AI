@@ -11,7 +11,7 @@
             <h2 class="page-title">Lavorazioni extra</h2>
             <div class="text-secondary">
                 Importate da 4D (<code>TabLavorazioniExtra</code>)
-                {% if totale %}· {{ totale }} totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
         <a href="{% url 'carbon:hub' %}" class="btn btn-outline-secondary">
@@ -23,7 +23,9 @@
 
 <div class="card mb-3">
     <div class="card-body">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'lavorazioni_extra:list' %}">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end">
                 <div class="col-lg-8">
                     <label class="form-label" for="carbonSearch">Ricerca</label>
@@ -43,16 +45,17 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card" data-eureka-list-next>
     <div class="table-responsive">
         <table class="table table-vcenter card-table table-hover">
             <thead>
-                <tr>
-                    <th class="w-1 text-secondary">#</th>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
-                    <th>Reparto</th>
-                    <th>Vincolante</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "id" "#" default_dir="desc" %}
+                    {% sort_th "cod" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    {% sort_th "cod_reparto" "Reparto" default_dir="asc" %}
+                    {% sort_th "f_vincolante" "Vincolante" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>

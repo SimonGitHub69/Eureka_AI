@@ -191,6 +191,56 @@ def _can_reuse_existing_table(target: str, columns: list[dict[str, Any]]) -> boo
     return expected.issubset(set(existing.keys()))
 
 
+def ensure_missing_mirror_columns(target: str, columns: list[dict[str, Any]]) -> None:
+    """Aggiunge colonne mancanti alla tabella mirror senza ricrearla."""
+    if not _table_exists(target):
+        return
+    existing = _existing_table_columns(target)
+    with connection.cursor() as cur:
+        for col in columns:
+            if col["name"] in existing:
+                continue
+            cur.execute(
+                f"ALTER TABLE {quote_ident(target)} "
+                f"ADD COLUMN IF NOT EXISTS {quote_ident(col['name'])} {col['pg_type']}"
+            )
+
+
+def _prepare_mirror_table_for_import(
+    target: str,
+    columns: list[dict[str, Any]],
+    pk: str,
+    post_create: Callable | None,
+    *,
+    recreate: bool,
+) -> None:
+    """TRUNCATE o crea la tabella mirror; aggiunge colonne nuove senza DROP."""
+    if not recreate:
+        with connection.cursor() as cur:
+            cur.execute(f"TRUNCATE TABLE {quote_ident(target)};")
+        return
+
+    if _can_reuse_existing_table(target, columns):
+        with connection.cursor() as cur:
+            cur.execute(f"TRUNCATE TABLE {quote_ident(target)};")
+        return
+
+    if _table_exists(target):
+        ensure_missing_mirror_columns(target, columns)
+        if _can_reuse_existing_table(target, columns):
+            with connection.cursor() as cur:
+                cur.execute(f"TRUNCATE TABLE {quote_ident(target)};")
+            return
+
+    ensure_postgres_table(
+        target,
+        columns,
+        pk,
+        post_create=post_create,
+        drop_existing=True,
+    )
+
+
 def _build_upsert_sql(target: str, insert_cols: list[str], pk: str) -> str:
     update_cols = [c for c in insert_cols if c != pk]
     assignments = ", ".join(
@@ -348,6 +398,20 @@ def delete_empty_pk_rows(target: str, pk: str) -> int:
         return 0
 
 
+def resolve_column_name(
+    columns: list[dict[str, Any]], *aliases: str
+) -> str | None:
+    """Nome colonna reale (case-insensitive) tra gli alias richiesti."""
+    by_fold = {str(col["name"]).casefold(): col["name"] for col in columns if col.get("name")}
+    for alias in aliases:
+        if not alias:
+            continue
+        found = by_fold.get(str(alias).casefold())
+        if found:
+            return found
+    return None
+
+
 def fetch_4d_rows(
     cursor,
     source: str,
@@ -357,6 +421,7 @@ def fetch_4d_rows(
     where_clause: str | None = None,
     page_pk: str | None = None,
     page_size: int = 10000,
+    start_after_pk: Any = None,
 ):
     """Legge la tabella 4D a batch.
 
@@ -365,7 +430,18 @@ def fetch_4d_rows(
     chiude il cursore e il SELECT unico resta appeso.
     """
     col_4d = ", ".join(f"[{c['name']}]" for c in columns)
-    if not page_pk:
+    resolved_pk = None
+    if page_pk:
+        # Alias tipici per righe documento 4D (ID / ID_Riga / IDRiga).
+        resolved_pk = resolve_column_name(
+            columns, page_pk, "ID", "ID_Riga", "IDRiga", "Id"
+        )
+        if resolved_pk is None:
+            raise RuntimeError(
+                f"Colonna di paginazione {page_pk} assente in {source}."
+            )
+
+    if not resolved_pk:
         sql = f"SELECT {col_4d} FROM [{source}]"
         if where_clause:
             sql += f" WHERE {where_clause}"
@@ -377,6 +453,7 @@ def fetch_4d_rows(
             yield rows
         return
 
+    page_pk = resolved_pk
     pk_idx = next(
         (i for i, col in enumerate(columns) if col["name"] == page_pk),
         None,
@@ -384,7 +461,7 @@ def fetch_4d_rows(
     if pk_idx is None:
         raise RuntimeError(f"Colonna di paginazione {page_pk} assente in {source}.")
 
-    last: Any = None
+    last: Any = start_after_pk
     while True:
         predicates: list[str] = []
         if where_clause:
@@ -425,6 +502,20 @@ def _sql_pk_literal(value: Any) -> str:
     return f"'{text}'"
 
 
+def _max_pg_pk(target: str, pk: str) -> Any:
+    """Ultima PK presente nel mirror PostgreSQL (per sync incrementale per ID)."""
+    if not _table_exists(target):
+        return None
+    try:
+        with connection.cursor() as cur:
+            cur.execute(
+                f"SELECT MAX({quote_ident(pk)}) FROM {quote_ident(target)}"
+            )
+            return cur.fetchone()[0]
+    except Exception:
+        return None
+
+
 def sync_table(
     source: str,
     target: str,
@@ -436,6 +527,8 @@ def sync_table(
     skip_blobs: bool = True,
     full: bool = False,
     page_by_pk: bool = False,
+    page_size: int = 10000,
+    incremental_by_pk: bool = False,
 ) -> TableSyncResult:
     result = TableSyncResult(source=source, target=target)
     attempted_incremental = False
@@ -490,24 +583,32 @@ def sync_table(
                 attempted_incremental = True
 
             do_full_import = full or fallback_full or not use_incremental
+            pk_incremental = False
+            start_after_pk: Any = None
+            if (
+                not full
+                and incremental_by_pk
+                and page_by_pk
+                and _table_exists(target)
+                and do_full_import
+            ):
+                start_after_pk = _max_pg_pk(target, pk)
+                if start_after_pk is not None and not is_empty_pk_value(start_after_pk):
+                    pk_incremental = True
+                    do_full_import = False
+                    attempted_incremental = True
+                    where_clause = None
+                    ensure_missing_mirror_columns(target, columns)
 
             insert_cols = [c["name"] for c in columns] + ["synced_at"]
             if do_full_import:
-                if recreate:
-                    if _can_reuse_existing_table(target, columns):
-                        with connection.cursor() as cur:
-                            cur.execute(f"TRUNCATE TABLE {quote_ident(target)};")
-                    else:
-                        ensure_postgres_table(
-                            target,
-                            columns,
-                            pk,
-                            post_create=post_create,
-                            drop_existing=True,
-                        )
-                else:
-                    with connection.cursor() as cur:
-                        cur.execute(f"TRUNCATE TABLE {quote_ident(target)};")
+                _prepare_mirror_table_for_import(
+                    target,
+                    columns,
+                    pk,
+                    post_create,
+                    recreate=recreate,
+                )
                 insert_sql = (
                     f"INSERT INTO {quote_ident(target)} ("
                     + ", ".join(quote_ident(c) for c in insert_cols)
@@ -522,6 +623,8 @@ def sync_table(
                         post_create=post_create,
                         drop_existing=False,
                     )
+                else:
+                    ensure_missing_mirror_columns(target, columns)
                 insert_sql = _build_upsert_sql(target, insert_cols, pk)
             t_schema = perf_counter() - t_phase
 
@@ -533,6 +636,9 @@ def sync_table(
             # usa >= inizio giornata (OraModifica non è confrontabile via ODBC).
             # Filtriamo in Python le righe già coperte dal watermark.
             filter_wm = _as_naive(watermark) if use_incremental else None
+            track_modifica = modifica_spec is not None and (
+                filter_wm is not None or (do_full_import and not pk_incremental)
+            )
 
             with connection.cursor() as pg_cur:
                 for batch in fetch_4d_rows(
@@ -542,6 +648,8 @@ def sync_table(
                     batch_size=batch_size,
                     where_clause=where_clause,
                     page_pk=pk if page_by_pk else None,
+                    page_size=page_size,
+                    start_after_pk=start_after_pk if pk_incremental else None,
                 ):
                     batches += 1
                     batch, skipped_pk = keep_rows_with_pk(batch, pk_idx)
@@ -549,25 +657,32 @@ def sync_table(
                     values = []
                     t_map_batch = perf_counter()
                     for row in batch:
-                        row_dict = {
-                            columns[idx]["name"]: row[idx] for idx in range(len(columns))
-                        }
-                        if (
-                            modifica_spec
-                            and filter_wm is not None
-                            and not is_newer_than_watermark(
-                                row_dict, spec=modifica_spec, watermark=filter_wm
-                            )
-                        ):
-                            continue
-                        if modifica_spec:
-                            row_mod = _as_naive(
-                                parse_4d_modifica(row_dict, spec=modifica_spec)
-                            )
-                            if row_mod is not None and (
-                                max_seen_modifica is None or row_mod > max_seen_modifica
+                        if track_modifica or filter_wm is not None:
+                            row_dict = {
+                                columns[idx]["name"]: row[idx]
+                                for idx in range(len(columns))
+                            }
+                            if (
+                                modifica_spec
+                                and filter_wm is not None
+                                and not is_newer_than_watermark(
+                                    row_dict,
+                                    spec=modifica_spec,
+                                    watermark=filter_wm,
+                                )
                             ):
-                                max_seen_modifica = row_mod
+                                continue
+                            if modifica_spec and track_modifica:
+                                row_mod = _as_naive(
+                                    parse_4d_modifica(
+                                        row_dict, spec=modifica_spec
+                                    )
+                                )
+                                if row_mod is not None and (
+                                    max_seen_modifica is None
+                                    or row_mod > max_seen_modifica
+                                ):
+                                    max_seen_modifica = row_mod
                         mapped = [
                             normalize_value(row[idx], columns[idx]["pg_type"])
                             for idx in range(len(columns))
@@ -577,8 +692,11 @@ def sync_table(
                     t_transform += perf_counter() - t_map_batch
                     if values:
                         t_write_batch = perf_counter()
-                        with transaction.atomic():
+                        if do_full_import:
                             pg_cur.executemany(insert_sql, values)
+                        else:
+                            with transaction.atomic():
+                                pg_cur.executemany(insert_sql, values)
                         t_write += perf_counter() - t_write_batch
                         total += len(values)
 
@@ -590,6 +708,7 @@ def sync_table(
                 fallback_full
                 and fallback_reason == "first_import"
                 and modifica_spec is not None
+                and not pk_incremental
             ):
                 # Le colonne esistono ma il feed 4D non espone valori utilizzabili:
                 # non possiamo generare watermark reali ne' usare un incrementale sicuro.
@@ -608,9 +727,10 @@ def sync_table(
             mode_msg = format_incremental_message(
                 total,
                 since=since_watermark if use_incremental else None,
-                full=full or (do_full_import and not fallback_full),
-                fallback_full=fallback_full,
-                fallback_reason=fallback_reason,
+                full=full or (do_full_import and not fallback_full and not pk_incremental),
+                fallback_full=fallback_full and not pk_incremental,
+                fallback_reason=fallback_reason if not pk_incremental else None,
+                pk_incremental=pk_incremental,
             )
             result.rows = total
             result.skipped_empty_pk = skipped_empty_pk
@@ -639,6 +759,8 @@ def sync_table(
                 skip_blobs=skip_blobs,
                 full=True,
                 page_by_pk=page_by_pk,
+                page_size=page_size,
+                incremental_by_pk=incremental_by_pk,
             )
             if retry.ok:
                 retry.message = (
@@ -666,13 +788,15 @@ def sync_tables(
             source=spec["source"],
             target=spec["target"],
             pk=spec["pk"],
-            batch_size=batch_size,
+            batch_size=spec.get("batch_size", batch_size),
             recreate=True,
             post_create=spec.get("post_create"),
             exclude_columns=spec.get("exclude_columns"),
             skip_blobs=spec.get("skip_blobs", True),
             full=full,
             page_by_pk=bool(spec.get("page_by_pk")),
+            page_size=int(spec.get("page_size", 10000)),
+            incremental_by_pk=bool(spec.get("incremental_by_pk")),
         )
         summary.tables.append(table_result)
         if not table_result.ok:

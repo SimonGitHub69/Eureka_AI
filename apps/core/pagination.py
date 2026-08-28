@@ -10,6 +10,49 @@ AI_FILTER_SESSION_KEY = "ai_filter_sets"
 AI_FILTER_TTL = timedelta(minutes=15)
 
 
+LIST_COUNT_EXCLUDE_GET = frozenset(
+    {
+        "page",
+        "per_page",
+        "sort",
+        "dir",
+        "next",
+    }
+)
+
+
+def list_filters_active(request, *, extra_exclude=()) -> bool:
+    """True se la GET contiene filtri/ricerca oltre a paginazione e ordinamento."""
+    if not request:
+        return False
+    if request.GET.get("ai") == "1":
+        return True
+    exclude = LIST_COUNT_EXCLUDE_GET | frozenset(extra_exclude)
+    for key, value in request.GET.items():
+        if key in exclude:
+            continue
+        if str(value or "").strip():
+            return True
+    return False
+
+
+def resolve_list_filter_count(context, view) -> int | None:
+    """Conteggio righe del queryset filtrato (paginator o lista corrente)."""
+    page_obj = context.get("page_obj")
+    if page_obj is not None and getattr(page_obj, "paginator", None) is not None:
+        return page_obj.paginator.count
+    name = getattr(view, "context_object_name", "object_list")
+    items = context.get(name)
+    if items is None:
+        items = context.get("object_list")
+    if items is not None:
+        try:
+            return len(items)
+        except TypeError:
+            pass
+    return None
+
+
 def filter_query_from_request(request, exclude=("page",)):
     params = request.GET.copy()
     for key in exclude:
@@ -133,6 +176,9 @@ class PerPageListMixin:
         context = super().get_context_data(**kwargs)
         context["per_page"] = self.get_paginate_by(None)
         context["per_page_options"] = self.per_page_options
+        context["filter_count"] = resolve_list_filter_count(context, self)
+        if "has_filters" not in context:
+            context["has_filters"] = list_filters_active(getattr(self, "request", None))
         return context
 
 

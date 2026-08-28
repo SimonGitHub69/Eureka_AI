@@ -4,10 +4,16 @@ from django.test import SimpleTestCase
 
 from apps.documenti.mapping import (
     DEFAULT_TIPI_DOCUMENTO,
+    HEADER_SOURCES,
+    PREVENTIVI_TIPI,
     map_header_row,
     map_line_row,
     pick_value,
+    resolve_detail_tipo_doc,
     resolve_fattura_tipo_doc,
+    resolve_header_tipo_doc,
+    resolve_preventivo_tipo_doc,
+    resolve_tipo_doc_by_serie,
 )
 
 
@@ -27,6 +33,80 @@ class TipoDocMappingTests(SimpleTestCase):
     def test_resolve_fattura_fallback_alfa_nc(self):
         row = {"Alfa": "NC"}
         self.assertEqual(resolve_fattura_tipo_doc(row), "NCR")
+
+    def test_resolve_preventivo_alfa_ff_is_prf(self):
+        self.assertEqual(resolve_preventivo_tipo_doc({"Alfa": "FF"}), "PRF")
+        self.assertEqual(resolve_preventivo_tipo_doc({"Alfa": "ff"}), "PRF")
+        self.assertEqual(resolve_preventivo_tipo_doc({"Serie": "FF"}), "PRF")
+
+    def test_resolve_preventivo_altre_serie_restano_prv(self):
+        self.assertEqual(resolve_preventivo_tipo_doc({"Alfa": ""}), "PRV")
+        self.assertEqual(resolve_preventivo_tipo_doc({"Alfa": "T"}), "PRV")
+        self.assertEqual(resolve_preventivo_tipo_doc({}), "PRV")
+
+    def test_resolve_preventivo_serie_tipi_from_parametri(self):
+        self.assertEqual(
+            resolve_preventivo_tipo_doc({"Alfa": "T"}, serie_tipi={"T": "PRT"}),
+            "PRT",
+        )
+        self.assertEqual(
+            resolve_preventivo_tipo_doc({"Alfa": "FF"}, serie_tipi={"T": "PRT"}),
+            "PRF",
+        )
+
+    def test_resolve_header_preventivi_spec(self):
+        spec = next(s for s in HEADER_SOURCES if s.source == "Preventivi")
+        self.assertEqual(resolve_header_tipo_doc(spec, {"Alfa": "FF"}), "PRF")
+        self.assertEqual(resolve_header_tipo_doc(spec, {"Alfa": "T"}), "PRV")
+
+    def test_resolve_header_serie_parametro_su_qualsiasi_sorgente(self):
+        spec = next(s for s in HEADER_SOURCES if s.source == "Ordini_Vendita")
+        self.assertEqual(resolve_header_tipo_doc(spec, {"Alfa": "FF"}), "ORV")
+        self.assertEqual(
+            resolve_header_tipo_doc(
+                spec, {"Alfa": "FF"}, serie_tipi={"FF": "ORF"}
+            ),
+            "ORF",
+        )
+        self.assertEqual(
+            resolve_header_tipo_doc(spec, {"Alfa": "T"}, serie_tipi={"FF": "ORF"}),
+            "ORV",
+        )
+
+    def test_resolve_fattura_serie_dopo_tipo_doc_fe(self):
+        row = {"TipoDocFE": "TD04", "Alfa": "FF"}
+        self.assertEqual(
+            resolve_fattura_tipo_doc(row, serie_tipi={"FF": "FAF"}),
+            "NCR",
+        )
+        self.assertEqual(
+            resolve_fattura_tipo_doc({"Alfa": "FF"}, serie_tipi={"FF": "FAF"}),
+            "FAF",
+        )
+
+    def test_resolve_tipo_doc_by_serie_case_insensitive(self):
+        self.assertEqual(
+            resolve_tipo_doc_by_serie(
+                {"Alfa": "ff"}, default="PRV", serie_tipi={"FF": "PRF"}
+            ),
+            "PRF",
+        )
+
+    def test_resolve_detail_preventivi_segue_testata(self):
+        from apps.documenti.mapping import DETAIL_SOURCES
+
+        spec = next(s for s in DETAIL_SOURCES if s.source == "Preventivi_Dettaglio")
+        self.assertEqual(
+            resolve_detail_tipo_doc(spec, {"ID_Testa": 10}, {10: "PRF"}),
+            "PRF",
+        )
+        self.assertEqual(
+            resolve_detail_tipo_doc(spec, {"ID_Testa": 11}, {10: "PRF"}),
+            "PRV",
+        )
+
+    def test_preventivi_tipi_include_prf(self):
+        self.assertEqual(PREVENTIVI_TIPI, ("PRV", "PRF"))
 
     def test_default_tipi_include_all_required(self):
         codes = {t["codice"] for t in DEFAULT_TIPI_DOCUMENTO}
@@ -366,3 +446,26 @@ class FieldMappingTests(SimpleTestCase):
         self.assertEqual(mapped["id_4d"], 501)
         self.assertEqual(mapped["codice"], "PREV01")
         self.assertEqual(mapped["quantita"], 3.0)
+        self.assertIsNone(mapped["provvigione"])
+
+    def test_map_line_preventivi_dettaglio_provvigione(self):
+        row = {
+            "ID": 502,
+            "ID_Testa": 77,
+            "Articolo": "PREV02",
+            "Quantita": 1.0,
+            "PrezzoUnitario": 20.0,
+            "Provvigione": 8.5,
+        }
+        mapped = map_line_row(row)
+        self.assertEqual(mapped["provvigione"], 8.5)
+
+    def test_colonne_default_preventivi_includono_provvigione(self):
+        from types import SimpleNamespace
+
+        from apps.documenti.layout import default_colonne_for
+
+        prv = [c for c, _ in default_colonne_for(SimpleNamespace(categoria="PREVENTIVI"))]
+        fat = [c for c, _ in default_colonne_for(SimpleNamespace(categoria="FATTURE"))]
+        self.assertIn("provvigione", prv)
+        self.assertNotIn("provvigione", fat)

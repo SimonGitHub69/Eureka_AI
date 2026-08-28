@@ -40,12 +40,29 @@ body {
     background-color: inherit;
     box-sizing: border-box;
     overflow-x: visible;
+    transition: margin-left .2s ease, width .2s ease, max-width .2s ease;
+}
+
+@media (min-width: 1400px) {
+    html.st-sidebar-compact .page-wrapper,
+    body.st-sidebar-compact .page-wrapper {
+        margin-left: 72px;
+        width: calc(100% - 72px);
+        max-width: calc(100% - 72px);
+    }
 }
 
 .page-body {
     min-width: 0;
     max-width: 100%;
     overflow-x: visible;
+}
+
+:root {
+    --eureka-chrome-height: 8.75rem;
+}
+body.st-navbar-fixed {
+    --eureka-chrome-height: 10.5rem;
 }
 
 .page-body > .container-xl {
@@ -116,11 +133,11 @@ body {
         pointer-events: auto;
     }
 
-    .navbar .ms-2.text-start {
+    .eureka-navbar__user-meta {
         display: none;
     }
 
-    .navbar [data-sidebar-toggle] {
+    .eureka-navbar [data-sidebar-toggle] {
         display: inline-flex !important;
     }
 }

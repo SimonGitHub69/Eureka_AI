@@ -16,3 +16,13 @@ certs/
 Thumbs.db
 .idea/
 .vscode/
+
+# Secret e dati locali
+API_KEY/
+*.sqlite3
+*.db
+*.pdb
+*.bak
+scripts/eureka_share_net/bin/
+scripts/eureka_share_net/obj/
+scripts/share_publish/

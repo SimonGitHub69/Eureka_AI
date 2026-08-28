@@ -6,7 +6,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import DetailView, ListView
 
-from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
+from apps.core.mixins import RequireExtraMixin
+from apps.core.mirror_crud import mirror_row_to_campi
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin, safe_mirror_count
+from apps.core.sorting import SortableListMixin
 from apps.stampi.forms import StampoArticoliCdForm
 from apps.stampi.models import Stampo
 from apps.stampi.sync import sync_stampi
@@ -42,10 +45,7 @@ def _stampi_list_context(view, context):
     context["filter_query"] = params.urlencode()
     context["q"] = (view.request.GET.get("q") or "").strip()
     context["has_filters"] = bool(context["q"])
-    try:
-        context["totale"] = Stampo.objects.count()
-    except Exception:
-        context["totale"] = 0
+    context["totale"] = safe_mirror_count(Stampo.objects)
     return context
 
 
@@ -59,10 +59,24 @@ def fetch_stampo_row(stampo_id: int) -> list[tuple[str, object]] | None:
     return list(zip(columns, row))
 
 
-class StampoListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
+class StampoListView(
+    LoginRequiredMixin, RequireExtraMixin, SortableListMixin, SafeMirrorListMixin, PerPageListMixin, ListView
+):
     model = Stampo
     template_name = "stampi/stampo_list.html"
     context_object_name = "stampi"
+    sortable_fields = (
+        "id",
+        "cod_stampo",
+        "descrizione",
+        "tipo_attrezzatura",
+        "cod_cliente",
+        "cod_reparto",
+        "progetto",
+    )
+    default_sort = "cod_stampo"
+    default_dir = "asc"
+    sort_tiebreaker = "id"
     paginate_by = 50
 
     def get_mirror_queryset(self):
@@ -73,7 +87,7 @@ class StampoListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, 
         return _stampi_list_context(self, context)
 
 
-class StampoDetailView(LoginRequiredMixin, DetailView):
+class StampoDetailView(LoginRequiredMixin, RequireExtraMixin, DetailView):
     model = Stampo
     template_name = "stampi/stampo_detail.html"
     context_object_name = "stampo"
@@ -84,17 +98,11 @@ class StampoDetailView(LoginRequiredMixin, DetailView):
         row = fetch_stampo_row(self.object.id) or []
         art_cd_names = {f"CodArtCD{i}" for i in range(1, 17)}
         context["articoli_cd"] = self.object.articoli_cd_list()
-        context["campi"] = [
-            (name, value)
-            for name, value in row
-            if name != "synced_at"
-            and name not in art_cd_names
-            and value not in (None, "")
-        ]
+        context["campi"] = mirror_row_to_campi(row, exclude=art_cd_names)
         return context
 
 
-class StampoUpdateView(LoginRequiredMixin, View):
+class StampoUpdateView(LoginRequiredMixin, RequireExtraMixin, View):
     template_name = "stampi/stampo_edit.html"
 
     def get_stampo(self, pk):

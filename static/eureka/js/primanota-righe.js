@@ -69,8 +69,17 @@
     return form.hasAttribute("data-primanota-riga-form") && form.querySelector("#id_conto_partita") != null;
   }
 
+  function isCorrispettiviMode() {
+    const tipo = document.getElementById("id_tipo");
+    return Boolean(tipo && tipo.value === "3");
+  }
+
+  function isIvaLayoutMode() {
+    return isIvaMode() || isCorrispettiviMode();
+  }
+
   function baseImponibile(container) {
-    if (isIvaMode()) {
+    if (isIvaLayoutMode()) {
       return parseNum(fieldEl(container, "imponibile")?.value);
     }
     const dare = parseNum(fieldEl(container, "dare")?.value);
@@ -79,6 +88,7 @@
   }
 
   function recalcRowIva(container) {
+    if (isCorrispettiviMode()) return;
     const scope = container || form;
     const codeEl = fieldEl(scope, "codice_iva");
     const importoEl = fieldEl(scope, "importo_iva");
@@ -92,10 +102,52 @@
       return;
     }
     const iva = round2((base * aliquotaPct(code)) / 100);
-    // input type=number accetta solo il punto nello .value (la UI può mostrare la virgola).
-    importoEl.value = iva.toFixed(2);
+    importoEl.value = formatEuro(iva);
     importoEl.dataset.autoIva = "1";
     delete importoEl.dataset.manualIva;
+  }
+
+  function headerCambio() {
+    const n = parseNum(document.getElementById("id_cambio")?.value);
+    return n > 0 ? n : 1;
+  }
+
+  function syncImponibileFromValuta(container) {
+    const valEl = fieldEl(container, "imp_val");
+    const impEl = fieldEl(container, "imponibile");
+    if (!valEl || !impEl) return;
+    const valutaAmt = parseNum(valEl.value);
+    if (!valutaAmt) return;
+    const c = headerCambio();
+    impEl.value = formatEuro(round2(valutaAmt / c));
+  }
+
+  function syncValutaFromImponibile(container) {
+    const valEl = fieldEl(container, "imp_val");
+    const impEl = fieldEl(container, "imponibile");
+    if (!valEl || !impEl) return;
+    const c = headerCambio();
+    valEl.value = formatEuro(round2(parseNum(impEl.value) * c));
+  }
+
+  function eachRigaRow(fn) {
+    if (form.id === "primanotaForm") {
+      form.querySelectorAll("#righeTable tbody tr").forEach(fn);
+    } else {
+      fn(form);
+    }
+  }
+
+  function syncFromCambio() {
+    eachRigaRow((row) => {
+      if (row.querySelector && rowDeleted(row)) return;
+      const valEl = fieldEl(row, "imp_val");
+      if (valEl && parseNum(valEl.value)) {
+        syncImponibileFromValuta(row);
+        recalcRowIva(row);
+      }
+    });
+    updateTotals();
   }
 
   function recalcAllRows() {
@@ -108,7 +160,7 @@
   }
 
   function rowDeleted(row) {
-    const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+    const del = row.querySelector('input[name$="-DELETE"]');
     return Boolean(del && del.checked);
   }
 
@@ -138,7 +190,7 @@
   function bindImportoFields(scope) {
     const root = scope || form;
     root.querySelectorAll("input").forEach((el) => {
-      if (!isNamedField(el, ["dare", "avere"])) return;
+      if (!isNamedField(el, ["dare", "avere", "imp_val", "imponibile", "importo_iva"])) return;
       if (el.dataset.importoBound === "1") return;
       el.dataset.importoBound = "1";
       el.addEventListener("blur", () => {
@@ -155,15 +207,38 @@
     });
   }
 
+  function countVisibleRows() {
+    if (form.id !== "primanotaForm") return 0;
+    let n = 0;
+    form.querySelectorAll("#righeTable tbody [data-riga-row]").forEach((row) => {
+      if (row.classList.contains("d-none")) return;
+      if (rowDeleted(row)) return;
+      n += 1;
+    });
+    return n;
+  }
+
+  function updateRigheCount() {
+    const n = countVisibleRows();
+    document.querySelectorAll("[data-righe-count]").forEach((el) => {
+      el.textContent = String(n);
+      if (el.classList.contains("badge")) {
+        el.classList.toggle("d-none", n <= 0);
+      }
+    });
+  }
+
   function getTotals() {
     const totImp = sumNamed("imponibile");
+    const totImpVal = sumNamed("imp_val");
     const totIva = sumNamed("importo_iva");
     const totDare = sumNamed("dare");
     const totAvere = sumNamed("avere");
     return {
       imponibile: totImp,
+      imponibileValuta: totImpVal,
       iva: totIva,
-      documento: round2(totImp + totIva),
+      documento: isCorrispettiviMode() ? totImp : round2(totImp + totIva),
       dare: totDare,
       avere: totAvere,
       sbilancio: round2(totDare - totAvere),
@@ -171,7 +246,7 @@
   }
 
   function needsBalance() {
-    return form.id === "primanotaForm" && !isIvaMode();
+    return form.id === "primanotaForm" && !isIvaLayoutMode();
   }
 
   function syncBalanceGate() {
@@ -184,7 +259,7 @@
       const amt = banner.querySelector("[data-sbilancio-banner-amt]");
       if (amt) amt.textContent = "€ " + formatEuro(totals.sbilancio);
     }
-    form.querySelectorAll('button[type="submit"]').forEach((btn) => {
+    form.querySelectorAll("[data-save-primanota]").forEach((btn) => {
       btn.disabled = unbalanced;
       if (unbalanced) {
         btn.setAttribute(
@@ -201,6 +276,9 @@
     if (form.id !== "primanotaForm") return;
     const totals = getTotals();
     setTotale("[data-totale-imponibile]", totals.imponibile);
+    document.querySelectorAll("[data-totale-impon-valuta]").forEach((el) => {
+      el.textContent = formatEuro(totals.imponibileValuta);
+    });
     setTotale("[data-totale-iva]", totals.iva);
     setTotale("[data-totale-documento]", totals.documento);
     setTotale("[data-totale-dare]", totals.dare);
@@ -209,6 +287,7 @@
     document.querySelectorAll("[data-sbilancio]").forEach((el) => {
       el.classList.toggle("text-danger", Math.abs(totals.sbilancio) > 0.005);
     });
+    updateRigheCount();
     syncBalanceGate();
     if (window.EurekaPrimanotaScadenze && typeof window.EurekaPrimanotaScadenze.recalc === "function") {
       window.EurekaPrimanotaScadenze.recalc();
@@ -226,7 +305,17 @@
         updateTotals();
         return;
       }
+      if (isNamedField(t, ["imp_val"])) {
+        const row = t.closest("tr") || form;
+        syncImponibileFromValuta(row);
+        recalcRowIva(row);
+        updateTotals();
+        return;
+      }
       if (isNamedField(t, ["imponibile", "codice_iva", "dare", "avere"])) {
+        if (isNamedField(t, ["imponibile"])) {
+          syncValutaFromImponibile(t.closest("tr") || form);
+        }
         recalcRowIva(t.closest("tr") || form);
         updateTotals();
       }
@@ -239,11 +328,20 @@
     (e) => {
       const t = e.target;
       if (!t || t.nodeType !== 1) return;
+      if (isNamedField(t, ["imp_val"])) {
+        const row = t.closest("tr") || form;
+        syncImponibileFromValuta(row);
+        recalcRowIva(row);
+        updateTotals();
+      }
       if (isNamedField(t, ["imponibile", "codice_iva", "dare", "avere"])) {
+        if (isNamedField(t, ["imponibile"])) {
+          syncValutaFromImponibile(t.closest("tr") || form);
+        }
         recalcRowIva(t.closest("tr") || form);
         updateTotals();
       }
-      if (t.matches && t.matches('input[type="checkbox"][name$="-DELETE"]')) {
+      if (t.matches && t.matches('input[name$="-DELETE"]')) {
         updateTotals();
       }
     },
@@ -267,7 +365,13 @@
     }
   });
 
-  window.EurekaPrimanotaRighe = { recalcAllRows, recalcRowIva, updateTotals, getTotals };
+  window.EurekaPrimanotaRighe = {
+    recalcAllRows,
+    recalcRowIva,
+    updateTotals,
+    getTotals,
+    syncFromCambio,
+  };
   bindImportoFields();
   recalcAllRows();
 
@@ -282,7 +386,7 @@
     function isRowDeleted(row) {
       if (!row || row.hasAttribute("data-riga-empty-hint")) return true;
       if (row.classList.contains("d-none")) return true;
-      const checkbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      const checkbox = row.querySelector('input[name$="-DELETE"]');
       return Boolean(checkbox && checkbox.checked);
     }
 
@@ -316,12 +420,23 @@
     function applyTipoVisibility(scope) {
       const tipo = document.getElementById("id_tipo");
       const iva = tipo && (tipo.value === "2" || tipo.value === "4");
+      const corr = tipo && tipo.value === "3";
+      const ivaLayout = iva || corr;
       scope.querySelectorAll("[data-iva-col]").forEach((el) => {
+        el.classList.toggle("d-none", !ivaLayout);
+      });
+      scope.querySelectorAll("[data-iva-importo-col]").forEach((el) => {
         el.classList.toggle("d-none", !iva);
       });
       scope.querySelectorAll("[data-gen-col]").forEach((el) => {
-        el.classList.toggle("d-none", iva);
+        el.classList.toggle("d-none", ivaLayout);
       });
+      scope.querySelectorAll("[data-anno-col]").forEach((el) => {
+        el.classList.toggle("d-none", corr);
+      });
+      if (window.EurekaPrimanotaCambio && typeof window.EurekaPrimanotaCambio.syncCols === "function") {
+        window.EurekaPrimanotaCambio.syncCols();
+      }
     }
 
     function addRow(ev) {
@@ -357,7 +472,7 @@
     }
 
     function markDelete(row) {
-      const checkbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      const checkbox = row.querySelector('input[name$="-DELETE"]');
       if (checkbox) {
         checkbox.checked = true;
         checkbox.dispatchEvent(new Event("change", { bubbles: true }));
@@ -365,6 +480,54 @@
       row.classList.add("d-none");
       updateTotals();
     }
+
+    const confirmEl = document.getElementById("confermaEliminaRigaModal");
+    const confirmMsg = confirmEl && confirmEl.querySelector("[data-elimina-riga-msg]");
+    const confirmOk = confirmEl && confirmEl.querySelector("[data-elimina-riga-ok]");
+    let pendingDeleteRow = null;
+
+    function hideConfirm() {
+      if (!confirmEl) return;
+      confirmEl.classList.remove("is-open");
+      confirmEl.setAttribute("hidden", "");
+      confirmEl.setAttribute("aria-hidden", "true");
+    }
+
+    function showConfirm(row, msg) {
+      pendingDeleteRow = row;
+      if (confirmMsg) confirmMsg.textContent = msg;
+      if (!confirmEl) {
+        markDelete(row);
+        return;
+      }
+      if (confirmEl.parentElement !== document.body) {
+        document.body.appendChild(confirmEl);
+      }
+      confirmEl.removeAttribute("hidden");
+      confirmEl.classList.add("is-open");
+      confirmEl.removeAttribute("aria-hidden");
+      confirmOk?.focus();
+    }
+
+    function cancelConfirm() {
+      pendingDeleteRow = null;
+      hideConfirm();
+    }
+
+    confirmOk?.addEventListener("click", () => {
+      const row = pendingDeleteRow;
+      pendingDeleteRow = null;
+      hideConfirm();
+      if (row) markDelete(row);
+    });
+    confirmEl?.querySelectorAll("[data-elimina-riga-cancel]").forEach((btn) => {
+      btn.addEventListener("click", cancelConfirm);
+    });
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && confirmEl && confirmEl.classList.contains("is-open")) {
+        cancelConfirm();
+      }
+    });
 
     form.addEventListener("click", (ev) => {
       const addBtn = ev.target.closest("[data-add-riga]");
@@ -374,8 +537,16 @@
       }
       const delBtn = ev.target.closest(".btn-elimina-riga");
       if (!delBtn || !body.contains(delBtn)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
       const row = delBtn.closest("[data-riga-row]");
-      if (row) markDelete(row);
+      if (!row) return;
+      const msg = delBtn.getAttribute("data-confirm-elimina");
+      if (msg) {
+        showConfirm(row, msg);
+        return;
+      }
+      markDelete(row);
     });
   }
 })();

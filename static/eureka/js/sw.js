@@ -1,5 +1,5 @@
 /* Service worker Eureka: shell offline + fallback navigazione. */
-const CACHE = "eureka-offline-v2";
+const CACHE = "eureka-offline-v4";
 const OFFLINE_URL = "/offline/";
 
 const PRECACHE = [

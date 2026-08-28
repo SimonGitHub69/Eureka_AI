@@ -1,0 +1,111 @@
+{# Footer totali. with_values=False → solo cornice (pagine intermedie). #}
+{% load format_tags %}
+<footer class="doc-print-foot{% if not with_values %} doc-print-foot--blank{% endif %}">
+    <div class="doc-print-foot__summary">
+        <div class="doc-print-cell doc-print-cell--validita">
+            <div class="lbl">Validità / Valid Until</div>
+            <div class="val">{% if with_values %}{{ documento.validita }}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell doc-print-cell--note">
+            <div class="lbl">Annotazioni generiche</div>
+            <div class="val val--note">{% if with_values %}{{ documento.annotazioni|default:documento.note|linebreaksbr }}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Totale Lordo<br><span>Gross Total</span></div>
+            <div class="val num">{% if with_values %}{% if castelletto %}{{ castelletto.totale_merce|euro }}{% else %}0,00{% endif %}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Sconto<br><span>Disc.</span></div>
+            <div class="val num"></div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Imp. Sconto<br><span>Tot Discount</span></div>
+            <div class="val num">{% if with_values %}{% if castelletto %}{{ castelletto.totale_sconto|euro }}{% else %}0,00{% endif %}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Imponibile Netto<br><span>Net Total</span></div>
+            <div class="val num">{% if with_values %}{% if castelletto %}{{ castelletto.totale_netto|euro }}{% else %}0,00{% endif %}{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="doc-print-foot__spese">
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Spese imballo<br><span>Packing</span></div>
+            <div class="val num">{% if with_values %}{{ documento.spese_imballo|default:0|euro }}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Spese trasporto<br><span>Freight</span></div>
+            <div class="val num">{% if with_values %}{{ documento.spese_trasporto|default:0|euro }}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Spese incasso<br><span>Collection</span></div>
+            <div class="val num">{% if with_values %}{{ documento.spese_incasso|default:0|euro }}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Spese varie<br><span>Other</span></div>
+            <div class="val num">{% if with_values %}{{ documento.spese_varie|default:0|euro }}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell">
+            <div class="lbl">Spese bolli<br><span>Stamp duty</span></div>
+            <div class="val num">{% if with_values %}{{ documento.spese_bolli|default:0|euro }}{% endif %}</div>
+        </div>
+        <div class="doc-print-cell num-cell doc-print-cell--total">
+            <div class="lbl">Totale spese<br><span>Total charges</span></div>
+            <div class="val num">{% if with_values %}{{ documento.totale_spese|default:0|euro }}{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="doc-print-foot__iva">
+        <table class="doc-print-iva">
+            <thead>
+                <tr>
+                    <th>Descrizione IVA / VAT Description</th>
+                    <th class="num">Imponibile / Before Tax</th>
+                    <th class="num">% iva</th>
+                    <th class="num">Imposta / Tax</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if with_values and castelletto and castelletto.righe %}
+                {% for row in castelletto.righe %}
+                <tr>
+                    <td>{{ row.label }}</td>
+                    <td class="num">{{ row.netto|euro }}</td>
+                    <td class="num">{% if row.percentuale != None %}{{ row.percentuale|euro:0 }}{% endif %}</td>
+                    <td class="num">{{ row.iva|euro }}</td>
+                </tr>
+                {% endfor %}
+                {% elif castelletto and castelletto.righe %}
+                {% for row in castelletto.righe %}
+                <tr class="doc-print-iva-spacer"><td colspan="4">&nbsp;</td></tr>
+                {% endfor %}
+                {% else %}
+                <tr class="doc-print-iva-spacer"><td colspan="4">&nbsp;</td></tr>
+                <tr class="doc-print-iva-spacer"><td colspan="4">&nbsp;</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+        <div class="doc-print-iva-tot">
+            <div class="doc-print-iva-tot__box">
+                <div class="lbl">Tot. Imponibile / Tot Before Tax</div>
+                <div class="val num">{% if with_values %}{% if castelletto %}{{ castelletto.totale_netto|euro }}{% else %}0,00{% endif %}{% endif %}</div>
+            </div>
+            <div class="doc-print-iva-tot__box">
+                <div class="lbl">Totale Imposta / Tot Tax</div>
+                <div class="val num">{% if with_values %}{% if castelletto %}{{ castelletto.totale_iva|euro }}{% else %}0,00{% endif %}{% endif %}</div>
+            </div>
+        </div>
+        <div class="doc-print-grand">
+            <div class="doc-print-grand__label">TOTALE DOCUMENTO</div>
+            <div class="doc-print-grand__label2">TOTAL AMOUNT</div>
+            <div class="doc-print-grand__value">
+                {% if with_values %}
+                <span>EUR</span>
+                <strong>{% if castelletto %}{{ castelletto.totale_documento|euro }}{% else %}0,00{% endif %}</strong>
+                {% else %}
+                <span class="doc-print-grand__placeholder">&nbsp;</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</footer>

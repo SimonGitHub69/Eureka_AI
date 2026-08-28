@@ -4,28 +4,65 @@
 {% block page_title %}Regione{% endblock %}
 
 {% block content %}
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ regione.nome }}</h2>
-            <div class="text-secondary">Codice ISTAT {{ regione.codice }}</div>
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-map"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ regione.nome }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ regione.codice }}</span>
+                <span class="badge bg-azure-lt">{{ province|length }} province</span>
+            </div>
         </div>
-        <a href="{% url 'geografia:regioni_list' %}" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Elenco</a>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'geografia:regione_edit' regione.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'geografia:regioni_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header"><h3 class="card-title mb-0">Province ({{ province|length }})</h3></div>
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-map-pin"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Province</div>
+            <div class="eureka-mask-kpi__value">{{ province|length }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="ti ti-list-details me-1"></i> Province ({{ province|length }})</h3>
+    </div>
     <div class="table-responsive">
-        <table class="table table-vcenter card-table">
-            <thead><tr><th>Sigla</th><th>Nome</th><th class="text-end">Città</th><th></th></tr></thead>
+        <table class="table table-vcenter card-table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Sigla</th>
+                    <th>Nome</th>
+                    <th class="text-end">Città</th>
+                    <th></th>
+                </tr>
+            </thead>
             <tbody>
                 {% for p in province %}
                 <tr>
                     <td><code>{{ p.sigla }}</code></td>
                     <td>{{ p.nome }}</td>
                     <td class="text-end">{{ p.n_citta }}</td>
-                    <td class="w-1"><a href="{% url 'geografia:provincia_detail' p.sigla %}" class="btn btn-ghost-primary btn-icon"><i class="ti ti-chevron-right"></i></a></td>
+                    <td class="w-1">
+                        <a href="{% url 'geografia:provincia_detail' p.sigla %}" class="btn btn-ghost-primary btn-icon btn-sm">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="4" class="text-secondary">Nessuna provincia.</td></tr>
@@ -34,4 +71,44 @@
         </table>
     </div>
 </div>
+
+<div class="eureka-mask-delete" id="eliminaRegioneWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaRegione">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaRegione" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ regione.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaRegione">Annulla</button>
+                        <button type="submit" form="formEliminaRegione" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaRegione" method="post" action="{% url 'geografia:regione_delete' regione.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaRegione");
+  document.getElementById("btnApriEliminaRegione")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaRegione")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
 {% endblock %}

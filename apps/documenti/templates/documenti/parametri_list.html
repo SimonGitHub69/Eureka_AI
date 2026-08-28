@@ -1,0 +1,173 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Parametri documento · Eureka AI{% endblock %}
+{% block page_title %}Parametri documento{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-file-settings"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Parametri documento</h2>
+            <div class="text-secondary mt-1">
+                Codici, famiglia, anagrafica e contatore di numerazione
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'documenti:contatori_list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-hash"></i>
+            Contatori
+        </a>
+        <a href="{% url 'documenti:parametri_create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo parametro
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'documenti:parametri_list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col-md">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Cerca codice o descrizione…">
+                    </div>
+                </div>
+                <div class="col-6 col-md-auto">
+                    <select name="categoria" class="form-select">
+                        <option value="">Tutte le famiglie</option>
+                        {% for value, label in categorie %}
+                        <option value="{{ value }}"{% if categoria == value %} selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-auto">
+                    <select name="clifor" class="form-select">
+                        <option value="">Cliente / Fornitore</option>
+                        {% for value, label in clifor_choices %}
+                        <option value="{{ value }}"{% if clifor == value %} selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'documenti:parametri_list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "label" "Descrizione" default_dir="asc" %}
+                    {% sort_th "ordine" "Ordine" align="end" default_dir="asc" %}
+                    {% sort_th "categoria" "Famiglia" default_dir="asc" %}
+                    {% sort_th "clifor_tipo" "Anagrafica" default_dir="asc" %}
+                    {% sort_th "scadenze" "Scadenze" default_dir="asc" %}
+                    {% sort_th "contatore" "Contatore" default_dir="asc" %}
+                    {% sort_th "serie" "Serie" default_dir="asc" %}
+                    {% sort_th "attivo" "Attivo" align="center" default_dir="desc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in parametri %}
+                <tr>
+                    <td>
+                        <a href="{% url 'documenti:parametri_detail' p.codice %}" class="eureka-tlist-code">
+                            <i class="ti ti-hash" style="font-size:.85em;"></i>
+                            {{ p.codice }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{% url 'documenti:parametri_detail' p.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 380px;" title="{{ p.label }}">
+                            {{ p.label }}
+                        </a>
+                    </td>
+                    <td class="text-end">{{ p.ordine }}</td>
+                    <td>
+                        <span class="eureka-tlist-chip">{{ p.categoria_label }}</span>
+                    </td>
+                    <td>
+                        {% if p.clifor_tipo == "F" %}
+                        <span class="badge bg-orange-lt">Fornitore</span>
+                        {% elif p.clifor_tipo == "C" %}
+                        <span class="badge bg-azure-lt">Cliente</span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.scadenze_obbligatorie %}
+                        <span class="badge bg-orange-lt">Obbligatorie</span>
+                        {% else %}
+                        <span class="badge bg-azure-lt">Facoltative</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.contatore_id %}
+                        <a href="{% url 'documenti:contatori_detail' p.contatore.pk %}" class="eureka-tlist-chip">{{ p.contatore.codice }} · {{ p.contatore.esercizio }}</a>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.serie %}<span class="eureka-tlist-chip">{{ p.serie }}</span>{% else %}<span class="text-secondary">—</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if p.attivo %}
+                        <span class="badge bg-green-lt">Si</span>
+                        {% else %}
+                        <span class="badge bg-red-lt">No</span>
+                        {% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'documenti:parametri_edit' p.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-file-settings"></i></div>
+                            Nessun parametro documento trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'documenti:parametri_list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

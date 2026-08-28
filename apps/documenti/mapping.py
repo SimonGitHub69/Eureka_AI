@@ -17,6 +17,13 @@ TIPO_DOC_FE_MAP = {
     "TD05": "NDB",
 }
 
+# Preventivi 4D: stessa tabella, tipo distinto se Alfa coincide con la serie
+# del parametro documento (PRF.serie = FF).
+PREVENTIVI_TIPI = ("PRV", "PRF")
+PREVENTIVI_SERIE_TIPO = {
+    "FF": "PRF",
+}
+
 DEFAULT_TIPI_DOCUMENTO: tuple[dict[str, Any], ...] = (
     {
         "codice": "ORV",
@@ -214,8 +221,8 @@ HEADER_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
 
 # Alias colonna 4D per campi riga unificati
 LINE_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
-    # Preventivi/Ordini_Vendita dettaglio: ID_Riga; Fatture/Bolle: ID (e spesso ID_Riga)
-    "id_4d": ("ID", "ID_Riga"),
+    # Preventivi/Ordini_Vendita: ID_Riga; Ordini_Acquisto: IDRiga; Fatture/Bolle: ID
+    "id_4d": ("ID", "ID_Riga", "IDRiga"),
     "id_testa": ("id_added_by_converter", "ID_Testa", "ID_Testata"),
     "id_riga": ("ID_Riga",),
     "numero_riga": ("NumeroRiga", "NumRiga"),
@@ -227,6 +234,12 @@ LINE_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "iva": ("Iva", "CodIva"),
     "unita_misura": ("UnitaMisura", "UM"),
     "sconto": ("Sconto",),
+    "provvigione": (
+        "Provvigione",
+        "Provvig",
+        "PercProvvigione",
+        "Provv",
+    ),
 }
 
 
@@ -256,10 +269,11 @@ HEADER_SOURCES: tuple[HeaderSourceSpec, ...] = (
 
 
 DETAIL_SOURCES: tuple[DetailSourceSpec, ...] = (
-    DetailSourceSpec("Ordini_Vendita_Dettaglio", "ORV", "ID", "id_added_by_converter"),
-    DetailSourceSpec("Ordini_Acquisto_Dettaglio", "ORA", "ID", "id_added_by_converter"),
+    # PK riga: Ordini_Vendita/Preventivi → ID_Riga; Ordini_Acquisto → IDRiga; Bolle/Fatture → ID
+    DetailSourceSpec("Ordini_Vendita_Dettaglio", "ORV", "ID_Riga", "id_added_by_converter"),
+    DetailSourceSpec("Ordini_Acquisto_Dettaglio", "ORA", "IDRiga", "id_added_by_converter"),
     # Preventivi_Dettaglio non espone id_added_by_converter: FK testata = ID_Testa
-    DetailSourceSpec("Preventivi_Dettaglio", "PRV", "ID", "ID_Testa"),
+    DetailSourceSpec("Preventivi_Dettaglio", "PRV", "ID_Riga", "ID_Testa"),
     DetailSourceSpec("Bolle_Dettaglio", "DDT", "ID", "id_added_by_converter"),
     DetailSourceSpec("Fatture_Dettaglio", None, "ID", "id_added_by_converter"),
 )
@@ -377,16 +391,24 @@ def _collect_scadenze(row: Mapping[str, Any]) -> list[str]:
     return dates
 
 
-def resolve_fattura_tipo_doc(row: Mapping[str, Any]) -> str:
+def resolve_fattura_tipo_doc(
+    row: Mapping[str, Any],
+    *,
+    serie_tipi: Mapping[str, str] | None = None,
+) -> str:
     """
     Distinzione FAT / NCR / NDB dalla tabella 4D Fatture.
     Campo primario: TipoDocFE (FatturaPA TD01/TD04/TD05).
+    Poi serie del parametro documento = Alfa 4D.
     """
     tfe = normalize_text(pick_mapped(row, "tipo_doc_fe", HEADER_FIELD_ALIASES)).upper()
     if tfe in TIPO_DOC_FE_MAP:
         return TIPO_DOC_FE_MAP[tfe]
+    matched = resolve_tipo_doc_by_serie(row, default="", serie_tipi=serie_tipi)
+    if matched:
+        return matched
     # Fallback legacy: campo Alfa o flag non standard (da verificare su ODBC reale)
-    alfa = normalize_text(pick_mapped(row, "alfa", HEADER_FIELD_ALIASES)).upper()
+    alfa = _alfa_from_row(row)
     if alfa in {"NC", "NCR", "N/C"}:
         return "NCR"
     if alfa in {"ND", "NDB", "N/D"}:
@@ -394,10 +416,67 @@ def resolve_fattura_tipo_doc(row: Mapping[str, Any]) -> str:
     return "FAT"
 
 
-def resolve_header_tipo_doc(spec: HeaderSourceSpec, row: Mapping[str, Any]) -> str:
-    if spec.tipo_doc:
-        return spec.tipo_doc
-    return resolve_fattura_tipo_doc(row)
+def _alfa_from_row(row: Mapping[str, Any]) -> str:
+    return normalize_text(pick_mapped(row, "alfa", HEADER_FIELD_ALIASES)).upper()
+
+
+def resolve_tipo_doc_by_serie(
+    row: Mapping[str, Any],
+    *,
+    default: str,
+    serie_tipi: Mapping[str, str] | None = None,
+    fallback_serie_tipi: Mapping[str, str] | None = None,
+) -> str:
+    """Se Alfa 4D coincide con la serie di un tipo documento, usa quel tipo."""
+    alfa = _alfa_from_row(row)
+    lookup: dict[str, str] = {}
+    if serie_tipi:
+        lookup.update(
+            {
+                str(key).strip().upper(): value
+                for key, value in serie_tipi.items()
+                if str(key).strip() and value
+            }
+        )
+    if fallback_serie_tipi:
+        for key, value in fallback_serie_tipi.items():
+            lookup.setdefault(key, value)
+    if alfa and alfa in lookup:
+        return lookup[alfa]
+    return default
+
+
+def resolve_preventivo_tipo_doc(
+    row: Mapping[str, Any],
+    *,
+    default: str = "PRV",
+    serie_tipi: Mapping[str, str] | None = None,
+) -> str:
+    """Preventivi 4D: Alfa FF → PRF (serie del parametro), altrimenti PRV."""
+    return resolve_tipo_doc_by_serie(
+        row,
+        default=default,
+        serie_tipi=serie_tipi,
+        fallback_serie_tipi=PREVENTIVI_SERIE_TIPO,
+    )
+
+
+def resolve_header_tipo_doc(
+    spec: HeaderSourceSpec,
+    row: Mapping[str, Any],
+    *,
+    serie_tipi: Mapping[str, str] | None = None,
+) -> str:
+    """Tipo unificato: TipoDocFE (fatture), poi serie parametro = Alfa 4D."""
+    fallback = PREVENTIVI_SERIE_TIPO if spec.source == "Preventivi" else None
+    if spec.tipo_doc is None:
+        return resolve_fattura_tipo_doc(row, serie_tipi=serie_tipi)
+    return resolve_tipo_doc_by_serie(
+        row,
+        default=spec.tipo_doc,
+        serie_tipi=serie_tipi,
+        fallback_serie_tipi=fallback,
+    )
 
 
 def resolve_detail_tipo_doc(
@@ -405,14 +484,16 @@ def resolve_detail_tipo_doc(
     row: Mapping[str, Any],
     header_tipo_by_id_4d: Mapping[int, str],
 ) -> str | None:
-    if spec.tipo_doc:
-        return spec.tipo_doc
     id_testa = normalize_int(
         pick_value(row, spec.header_pk, "ID_Testa", "id_added_by_converter")
     )
+    if id_testa is not None and id_testa in header_tipo_by_id_4d:
+        return header_tipo_by_id_4d[id_testa]
+    if spec.tipo_doc:
+        return spec.tipo_doc
     if id_testa is None:
         return None
-    return header_tipo_by_id_4d.get(id_testa, "FAT")
+    return "FAT"
 
 
 def compose_sconto_percentuali(row: Mapping[str, Any]) -> str:
@@ -551,6 +632,9 @@ def map_line_row(row: Mapping[str, Any]) -> dict[str, Any]:
         "iva": normalize_text(pick_mapped(row, "iva", LINE_FIELD_ALIASES)),
         "unita_misura": normalize_text(pick_mapped(row, "unita_misura", LINE_FIELD_ALIASES)),
         "sconto": normalize_text(pick_mapped(row, "sconto", LINE_FIELD_ALIASES)),
+        "provvigione": normalize_float(
+            pick_mapped(row, "provvigione", LINE_FIELD_ALIASES)
+        ),
     }
 
 

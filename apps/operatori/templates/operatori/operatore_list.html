@@ -1,42 +1,55 @@
 {% extends "base/layout.html" %}
 
 {% block title %}Operatori · Eureka AI{% endblock %}
-
 {% block page_title %}Operatori{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-user-cog"></i></span>
         <div>
-            <h2 class="page-title">Operatori</h2>
-            <div class="text-secondary">
+            <h2 class="page-title mb-0">Operatori</h2>
+            <div class="text-secondary mt-1">
                 Operatori importati da 4D (<code>Operatori</code>)
-                {% if totale %}· {{ totale }} totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
     </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'operatori:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo operatore
+        </a>
+        {% include "partials/stampa_lista_button.html" with print_url="operatori:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="operatori:export_list" %}
+        <a
+            href="{% url 'operatori:qr_print' %}{% if filter_query %}?{{ filter_query }}{% endif %}"
+            class="btn btn-outline-primary"
+            title="Stampa QR code DIP-codice + nominativo"
+        >
+            <i class="ti ti-qrcode"></i>
+            Stampa QR code
+        </a>
+    </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'operatori:list' %}">
-            <div class="row g-2 align-items-end">
-                <div class="col-lg-8">
-                    <label class="form-label" for="operatoriSearch">Ricerca</label>
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
                     <div class="input-icon">
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
-                        <input
-                            type="text"
-                            id="operatoriSearch"
-                            name="q"
-                            value="{{ q }}"
-                            class="form-control"
-                            placeholder="Codice, nome, cognome, email...">
+                        <input type="text" id="operatoriSearch" name="q" value="{{ q }}" class="form-control" placeholder="Cerca per codice, nome, cognome, email...">
                     </div>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
                         <i class="ti ti-filter"></i>
                         Filtra
                     </button>
@@ -53,11 +66,12 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
-                <tr>
-                    <th>Codice</th>
-                    <th>Nome</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "label" "Operatore" default_dir="asc" %}
+                    {% sort_th "email" "Contatti" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -65,41 +79,71 @@
                 {% for operatore in operatori %}
                 <tr>
                     <td>
-                        {% if operatore.codice %}
-                        <a href="{% url 'operatori:detail' operatore.codice %}" class="fw-semibold text-decoration-none">
-                            {{ operatore.codice }}
-                        </a>
-                        {% else %}
-                        <span class="text-secondary">—</span>
-                        {% endif %}
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-azure-lt">
+                                <i class="ti ti-user-cog"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                {% if operatore.codice %}
+                                <a href="{% url 'operatori:detail' operatore.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 380px;" title="{{ operatore.label|default:operatore.codice }}">
+                                    {{ operatore.label|default:operatore.codice }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ operatore.codice }}
+                                </span>
+                                {% else %}
+                                <span class="eureka-tlist-name text-secondary">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
                     </td>
                     <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 420px;" title="{{ operatore.label }}">
-                            {{ operatore.label|default:"—" }}
-                        </span>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if operatore.email %}
+                            <span class="eureka-tlist-chip">
+                                <i class="ti ti-mail text-azure"></i>
+                                {{ operatore.email }}
+                            </span>
+                            {% endif %}
+                            {% if operatore.reparto %}
+                            <span class="eureka-tlist-chip">
+                                <i class="ti ti-building-factory-2 text-green"></i>
+                                {{ operatore.reparto }}
+                            </span>
+                            {% endif %}
+                            {% if not operatore.email and not operatore.reparto %}
+                            <span class="text-secondary">—</span>
+                            {% endif %}
+                        </div>
                     </td>
-                    <td>
+                    <td class="eureka-tlist-actions">
                         {% if operatore.codice %}
-                        <a href="{% url 'operatori:detail' operatore.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
+                        <a href="{% url 'operatori:edit' operatore.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
                         </a>
                         {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" class="text-center text-secondary py-5">
-                        <i class="ti ti-user-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
-                        Nessun operatore trovato
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'operatori:list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="3">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-user-cog"></i></div>
+                            Nessun operatore trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'operatori:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
     {% include "partials/pagination.html" %}
+</div>
+
 </div>
 
 {% endblock %}

@@ -12,7 +12,7 @@ from django.utils.dateparse import parse_date
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 
-from apps.anagrafiche.models import Cliente
+from apps.anagrafiche.models import Cliente, clienti_mirror_available
 from apps.core.export import (
     export_bridge_response,
     export_table,
@@ -20,12 +20,17 @@ from apps.core.export import (
     wants_export_bridge,
     wants_open_inline,
 )
+from apps.core.mixins import RequireDocumentoMenuMixin
 from apps.core.pagination import (
     PER_PAGE_OPTIONS,
+    PerPageListMixin,
+    SafeMirrorListMixin,
     filter_query_from_request,
     resolve_per_page,
+    safe_mirror_count,
 )
-from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
+from apps.documenti.bridge import fatture_mirror_available
+from apps.core.sorting import SortableListMixin
 from apps.fatture import analisi as analisi_fatturato
 from apps.fatture.fatturapa import FatturaPAError, build_fatturapa
 from apps.fatture.models import (
@@ -37,11 +42,66 @@ from apps.fatture.models import (
 from apps.fatture.sync import sync_fatture
 
 
-class FatturaListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
+class FattureMirrorRequiredMixin:
+    """Se le tabelle mirror fatture mancano, mostra pagina guida invece di 500."""
+
+    mirror_missing_heading = "Analisi fatturato"
+    mirror_missing_subtitle = "Confronto periodi e clienti sul fatturato"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not fatture_mirror_available():
+            return render(
+                request,
+                "fatture/mirror_missing.html",
+                {
+                    "page_heading": self.mirror_missing_heading,
+                    "page_subtitle": self.mirror_missing_subtitle,
+                },
+            )
+        return super().dispatch(request, *args, **kwargs)
+
+
+class FatturaListView(
+    LoginRequiredMixin,
+    RequireDocumentoMenuMixin,
+    SortableListMixin,
+    SafeMirrorListMixin,
+    PerPageListMixin,
+    ListView,
+):
+    documento_menu_codice = "FAT"
     model = Fattura
     template_name = "fatture/fattura_list.html"
     context_object_name = "fatture"
+    sortable_fields = (
+        "numero_fatt",
+        "data_fattura",
+        "cliente_ragione_sociale1",
+        "cliente",
+        "destinatario",
+        "imponibile",
+        "totale_fattura",
+        "id_testa",
+    )
+    default_sort = "data_fattura"
+    default_dir = "desc"
+    sort_tiebreaker = ("-numero_fatt", "alfa", "-id_testa")
+    sort_fallbacks = {"cliente_ragione_sociale1": "cliente"}
     paginate_by = 50
+
+    def dispatch(self, request, *args, **kwargs):
+        self._clienti_available = clienti_mirror_available()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_sortable_fields(self):
+        available = getattr(self, "_clienti_available", None)
+        if available is None:
+            available = clienti_mirror_available()
+            self._clienti_available = available
+        fields = self.sortable_fields
+        if not available:
+            return tuple(f for f in fields if f != "cliente_ragione_sociale1")
+        return fields
 
     def get_mirror_queryset(self):
         qs = Fattura.objects.all()
@@ -81,8 +141,9 @@ class FatturaListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin,
         qs = analisi_fatturato.filtro_periodo(qs, data_da, data_a)
         qs = analisi_fatturato.filtro_note_credito(qs, note_credito)
 
+        # Annotation prima di SortableListMixin.apply_sorting (order_by)
         return annotate_cliente_ragione_sociale(
-            qs.order_by("-data_fattura", "-numero_fatt", "-id_testa")
+            qs.order_by("-data_fattura", "-numero_fatt", "alfa", "-id_testa")
         )
 
     def get_context_data(self, **kwargs):
@@ -107,14 +168,15 @@ class FatturaListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin,
             or context["data_a"]
             or context["note_credito"]
         )
-        try:
-            context["totale_fatture"] = Fattura.objects.count()
-        except Exception:
-            context["totale_fatture"] = 0
+        if getattr(self, "_clienti_available", None) is None:
+            self._clienti_available = clienti_mirror_available()
+        context["sort_cliente_ragione_sociale"] = self._clienti_available
+        context["totale_fatture"] = safe_mirror_count(Fattura)
         return context
 
 
-class FatturaDetailView(LoginRequiredMixin, DetailView):
+class FatturaDetailView(LoginRequiredMixin, RequireDocumentoMenuMixin, DetailView):
+    documento_menu_codice = "FAT"
     model = Fattura
     template_name = "fatture/fattura_detail.html"
     context_object_name = "fattura"
@@ -131,8 +193,10 @@ class FatturaDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class FatturaElettronicaXmlView(LoginRequiredMixin, View):
+class FatturaElettronicaXmlView(LoginRequiredMixin, RequireDocumentoMenuMixin, View):
     """Genera e scarica l'XML FatturaPA per lo SDI."""
+
+    documento_menu_codice = "FAT"
 
     def get(self, request, id_testa: int):
         fattura = get_object_or_404(Fattura, pk=id_testa)
@@ -195,8 +259,12 @@ class SyncFattureView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return redirect("fatture:sync")
 
 
-class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
+class AnalisiFatturatoView(LoginRequiredMixin, FattureMirrorRequiredMixin, TemplateView):
     template_name = "fatture/analisi_fatturato.html"
+    mirror_missing_heading = "Analisi fatturato"
+    mirror_missing_subtitle = (
+        "Confronto periodi sul fatturato senza spese, andamento e clienti"
+    )
 
     def get(self, request, *args, **kwargs):
         export = (request.GET.get("export") or "").strip().lower()
@@ -605,10 +673,12 @@ class AnalisiFatturatoView(LoginRequiredMixin, TemplateView):
             as_attachment=not wants_open_inline(self.request),
         )
 
-class FatturatoRegioniView(LoginRequiredMixin, TemplateView):
+class FatturatoRegioniView(LoginRequiredMixin, FattureMirrorRequiredMixin, TemplateView):
     """Geografia fatturato: Italia per regione, mondo per ISO, errori ISO mancante."""
 
     template_name = "fatture/fatturato_regioni.html"
+    mirror_missing_heading = "Fatturato geografico"
+    mirror_missing_subtitle = "Italia, mondo ISO e cartine"
     AMBITI = ("italia", "mondo", "errori")
 
     def get(self, request, *args, **kwargs):
@@ -1308,10 +1378,12 @@ TOP_N_OPTIONS = (10, 25, 50, 100, 0)  # 0 = tutti
 CHART_MAX_WHEN_ALL = 100  # con "tutti", il grafico si limita per leggibilità
 
 
-class ClassificaClientiView(LoginRequiredMixin, TemplateView):
+class ClassificaClientiView(LoginRequiredMixin, FattureMirrorRequiredMixin, TemplateView):
     """Classifica dei clienti migliori per fatturato nel periodo."""
 
     template_name = "fatture/classifica_clienti.html"
+    mirror_missing_heading = "Classifica clienti"
+    mirror_missing_subtitle = "Migliori clienti per fatturato senza spese nel periodo"
 
     def get(self, request, *args, **kwargs):
         if (request.GET.get("export") or "").strip().lower() in {"csv", "xlsx"}:

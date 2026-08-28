@@ -1,0 +1,143 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Registri IVA · Eureka AI{% endblock %}
+{% block page_title %}Registri IVA{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-book-2"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Registri IVA</h2>
+            <div class="text-secondary mt-1">
+                Registri IVA importati da 4D (<code>RegistriIva</code>)
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="registri_iva:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="registri_iva:export_list" %}
+        <a href="{% url 'registri_iva:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo registro
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'registri_iva:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label" for="registriIvaQ">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="registriIvaQ" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, tipo..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="registriIvaTipo">Tipo</label>
+                    <select id="registriIvaTipo" name="tipo" class="form-select">
+                        <option value="">Tutti</option>
+                        <option value="Acquisto" {% if tipo == "Acquisto" %}selected{% endif %}>Acquisto</option>
+                        <option value="Vendita" {% if tipo == "Vendita" %}selected{% endif %}>Vendita</option>
+                        <option value="Corrispettivi" {% if tipo == "Corrispettivi" %}selected{% endif %}>Corrispettivi</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="registriIvaAttivo">Stato</label>
+                    <select id="registriIvaAttivo" name="attivo" class="form-select">
+                        <option value="">Tutti</option>
+                        <option value="1" {% if attivo == "1" %}selected{% endif %}>Attivi</option>
+                        <option value="0" {% if attivo == "0" %}selected{% endif %}>Disattivati</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'registri_iva:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    {% sort_th "tipo_registro" "Tipo" default_dir="asc" %}
+                    {% sort_th "disattivato" "Stato" default_dir="asc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in registri %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-indigo-lt text-indigo">
+                                <i class="ti ti-book-2"></i>
+                            </span>
+                            <a href="{% url 'registri_iva:detail' r.codice %}" class="eureka-tlist-name">{{ r.codice }}</a>
+                        </div>
+                    </td>
+                    <td>{{ r.descrizione|default:"—" }}</td>
+                    <td>
+                        {% if r.tipo_registro %}
+                        <span class="eureka-tlist-chip">{{ r.tipo_registro }}</span>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.disattivato %}
+                        <span class="badge bg-red-lt">Disattivato</span>
+                        {% else %}
+                        <span class="badge bg-green-lt">Attivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'registri_iva:edit' r.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-book-2"></i></div>
+                            Nessun registro IVA trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'registri_iva:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

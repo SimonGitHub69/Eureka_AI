@@ -8,7 +8,12 @@ from django.views.generic import DetailView, ListView
 
 from apps.carbon.models import LavorazionePartita, Reparto, StampoSerialePartita
 from apps.carbon.sync import sync_carbon
-from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
+from apps.core.export_list import ExportListMixin
+from apps.core.mixins import RequireExtraMixin
+from apps.core.mirror_crud import mirror_row_to_campi
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin, safe_mirror_count
+from apps.core.print_list import MirrorPrintListView
+from apps.core.sorting import SortableListMixin
 
 
 def _list_context(view, context, *, totale_qs=None):
@@ -17,11 +22,16 @@ def _list_context(view, context, *, totale_qs=None):
     context["filter_query"] = params.urlencode()
     context["q"] = (view.request.GET.get("q") or "").strip()
     context["has_filters"] = bool(context["q"])
-    try:
-        context["totale"] = (totale_qs or view.get_queryset().model.objects).count()
-    except Exception:
-        context["totale"] = 0
+    context["totale"] = safe_mirror_count(totale_qs or view.get_queryset().model.objects)
     return context
+
+
+def _filter_reparti_queryset(request):
+    qs = Reparto.objects.all()
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        qs = qs.filter(Q(codice__icontains=q) | Q(descrizione__icontains=q))
+    return qs.order_by("codice")
 
 
 def _pg_count(table: str) -> int:
@@ -43,7 +53,7 @@ def fetch_row(table: str, pk_col: str, pk) -> list[tuple[str, object]] | None:
     return list(zip(columns, row))
 
 
-class CarbonHubView(LoginRequiredMixin, View):
+class CarbonHubView(LoginRequiredMixin, RequireExtraMixin, View):
     template_name = "carbon/hub.html"
 
     def get(self, request):
@@ -94,25 +104,47 @@ class CarbonHubView(LoginRequiredMixin, View):
         )
 
 
-class RepartoListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
+class RepartoListView(
+    LoginRequiredMixin, RequireExtraMixin, SortableListMixin, SafeMirrorListMixin, PerPageListMixin, ListView
+):
     model = Reparto
     template_name = "carbon/reparto_list.html"
     context_object_name = "reparti"
+    sortable_fields = ("codice", "descrizione")
+    default_sort = "codice"
+    default_dir = "asc"
+    sort_tiebreaker = "codice"
     paginate_by = 50
 
     def get_mirror_queryset(self):
-        qs = Reparto.objects.all()
-        q = (self.request.GET.get("q") or "").strip()
-        if q:
-            qs = qs.filter(Q(codice__icontains=q) | Q(descrizione__icontains=q))
-        return qs.order_by("codice")
+        return _filter_reparti_queryset(self.request)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         return _list_context(self, context, totale_qs=Reparto.objects)
 
 
-class RepartoDetailView(LoginRequiredMixin, DetailView):
+class RepartoPrintListView(RequireExtraMixin, MirrorPrintListView):
+    print_title = "Reparti"
+    print_subtitle = "Elenco reparti"
+    filter_queryset = staticmethod(_filter_reparti_queryset)
+    sortable_fields = ("codice", "descrizione")
+    default_sort = "codice"
+    default_dir = "asc"
+    sort_tiebreaker = "codice"
+    print_columns = (
+        {"field": "codice", "label": "Codice"},
+        {"field": "descrizione", "label": "Descrizione"},
+        {"field": "priorita", "label": "Priorità"},
+        {"field": "numero_fase", "label": "Fase"},
+    )
+
+
+class RepartoExportListView(ExportListMixin, RepartoPrintListView):
+    export_filename = "reparti"
+
+
+class RepartoDetailView(LoginRequiredMixin, RequireExtraMixin, DetailView):
     model = Reparto
     template_name = "carbon/reparto_detail.html"
     context_object_name = "reparto"
@@ -121,20 +153,20 @@ class RepartoDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         row = fetch_row("reparti", "Codice", self.object.pk) or []
-        context["campi"] = [
-            (name, value)
-            for name, value in row
-            if name != "synced_at" and value not in (None, "")
-        ]
+        context["campi"] = mirror_row_to_campi(row)
         return context
 
 
 class LavorazionePartitaListView(
-    LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView
+    LoginRequiredMixin, RequireExtraMixin, SortableListMixin, SafeMirrorListMixin, PerPageListMixin, ListView
 ):
     model = LavorazionePartita
     template_name = "carbon/lavorazione_list.html"
     context_object_name = "lavorazioni"
+    sortable_fields = ("id", "data", "codart_ser", "codart", "cod_stampo", "cod_reparto", "stato")
+    default_sort = "id"
+    default_dir = "desc"
+    sort_tiebreaker = "id"
     paginate_by = 50
 
     def get_mirror_queryset(self):
@@ -161,7 +193,7 @@ class LavorazionePartitaListView(
         return _list_context(self, context, totale_qs=LavorazionePartita.objects)
 
 
-class LavorazionePartitaDetailView(LoginRequiredMixin, DetailView):
+class LavorazionePartitaDetailView(LoginRequiredMixin, RequireExtraMixin, DetailView):
     model = LavorazionePartita
     template_name = "carbon/lavorazione_detail.html"
     context_object_name = "lavorazione"
@@ -170,18 +202,20 @@ class LavorazionePartitaDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         row = fetch_row("lavorazioni_partite", "ID", self.object.pk) or []
-        context["campi"] = [
-            (name, value)
-            for name, value in row
-            if name != "synced_at" and value not in (None, "")
-        ]
+        context["campi"] = mirror_row_to_campi(row)
         return context
 
 
-class StampoSerialeListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
+class StampoSerialeListView(
+    LoginRequiredMixin, RequireExtraMixin, SortableListMixin, SafeMirrorListMixin, PerPageListMixin, ListView
+):
     model = StampoSerialePartita
     template_name = "carbon/stampo_seriale_list.html"
     context_object_name = "righe"
+    sortable_fields = ("id", "codice_stampo", "cod_sacco", "codart_ser1", "key_lav_partite")
+    default_sort = "id"
+    default_dir = "desc"
+    sort_tiebreaker = "id"
     paginate_by = 50
 
     def get_mirror_queryset(self):
@@ -205,7 +239,7 @@ class StampoSerialeListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageList
         return _list_context(self, context, totale_qs=StampoSerialePartita.objects)
 
 
-class StampoSerialeDetailView(LoginRequiredMixin, DetailView):
+class StampoSerialeDetailView(LoginRequiredMixin, RequireExtraMixin, DetailView):
     model = StampoSerialePartita
     template_name = "carbon/stampo_seriale_detail.html"
     context_object_name = "riga"
@@ -215,11 +249,7 @@ class StampoSerialeDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context["seriali"] = self.object.seriali_list()
         row = fetch_row("stampi_seriali_partite", "ID", self.object.pk) or []
-        context["campi"] = [
-            (name, value)
-            for name, value in row
-            if name != "synced_at" and value not in (None, "")
-        ]
+        context["campi"] = mirror_row_to_campi(row)
         return context
 
 

@@ -11,7 +11,7 @@
             <h2 class="page-title">Schede di lavorazione</h2>
             <div class="text-secondary">
                 Presenze pezzi per operatore · data, matricola e distinta
-                {% if totale %}· {{ totale }} totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
         <a href="{% url 'schede_lavorazione:create' %}" class="btn btn-primary">
@@ -23,7 +23,9 @@
 
 <div class="card mb-3">
     <div class="card-body">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'schede_lavorazione:list' %}">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label" for="schedaData">Data</label>
@@ -50,14 +52,15 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card" data-eureka-list-next>
     <div class="table-responsive">
         <table class="table table-vcenter card-table table-hover">
             <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Operatore</th>
-                    <th>Matricola</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "data" "Data" default_dir="desc" %}
+                    {% sort_th "operatore_nome" "Operatore" default_dir="asc" %}
+                    {% sort_th "matricola" "Matricola" default_dir="asc" %}
                     <th class="text-end">Righe</th>
                     <th class="w-1"></th>
                 </tr>

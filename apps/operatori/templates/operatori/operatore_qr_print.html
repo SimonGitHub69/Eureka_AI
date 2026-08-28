@@ -1,0 +1,145 @@
+{% load static %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Stampa QR Operatori · Eureka AI</title>
+    <link rel="stylesheet" href="{% static 'vendor/tabler/css/tabler.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
+    <style>
+        body { background: #f1f5f9; }
+        .qr-toolbar { position: sticky; top: 0; z-index: 10; }
+        .qr-sheet {
+            background: #fff;
+            border: 1px solid #d0d7de;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1.25rem;
+        }
+        .qr-row {
+            display: grid;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-bottom: 1px solid #eef1f4;
+            min-height: 52px;
+        }
+        .qr-row:last-child { border-bottom: 0; }
+        .qr-row-odd {
+            grid-template-columns: 40px 1fr;
+        }
+        .qr-row-even {
+            grid-template-columns: 1fr 40px;
+        }
+        .qr-row-odd .qr-meta { text-align: left; }
+        .qr-row-even .qr-meta { text-align: right; }
+        .qr-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        .qr-payload {
+            margin-top: 0.1rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.75rem;
+            color: #667382;
+        }
+        .qr-row img {
+            width: 40px;
+            height: 40px;
+            image-rendering: pixelated;
+        }
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { background: #fff; }
+            .qr-toolbar { display: none !important; }
+            .page-body { padding: 0 !important; }
+            .container-xl { max-width: none !important; padding: 0 !important; }
+            .qr-sheet {
+                border: 0;
+                border-radius: 0;
+                margin: 0;
+                page-break-after: always;
+                break-after: page;
+            }
+            .qr-sheet:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
+            .qr-row {
+                border-bottom: 1px solid #bbb;
+                min-height: 11mm;
+            }
+            .qr-row img {
+                width: 36px;
+                height: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="qr-toolbar d-print-none border-bottom bg-white">
+        <div class="container-xl py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+                <div class="fw-semibold">Stampa QR operatori</div>
+                <div class="text-secondary small">
+                    {{ totale }} operatori · {{ per_page }} per pagina
+                    {% if q %}· filtro “{{ q }}”{% endif %}
+                    · QR a sinistra (dispari) / destra (pari)
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'operatori:list' %}{% if q %}?q={{ q|urlencode }}{% endif %}" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i>
+                    Elenco
+                </a>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <i class="ti ti-printer"></i>
+                    Stampa
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <div class="container-xl py-3">
+            {% if totale %}
+                {% for page_badges in pages %}
+                <section class="qr-sheet">
+                    {% for badge in page_badges %}
+                    {% if forloop.counter|divisibleby:2 %}
+                    <div class="qr-row qr-row-even">
+                        <div class="qr-meta">
+                            <div class="qr-name">{{ badge.label }}</div>
+                            <div class="qr-payload">{{ badge.payload }}</div>
+                        </div>
+                        <img src="{{ badge.qr_src }}" alt="QR {{ badge.payload }}" width="40" height="40">
+                    </div>
+                    {% else %}
+                    <div class="qr-row qr-row-odd">
+                        <img src="{{ badge.qr_src }}" alt="QR {{ badge.payload }}" width="40" height="40">
+                        <div class="qr-meta">
+                            <div class="qr-name">{{ badge.label }}</div>
+                            <div class="qr-payload">{{ badge.payload }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </section>
+                {% endfor %}
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center text-secondary py-5">
+                    Nessun operatore da stampare
+                    {% if q %}<div class="mt-2"><a href="{% url 'operatori:qr_print' %}">Rimuovi filtro</a></div>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</body>
+</html>

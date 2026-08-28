@@ -11,10 +11,11 @@ TABLES = (
 )
 
 
-def sync_gruppi_magazzini(batch_size: int = 2000, only: str | None = None) -> SyncResult:
+def sync_gruppi_magazzini(batch_size: int = 2000, only: str | None = None, full: bool = False) -> SyncResult:
     return sync_tables(
         TABLES,
         batch_size=batch_size,
         only=only,
-        success_message="Sincronizzazione Raggruppamenti Magazzini (RaggMagazzini) completata.",
+        full=full,
+        success_message="Sincronizzazione Gruppi Magazzini (RaggMagazzini) completata.",
     )

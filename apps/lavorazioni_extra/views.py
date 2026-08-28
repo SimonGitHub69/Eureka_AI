@@ -6,7 +6,10 @@ from django.shortcuts import redirect, render
 from django.views import View
 from django.views.generic import DetailView, ListView
 
-from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
+from apps.core.mixins import RequireExtraMixin
+from apps.core.mirror_crud import mirror_row_to_campi
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin, safe_mirror_count
+from apps.core.sorting import SortableListMixin
 from apps.lavorazioni_extra.models import LavorazioneExtra
 from apps.lavorazioni_extra.sync import sync_lavorazioni_extra
 
@@ -31,10 +34,7 @@ def _list_context(view, context):
     context["filter_query"] = params.urlencode()
     context["q"] = (view.request.GET.get("q") or "").strip()
     context["has_filters"] = bool(context["q"])
-    try:
-        context["totale"] = LavorazioneExtra.objects.count()
-    except Exception:
-        context["totale"] = 0
+    context["totale"] = safe_mirror_count(LavorazioneExtra.objects)
     return context
 
 
@@ -48,10 +48,16 @@ def fetch_lavorazione_extra_row(pk: int) -> list[tuple[str, object]] | None:
     return list(zip(columns, row))
 
 
-class LavorazioneExtraListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
+class LavorazioneExtraListView(
+    LoginRequiredMixin, RequireExtraMixin, SortableListMixin, SafeMirrorListMixin, PerPageListMixin, ListView
+):
     model = LavorazioneExtra
     template_name = "lavorazioni_extra/lavorazione_extra_list.html"
     context_object_name = "lavorazioni"
+    sortable_fields = ("id", "cod", "descrizione", "cod_reparto", "f_vincolante")
+    default_sort = "cod"
+    default_dir = "asc"
+    sort_tiebreaker = "id"
     paginate_by = 50
 
     def get_mirror_queryset(self):
@@ -62,7 +68,7 @@ class LavorazioneExtraListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageL
         return _list_context(self, context)
 
 
-class LavorazioneExtraDetailView(LoginRequiredMixin, DetailView):
+class LavorazioneExtraDetailView(LoginRequiredMixin, RequireExtraMixin, DetailView):
     model = LavorazioneExtra
     template_name = "lavorazioni_extra/lavorazione_extra_detail.html"
     context_object_name = "lavorazione"
@@ -71,11 +77,7 @@ class LavorazioneExtraDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         row = fetch_lavorazione_extra_row(self.object.id) or []
-        context["campi"] = [
-            (name, value)
-            for name, value in row
-            if name != "synced_at" and value not in (None, "")
-        ]
+        context["campi"] = mirror_row_to_campi(row)
         return context
 
 

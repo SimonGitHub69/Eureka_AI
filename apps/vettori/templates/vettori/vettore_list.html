@@ -1,0 +1,237 @@
+{% extends "base/layout.html" %}
+
+
+
+{% block title %}Spedizionieri · Eureka AI{% endblock %}
+
+{% block page_title %}Spedizionieri{% endblock %}
+
+
+
+{% block content %}
+
+
+
+<div class="eureka-tlist">
+
+
+
+<div class="eureka-tlist-hero">
+
+    <div class="eureka-tlist-hero__title">
+
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-truck"></i></span>
+
+        <div>
+
+            <h2 class="page-title mb-0">Spedizionieri</h2>
+
+            <div class="text-secondary mt-1">
+
+                Spedizionieri importati da 4D (<code>Vettori</code>)
+
+                {% include "partials/tlist_count.html" %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+
+        {% include "partials/stampa_lista_button.html" with print_url="vettori:print_list" %}
+
+        {% include "partials/export_lista_button.html" with export_url="vettori:export_list" %}
+
+        <a href="{% url 'vettori:create' %}" class="btn btn-primary">
+
+            <i class="ti ti-plus"></i>
+
+            Nuovo spedizioniere
+
+        </a>
+
+    </div>
+
+</div>
+
+
+
+<div class="card mb-3 eureka-tlist-search">
+
+    <div class="card-body py-3">
+
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'vettori:list' %}">
+
+            {% include "partials/sort_hidden.html" %}
+
+            <div class="row g-2 align-items-center">
+
+                <div class="col">
+
+                    <div class="input-icon">
+
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Codice, denominazione, città, P.IVA..." autocomplete="off">
+
+                    </div>
+
+                </div>
+
+                <div class="col-auto d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+
+                        <i class="ti ti-filter"></i>
+
+                        Filtra
+
+                    </button>
+
+                    {% if has_filters %}
+
+                    <a href="{% url 'vettori:list' %}" class="btn btn-outline-secondary" title="Reset">
+
+                        <i class="ti ti-x"></i>
+
+                    </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<div class="card">
+
+    <div class="table-responsive">
+
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+
+            <thead>
+
+                <tr>
+
+                    {% load pagination_tags %}
+
+                    {% sort_th "denominazione" "Spedizioniere" default_dir="asc" %}
+
+                    {% sort_th "citta" "Città" default_dir="asc" %}
+
+                    {% sort_th "partita_iva" "Partita IVA" default_dir="asc" %}
+
+                    <th class="w-1"></th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for v in vettori %}
+
+                <tr>
+
+                    <td>
+
+                        <div class="d-flex align-items-center gap-3">
+
+                            <span class="eureka-tlist-avatar bg-azure-lt text-azure">
+
+                                <i class="ti ti-truck"></i>
+
+                            </span>
+
+                            <div class="overflow-hidden">
+
+                                <a href="{% url 'vettori:detail' v.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 380px;" title="{{ v.denominazione }}">
+
+                                    {{ v.denominazione|default:v.codice }}
+
+                                </a>
+
+                                <span class="eureka-tlist-code">
+
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+
+                                    {{ v.codice }}
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <td>{{ v.citta|default:"—" }}</td>
+
+                    <td>{{ v.partita_iva|default:"—" }}</td>
+
+                    <td class="eureka-tlist-actions">
+
+                        <a href="{% url 'vettori:edit' v.codice %}" class="btn btn-icon" title="Modifica">
+
+                            <i class="ti ti-pencil"></i>
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="4">
+
+                        <div class="eureka-tlist-empty text-center text-secondary">
+
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-truck"></i></div>
+
+                            Nessun spedizioniere trovato
+
+                            {% if has_filters %}
+
+                            <div class="mt-2"><a href="{% url 'vettori:list' %}">Azzera filtri</a></div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% include "partials/pagination.html" %}
+
+</div>
+
+
+
+</div>
+
+
+
+{% endblock %}
+

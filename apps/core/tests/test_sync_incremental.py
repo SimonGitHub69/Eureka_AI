@@ -489,6 +489,15 @@ class WatermarkMessageTests(SimpleTestCase):
         self.assertIn("colonne modifica senza valori utilizzabili", msg)
         self.assertNotIn("watermark assente", msg)
 
+    def test_pk_incremental_message(self):
+        msg = format_incremental_message(
+            42,
+            since=None,
+            pk_incremental=True,
+        )
+        self.assertIn("incrementale per ID", msg)
+        self.assertIn("42", msg)
+
     def test_azienda_first_import_not_missing_columns(self):
         """Con colonne rilevate ma senza watermark il messaggio non parla di colonne assenti."""
         cols = [

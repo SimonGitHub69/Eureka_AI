@@ -17,6 +17,8 @@
         gruppi_articoli: ["gruppi articoli", "gruppo articoli", "gruppi articolo"],
         operatori: ["operatori", "operatore"],
         timbrature: ["timbrature", "timbratura", "presenze", "presenza"],
+        vettori: ["vettori", "vettore", "spedizionieri", "spedizioniere"],
+        spedizionieri: ["spedizionieri", "spedizioniere", "vettori", "vettore"],
         parametri_4d: ["parametri 4d", "parametri quattro d", "parametri", "configurazione 4d"],
         parametri4d: ["parametri 4d", "parametri quattro d", "parametri", "configurazione 4d"],
         sistema: ["sistema", "impostazioni", "settings"],
@@ -53,6 +55,8 @@
         categorie: ["categoria", "categorie"],
         aziende: ["azienda", "aziende", "ditta", "societa", "società"],
         gruppi_articoli: ["gruppo articoli", "gruppi articoli", "gruppo articolo", "gruppi articolo"],
+        vettori: ["vettore", "vettori", "spedizioniere", "spedizionieri"],
+        spedizionieri: ["spedizioniere", "spedizionieri", "vettore", "vettori"],
     };
 
     const SEARCH_ACTIVE_ONLY_DESTINATIONS = new Set([

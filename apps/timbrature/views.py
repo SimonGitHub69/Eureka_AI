@@ -9,7 +9,10 @@ from django.db import connection
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 
-from apps.core.pagination import resolve_per_page
+from apps.core.pagination import PER_PAGE_OPTIONS, resolve_per_page
+from apps.core.export_list import RawExportListMixin
+from apps.core.print_list import RawPrintListView
+from apps.core.sorting import resolve_sort
 from apps.timbrature.models import Timbratura
 from apps.timbrature.presenze import (
     default_period,
@@ -141,9 +144,17 @@ def _fetch_kpi(where_sql: str, params: list) -> dict:
         }
 
 
-def _fetch_presenze(where_sql: str, params: list, page: int, per_page: int):
+def _fetch_presenze(
+    where_sql: str,
+    params: list,
+    page: int,
+    per_page: int,
+    *,
+    order_sql: str | None = None,
+):
     base_from = f"{SELECT_SQL} WHERE {where_sql}"
-    order_sql = 'ORDER BY t."Data" DESC, operatore_nome ASC, t."ID" DESC'
+    if not order_sql:
+        order_sql = 'ORDER BY t."Data" DESC, operatore_nome ASC, t."ID" DESC'
 
     with connection.cursor() as cur:
         cur.execute(f"SELECT COUNT(*) FROM timbrature t LEFT JOIN operatori o ON TRIM(o.\"Codice\") = TRIM(t.\"Cod_Operatore\") WHERE {where_sql}", params)
@@ -158,6 +169,29 @@ def _fetch_presenze(where_sql: str, params: list, page: int, per_page: int):
         presenze = [parse_presenza_row(_row_to_dict(columns, row)) for row in cur.fetchall()]
 
     return presenze, total
+
+
+def _fetch_presenze_all(where_sql: str, params: list, *, order_sql: str | None = None):
+    base_from = f"{SELECT_SQL} WHERE {where_sql}"
+    if not order_sql:
+        order_sql = 'ORDER BY t."Data" DESC, operatore_nome ASC, t."ID" DESC'
+
+    with connection.cursor() as cur:
+        cur.execute(f"{base_from} {order_sql}", params)
+        columns = [col[0] for col in cur.description]
+        return [parse_presenza_row(_row_to_dict(columns, row)) for row in cur.fetchall()]
+
+
+def _presenze_order_sql(sort: str | None, direction: str) -> str:
+    mapping = {
+        "data": 't."Data"',
+        "operatore_nome": "operatore_nome",
+        "scheda_validata": 't."Scheda_Validata"',
+        "cod_operatore": 't."Cod_Operatore"',
+    }
+    expr = mapping.get(sort) or 't."Data"'
+    dir_sql = "DESC" if direction == "desc" else "ASC"
+    return f'ORDER BY {expr} {dir_sql}, t."ID" DESC'
 
 
 def _fetch_presenza(pk: int):
@@ -203,6 +237,12 @@ class TimbraturaListView(LoginRequiredMixin, View):
 
         page = max(int(request.GET.get("page") or 1), 1)
         per_page = resolve_per_page(request)
+        sort, direction = resolve_sort(
+            request,
+            allowed=("data", "operatore_nome", "scheda_validata", "cod_operatore"),
+            default_sort="data",
+            default_dir="desc",
+        )
         where_sql, params = _build_filters(
             data_da=data_da,
             data_a=data_a,
@@ -210,9 +250,12 @@ class TimbraturaListView(LoginRequiredMixin, View):
             q=q,
             stato=stato,
         )
+        order_sql = _presenze_order_sql(sort, direction)
 
         try:
-            presenze, total = _fetch_presenze(where_sql, params, page, per_page)
+            presenze, total = _fetch_presenze(
+                where_sql, params, page, per_page, order_sql=order_sql
+            )
             kpi = _fetch_kpi(where_sql, params)
         except Exception:
             presenze, total = [], 0
@@ -237,16 +280,87 @@ class TimbraturaListView(LoginRequiredMixin, View):
                 "data_da_str": data_da_str,
                 "data_a_str": data_a_str,
                 "operatore": operatore,
-                "operatori_options": _fetch_operatori_options(operatore),
                 "q": q,
                 "stato": stato,
                 "has_filters": has_filters,
+                "filter_count": total if has_filters else None,
+                "kpi": kpi,
+                "operatori_options": _fetch_operatori_options(operatore),
                 "totale": total,
                 "per_page": per_page,
-                "per_page_options": (25, 50, 100),
-                "kpi": kpi,
+                "per_page_options": PER_PAGE_OPTIONS,
+                "sort": sort or "",
+                "dir": direction,
             },
         )
+
+
+def _turno_label(presenza, index: int) -> str:
+    if index < len(presenza.movimenti):
+        return presenza.movimenti[index].intervallo_label
+    return "—"
+
+
+class TimbraturaPrintListView(RawPrintListView):
+    print_title = "Presenze"
+    print_subtitle = "Ingressi e uscite operatori"
+    print_columns = (
+        {"field": "data", "label": "Data", "date": True},
+        {"field": "operatore_nome", "label": "Operatore"},
+        {"field": "cod_operatore", "label": "Codice"},
+        {"field": "reparto", "label": "Reparto"},
+        {"label": "Mattina", "value": lambda p: _turno_label(p, 0)},
+        {"label": "Pomeriggio", "value": lambda p: _turno_label(p, 1)},
+        {"label": "Serale", "value": lambda p: _turno_label(p, 2)},
+        {"field": "ore_totali_label", "label": "Ore"},
+        {"field": "scheda_validata", "label": "Validata", "bool": True},
+    )
+
+    def get_object_list(self, request):
+        operatore = (request.GET.get("operatore") or "").strip()
+        q = (request.GET.get("q") or "").strip()
+        stato = (request.GET.get("stato") or "").strip()
+        data_da, data_a, _, _ = _resolve_period(request)
+        sort, direction = resolve_sort(
+            request,
+            allowed=("data", "operatore_nome", "scheda_validata", "cod_operatore"),
+            default_sort="data",
+            default_dir="desc",
+        )
+        where_sql, params = _build_filters(
+            data_da=data_da,
+            data_a=data_a,
+            operatore=operatore,
+            q=q,
+            stato=stato,
+        )
+        order_sql = _presenze_order_sql(sort, direction)
+        try:
+            return _fetch_presenze_all(where_sql, params, order_sql=order_sql)
+        except Exception:
+            return []
+
+    def get_filter_summary(self, request) -> str:
+        parts = []
+        q = (request.GET.get("q") or "").strip()
+        operatore = (request.GET.get("operatore") or "").strip()
+        stato = (request.GET.get("stato") or "").strip()
+        data_da, data_a, data_da_str, data_a_str = _resolve_period(request)
+        if q:
+            parts.append(f'Ricerca: "{q}"')
+        if operatore:
+            parts.append(f"Operatore: {operatore}")
+        if stato == "validate":
+            parts.append("Solo validate")
+        elif stato == "non_validate":
+            parts.append("Da validare")
+        if data_da_str or data_a_str:
+            parts.append(f"Periodo: {data_da_str} — {data_a_str}")
+        return " · ".join(parts)
+
+
+class TimbraturaExportListView(RawExportListMixin, TimbraturaPrintListView):
+    export_filename = "presenze"
 
 
 class TimbraturaDetailView(LoginRequiredMixin, View):

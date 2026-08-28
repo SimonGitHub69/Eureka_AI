@@ -1,0 +1,76 @@
+{% comment %}
+Pannello verifica codice fiscale per scheda o form cliente/fornitore.
+Variabili: subject (scheda), form (form), cf_mode (detail|form), subject_label
+Opzionale: cf_check (CfResult da server, solo detail)
+{% endcomment %}
+<div class="card eureka-mask-card eureka-vies-card eureka-cf-card mb-3" id="cfPanel"
+     data-cf-url="{% url 'anagrafiche:cf_check' %}"
+     data-cf-mode="{{ cf_mode|default:'detail' }}"
+     {% if cf_mode == 'form' %}
+     data-cf-field="#{{ form.cod_fiscale.id_for_label }}"
+     data-cf-nazione-field="#{{ form.cod_nazione.id_for_label }}"
+     data-cf-partita-iva-field="#{{ form.partita_iva.id_for_label }}"
+     {% if form.persona_fisica %}
+     data-cf-persona-field="#{{ form.persona_fisica.id_for_label }}"
+     {% endif %}
+     {% else %}
+     data-cf-value="{{ subject.cod_fiscale|default:'' }}"
+     data-cf-cod-nazione="{{ subject.cod_nazione|default:'' }}"
+     data-cf-partita-iva="{{ subject.partita_iva|default:'' }}"
+     {% if subject.persona_fisica is not None %}
+     data-cf-persona-fisica="{% if subject.persona_fisica %}1{% else %}0{% endif %}"
+     {% endif %}
+     data-cf-eligible="{% if cf_eligible %}1{% else %}0{% endif %}"
+     {% if cf_check.valid is True %}data-cf-valid="1"{% elif cf_check.valid is False %}data-cf-valid="0"{% endif %}
+     data-cf-kind="{{ cf_check.kind|default:'' }}"
+     data-cf-message="{{ cf_check.message|default:'' }}"
+     {% endif %}>
+    <div class="card-header py-2 d-flex align-items-center justify-content-between gap-2">
+        <h3 class="card-title mb-0 d-flex align-items-center gap-2">
+            <span class="eureka-mask-card__icon"><i class="ti ti-id-badge-2"></i></span>
+            Controllo codice fiscale
+        </h3>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnCfCheck"{% if cf_mode != 'form' and not cf_eligible %} disabled{% endif %}{% if cf_mode == 'form' %} disabled{% endif %}>
+            <i class="ti ti-checkup-list"></i> Verifica
+        </button>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-vies-meta text-secondary small mb-3" id="cfMeta">
+            {% if cf_mode == 'form' %}
+            Inserire codice fiscale e nazione per abilitare il controllo formale.
+            {% elif cf_check.normalized %}
+            Controllo formale su <strong>{{ cf_check.normalized }}</strong>
+            {% elif subject.cod_fiscale %}
+            Controllo non applicato: anagrafica estera o codice fiscale non validabile.
+            {% else %}
+            Inserire un codice fiscale per abilitare il controllo formale.
+            {% endif %}
+        </div>
+
+        <div id="cfStatus" class="d-none" aria-live="polite"></div>
+
+        <div id="cfResult" class="d-none">
+            <div class="eureka-mask-grid eureka-mask-grid--2">
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Esito</div>
+                    <div class="eureka-mask-field__value" id="cfResultValid">—</div>
+                </div>
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Tipo</div>
+                    <div class="eureka-mask-field__value" id="cfResultKind">—</div>
+                </div>
+                <div class="eureka-mask-field eureka-mask-field--wide">
+                    <div class="eureka-mask-field__label">Dettaglio</div>
+                    <div class="eureka-mask-field__value" id="cfResultMessage">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-hint mt-2 mb-0">
+            Verifica formale del codice fiscale italiano (persona fisica 16 caratteri o numerico 11 cifre).
+            {% if cf_mode == 'form' %}
+            Il salvataggio viene bloccato se il codice fiscale italiano non è valido.
+            {% endif %}
+        </div>
+    </div>
+</div>

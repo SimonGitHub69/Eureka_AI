@@ -168,10 +168,24 @@ class Sync4DStaleHelpersTests(SimpleTestCase):
         self.assertIn("clienti", core_views.MIRROR_4D_TABLES)
         self.assertIn("DestCliFor", core_views.MIRROR_4D_TABLES)
         self.assertIn("tab_porto", core_views.MIRROR_4D_TABLES)
+        self.assertIn("movimentit", core_views.MIRROR_4D_TABLES)
+        self.assertIn("depositi", core_views.MIRROR_4D_TABLES)
 
-    def test_porto_is_standalone_sync_step(self):
+    def test_depositi_is_standalone_sync_step(self):
+        keys = {step["key"] for step in core_views.SYNC_4D_STEPS}
+        self.assertIn("depositi", keys)
+        step = next(s for s in core_views.SYNC_4D_STEPS if s["key"] == "depositi")
+        self.assertEqual(step["tables"], ("depositi",))
+        self.assertEqual(step["description"], "Depositi")
         keys = {step["key"] for step in core_views.SYNC_4D_STEPS}
         self.assertIn("porto", keys)
         porto = next(s for s in core_views.SYNC_4D_STEPS if s["key"] == "porto")
         self.assertEqual(porto["tables"], ("tab_porto",))
         self.assertEqual(porto["description"], "TabPorto")
+
+    def test_movimenti_is_standalone_sync_step(self):
+        keys = {step["key"] for step in core_views.SYNC_4D_STEPS}
+        self.assertIn("movimenti", keys)
+        step = next(s for s in core_views.SYNC_4D_STEPS if s["key"] == "movimenti")
+        self.assertEqual(step["tables"], ("movimentit", "movimentit_dettaglio"))
+        self.assertEqual(step["description"], "MovimentiT e MovimentiT_Dettaglio")

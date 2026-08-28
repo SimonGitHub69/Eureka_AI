@@ -1,0 +1,135 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Causali Contabili · Eureka AI{% endblock %}
+{% block page_title %}Causali Contabili{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-file-description"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Causali Contabili</h2>
+            <div class="text-secondary mt-1">
+                Causali importate da 4D (<code>CausaliC</code>)
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <a href="{% url 'causali_contabili:create' %}" class="btn btn-primary">
+        <i class="ti ti-plus"></i>
+        Nuova causale
+    </a>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'causali_contabili:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, tipo causale, registro IVA, TipoDoc FEL..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i> Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'causali_contabili:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    {% sort_th "tipo_causale" "Tipo causale" default_dir="asc" %}
+                    {% sort_th "registro_iva" "Registro IVA" default_dir="asc" %}
+                    {% sort_th "tipo_doc_fel" "TipoDoc FEL" default_dir="asc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for causale in causali %}
+                <tr>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'causali_contabili:detail' causale.codice %}" class="eureka-tlist-name">{{ causale.codice }}</a>
+                    </td>
+                    <td>{{ causale.descrizione|default:"—" }}</td>
+                    <td>{% if causale.tipo_causale %}<span class="eureka-tlist-chip">{{ causale.tipo_causale }}</span>{% else %}—{% endif %}</td>
+                    <td>
+                        {% if causale.registro_collegato %}
+                        <a href="{% url 'registri_iva:detail' causale.registro_collegato.codice %}" class="eureka-tlist-chip text-decoration-none" title="{{ causale.registro_collegato.label }}">
+                            {{ causale.registro_iva }}
+                        </a>
+                        {% if causale.registro_collegato.label %}
+                        <div class="text-secondary small text-truncate" style="max-width: 200px;">{{ causale.registro_collegato.label }}</div>
+                        {% endif %}
+                        {% elif causale.registro_iva %}
+                        {{ causale.registro_iva }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if causale.tipo_doc_fel_code %}
+                        <span class="eureka-tlist-chip" title="{{ causale.tipo_doc_fel_label }}">{{ causale.tipo_doc_fel_code }}</span>
+                        {% if causale.tipo_doc_fel_caption %}
+                        <div class="text-secondary small text-truncate" style="max-width: 220px;">{{ causale.tipo_doc_fel_caption }}</div>
+                        {% endif %}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'causali_contabili:edit' causale.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-file-off"></i></div>
+                            Nessuna causale trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'causali_contabili:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

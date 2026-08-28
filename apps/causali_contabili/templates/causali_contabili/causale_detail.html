@@ -1,0 +1,312 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}{{ causale.codice }} · Causali Contabili · Eureka AI{% endblock %}
+{% block page_title %}Causali Contabili{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-file-description"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ causale.descrizione|default:causale.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ causale.codice }}</span>
+                {% if causale.tipo_causale %}<span class="badge bg-azure-lt">{{ causale.tipo_causale }}</span>{% endif %}
+                {% if registro_collegato %}
+                <a href="{% url 'registri_iva:detail' registro_collegato.codice %}" class="badge bg-secondary-lt text-decoration-none">
+                    {{ causale.registro_iva }}{% if registro_collegato.label %} — {{ registro_collegato.label }}{% endif %}
+                </a>
+                {% elif causale.registro_iva %}
+                <span class="badge bg-secondary-lt">{{ causale.registro_iva }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'primanota:list' %}?causale={{ primanota_causale|urlencode }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-notebook"></i> Primanota
+        </a>
+        <a href="{% url 'primanota:create' %}?causale={{ primanota_causale|urlencode }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-plus"></i> Nuova registrazione
+        </a>
+        <a href="{% url 'causali_contabili:edit' causale.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'causali_contabili:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-arrow-down-left"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Conto dare 1</div>
+            <div class="eureka-mask-kpi__value">
+                {% include "causali_contabili/partials/conto_pdc.html" with codice=causale.c_dare_1 url=pdc_dare_1_url label=pdc_dare_1_label %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-arrow-up-right"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Conto avere 1</div>
+            <div class="eureka-mask-kpi__value">
+                {% include "causali_contabili/partials/conto_pdc.html" with codice=causale.c_avere_1 url=pdc_avere_1_url label=pdc_avere_1_label %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-receipt-tax"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Registro IVA</div>
+            <div class="eureka-mask-kpi__value">
+                {% if registro_collegato %}
+                <a href="{% url 'registri_iva:detail' registro_collegato.codice %}">{{ causale.registro_iva }}</a>
+                {% if registro_collegato.label %}<span class="text-secondary"> — {{ registro_collegato.label }}</span>{% endif %}
+                {% else %}
+                {{ causale.registro_iva|default:"—" }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">Dati causale</h3>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice</div>
+                <div class="eureka-mask-field__value">{{ causale.codice }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione</div>
+                <div class="eureka-mask-field__value">{{ causale.descrizione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Conto avere 1</div>
+                <div class="eureka-mask-field__value">
+                    {% include "causali_contabili/partials/conto_pdc.html" with codice=causale.c_avere_1 url=pdc_avere_1_url label=pdc_avere_1_label %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Partite aperte</div>
+                <div class="eureka-mask-field__value">{{ causale.partite_aperte|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo causale</div>
+                <div class="eureka-mask-field__value">{{ causale.tipo_causale|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Incrementa documento</div>
+                <div class="eureka-mask-field__value">{{ causale.incrementa_doc|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Registro IVA</div>
+                <div class="eureka-mask-field__value">
+                    {% if registro_collegato %}
+                    <a href="{% url 'registri_iva:detail' registro_collegato.codice %}">{{ causale.registro_iva }}</a>
+                    {% if registro_collegato.label %}<span class="text-secondary"> — {{ registro_collegato.label }}</span>{% endif %}
+                    {% elif causale.registro_iva %}
+                    {{ causale.registro_iva }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Causale 17/6</div>
+                <div class="eureka-mask-field__value">{{ causale.causale_17_6|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo SA</div>
+                <div class="eureka-mask-field__value">{{ causale.tipo_sa|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Flag red partitari</div>
+                <div class="eureka-mask-field__value">{{ causale.flag_red_partitari|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo documento FEL</div>
+                <div class="eureka-mask-field__value">{{ causale.tipo_doc_fel_label }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Esterometro</div>
+                <div class="eureka-mask-field__value">{{ causale.esterometro|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Autofattura</div>
+                <div class="eureka-mask-field__value">{{ causale.autofattura|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">IVA con autofattura</div>
+                <div class="eureka-mask-field__value">{{ causale.iva_con_autofattura|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Flag condizioni pagamento</div>
+                <div class="eureka-mask-field__value">{{ causale.flag_cond_pag|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cont. analitica senza controllo</div>
+                <div class="eureka-mask-field__value">{{ causale.cont_analitica_no_control|si_no }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">XML default</div>
+                <div class="eureka-mask-field__value">{{ causale.xml_default|si_no }}</div>
+            </div>
+            {% if causale.desc_pn %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione Pn</div>
+                <div class="eureka-mask-field__value">{{ causale.desc_pn }}</div>
+            </div>
+            {% endif %}
+            {% if causale.cassa_corrispettivi %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cassa corrispettivi</div>
+                <div class="eureka-mask-field__value">{{ causale.cassa_corrispettivi }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if conti_righe|length > 1 %}
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">Conti dare / avere</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+            <thead>
+                <tr>
+                    <th class="w-1">#</th>
+                    <th>Conto dare</th>
+                    <th>Conto avere</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in conti_righe %}
+                <tr>
+                    <td class="text-secondary">{{ r.n }}</td>
+                    <td>
+                        {% include "causali_contabili/partials/conto_pdc.html" with codice=r.dare url=r.pdc_dare_url label=r.pdc_dare_label %}
+                    </td>
+                    <td>
+                        {% include "causali_contabili/partials/conto_pdc.html" with codice=r.avere url=r.pdc_avere_url label=r.pdc_avere_label %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if show_autofattura %}
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">Autofattura e documenti</h3>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo documento FEL</div>
+                <div class="eureka-mask-field__value">{{ causale.tipo_doc_fel_label }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Contatore autofattura</div>
+                <div class="eureka-mask-field__value">{{ causale.contatore_auto_f|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Causale collegata autofattura</div>
+                <div class="eureka-mask-field__value">{{ causale.causale_colleg_auto_f|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cliente autofattura</div>
+                <div class="eureka-mask-field__value">{{ causale.cliente_auto_f|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Sottoconto IVA acquisti</div>
+                <div class="eureka-mask-field__value">{{ causale.sotto_conto_iva_acq_auto_f|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Sottoconto IVA vendite</div>
+                <div class="eureka-mask-field__value">{{ causale.sotto_conto_iva_vend_auto_f|default:"—" }}</div>
+            </div>
+            {% if causale.testo_auto_fattura %}
+            <div class="eureka-mask-field eureka-mask-field--wide">
+                <div class="eureka-mask-field__label">Testo autofattura</div>
+                <div class="eureka-mask-field__value">{{ causale.testo_auto_fattura }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if campi_extra %}
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">Altri dati</h3>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            {% for name, value in campi_extra %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value|display_value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="eureka-mask-delete" id="eliminaCausaleWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaCausale">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaCausale" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ causale.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaCausale">Annulla</button>
+                        <button type="submit" form="formEliminaCausale" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaCausale" method="post" action="{% url 'causali_contabili:delete' causale.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaCausale");
+  document.getElementById("btnApriEliminaCausale")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaCausale")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

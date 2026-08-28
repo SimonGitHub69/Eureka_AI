@@ -1,0 +1,89 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Sync Valute 4D · Eureka AI{% endblock %}
+{% block page_title %}Sync Valute 4D{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--valute">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--valute"><i class="ti ti-refresh"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Sync Valute 4D</h2>
+            <div class="eureka-mask-hero__meta">
+                Importa <code>Valuta</code> e <code>Valuta_Det</code> da 4D verso PostgreSQL
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'core:parametri_4d' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-settings"></i> Parametri 4D
+        </a>
+        <a href="{% url 'valute:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="eureka-mask-kpis mb-3">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-currency-dollar"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Valute</div>
+            <div class="eureka-mask-kpi__value">{{ valuta_count }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-chart-line"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Cambi (Valuta_Det)</div>
+            <div class="eureka-mask-kpi__value">{{ valuta_det_count }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card mb-3">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">
+            <span class="eureka-mask-card__icon"><i class="ti ti-cloud-download"></i></span>
+            Sincronizzazione
+        </h3>
+    </div>
+    <div class="card-body py-3">
+        <p class="mb-2">
+            Il sync ricrea le tabelle mirror <code>valuta</code> e <code>valuta_det</code>
+            con tutte le colonne 4D, poi importa i dati.
+            Chiavi: <code>Codice</code> / <code>ID</code>.
+        </p>
+        <p class="text-secondary mb-0">
+            Da terminale:
+            <code>.\.venv\Scripts\python.exe manage.py sync_valute_4d</code>
+        </p>
+    </div>
+    <div class="card-footer d-flex justify-content-end py-2">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-sm"
+                    onclick="this.disabled=true; this.innerHTML='<i class=&quot;ti ti-loader-2&quot;></i> Sync in corso...'; this.form.submit();">
+                <i class="ti ti-refresh"></i> Avvia sincronizzazione
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if last_message %}
+<div class="card eureka-mask-card">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">Esito</h3>
+    </div>
+    <div class="card-body py-3">
+        <pre class="mb-0" style="white-space: pre-wrap;">{{ last_message }}</pre>
+    </div>
+</div>
+{% endif %}
+
+</div>
+
+{% endblock %}

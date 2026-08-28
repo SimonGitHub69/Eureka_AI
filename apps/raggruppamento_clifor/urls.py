@@ -5,6 +5,7 @@ from apps.raggruppamento_clifor.views import (
     RaggruppamentoCliforDeleteView,
     RaggruppamentoCliforDetailView,
     RaggruppamentoCliforListView,
+    RaggruppamentoCliforPrintListView,
     RaggruppamentoCliforUpdateView,
     SyncRaggruppamentoCliforView,
 )
@@ -12,6 +13,11 @@ from apps.raggruppamento_clifor.views import (
 app_name = "raggruppamento_clifor"
 urlpatterns = [
     path("raggruppamento-clifor/", RaggruppamentoCliforListView.as_view(), name="list"),
+    path(
+        "raggruppamento-clifor/stampa/",
+        RaggruppamentoCliforPrintListView.as_view(),
+        name="print_list",
+    ),
     path(
         "raggruppamento-clifor/nuovo/",
         RaggruppamentoCliforCreateView.as_view(),

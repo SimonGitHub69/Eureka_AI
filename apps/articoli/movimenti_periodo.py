@@ -111,6 +111,9 @@ def movimenti_print_query(request: HttpRequest) -> str:
 def movimenti_periodo_context(request: HttpRequest) -> dict:
     data_da, data_a, filtro_attivo = parse_movimenti_periodo(request)
     default_da, default_a = default_periodo()
+    today = default_a
+    prev_da = date(today.year - 1, 1, 1)
+    prev_a = date(today.year - 1, 12, 31)
     sort, direction = resolve_sort(
         request,
         allowed=MOVIMENTI_ARTICOLO_SORT_FIELDS,
@@ -126,6 +129,8 @@ def movimenti_periodo_context(request: HttpRequest) -> dict:
         "mov_filtro_attivo": filtro_attivo,
         "mov_data_da_default": default_da.isoformat(),
         "mov_data_a_default": default_a.isoformat(),
+        "mov_data_da_prev": prev_da.isoformat(),
+        "mov_data_a_prev": prev_a.isoformat(),
         "movimenti_query": qs.urlencode(),
         "mov_print_query": movimenti_print_query(request),
         "sort": sort,

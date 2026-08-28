@@ -1,0 +1,202 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ conto.codice }} · Piano dei Conti · Eureka AI{% endblock %}
+{% block page_title %}Piano dei Conti{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--pdc eureka-mask--pdc-l{{ livello }}">
+
+{% include "pdc/partials/breadcrumb.html" %}
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--pdc" aria-hidden="true">
+            {% if livello == 0 %}<i class="ti ti-folder"></i>
+            {% elif livello == 1 %}<i class="ti ti-folder-open"></i>
+            {% else %}<i class="ti ti-file-invoice"></i>{% endif %}
+        </span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ conto.descrizione|default:conto.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-pdc-level-badge eureka-pdc-level-badge--{{ livello }}">{{ livello_label }}</span>
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ conto.codice }}</span>
+                {% if conto.tipo_conto %}<span class="badge bg-secondary-lt">{{ conto.tipo_conto }}</span>{% endif %}
+                {% if conto.gruppo %}
+                <a href="{% url 'raggruppamento_conti:detail' conto.gruppo %}" class="badge bg-blue-lt text-decoration-none">{{ gruppo_label|default:conto.gruppo }}</a>
+                {% endif %}
+                {% if conto.disabilitato %}
+                <span class="badge bg-danger-lt">Disabilitato</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if livello == 2 %}
+        <a href="{% url 'pdc:partitario' conto.codice %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-report-money"></i> Partitario
+        </a>
+        {% endif %}
+        {% if children_url %}
+        <a href="{% url 'pdc:list' %}{{ children_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-chevrons-right"></i> {{ children_label }}
+        </a>
+        {% endif %}
+        <a href="{% url 'pdc:edit' conto.codice %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-notebook"></i> {{ back_label }}
+        </a>
+        {% else %}
+        <a href="{% url 'pdc:list' %}{% if livello == 1 %}?mastro={{ conto.codice_mastro }}{% elif livello == 2 %}?mastro={{ conto.codice_mastro }}&conto={{ conto.codice_conto }}{% endif %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<nav class="eureka-pdc-trail" aria-label="Gerarchia conto">
+    <div class="eureka-pdc-trail__step{% if livello == 0 %} is-current{% endif %}{% if livello > 0 %} is-done{% endif %}">
+        <span class="eureka-pdc-trail__dot"><i class="ti ti-folder"></i></span>
+        <div class="eureka-pdc-trail__text">
+            <span class="eureka-pdc-trail__label">Mastro</span>
+            {% if livello == 0 %}
+            <span class="eureka-pdc-trail__value">{{ conto.codice }}</span>
+            {% elif mastro_codice %}
+            <a href="{% url 'pdc:detail' mastro_codice %}" class="eureka-pdc-trail__value">{{ mastro_codice }}{% if descrizione_mastro %} · {{ descrizione_mastro }}{% endif %}</a>
+            {% else %}
+            <span class="eureka-pdc-trail__value text-secondary">—</span>
+            {% endif %}
+        </div>
+    </div>
+    <span class="eureka-pdc-trail__sep" aria-hidden="true"><i class="ti ti-chevron-right"></i></span>
+    <div class="eureka-pdc-trail__step{% if livello == 1 %} is-current{% endif %}{% if livello > 1 %} is-done{% endif %}{% if livello < 1 %} is-muted{% endif %}">
+        <span class="eureka-pdc-trail__dot"><i class="ti ti-folder-open"></i></span>
+        <div class="eureka-pdc-trail__text">
+            <span class="eureka-pdc-trail__label">Conto</span>
+            {% if livello == 1 %}
+            <span class="eureka-pdc-trail__value">{{ conto.codice }}</span>
+            {% elif livello == 2 and conto_codice %}
+            <a href="{% url 'pdc:detail' conto_codice %}" class="eureka-pdc-trail__value">{{ conto_codice }}{% if descrizione_conto %} · {{ descrizione_conto }}{% endif %}</a>
+            {% else %}
+            <span class="eureka-pdc-trail__value text-secondary">Seleziona dal mastro</span>
+            {% endif %}
+        </div>
+    </div>
+    <span class="eureka-pdc-trail__sep" aria-hidden="true"><i class="ti ti-chevron-right"></i></span>
+    <div class="eureka-pdc-trail__step{% if livello == 2 %} is-current{% endif %}{% if livello < 2 %} is-muted{% endif %}">
+        <span class="eureka-pdc-trail__dot"><i class="ti ti-file-invoice"></i></span>
+        <div class="eureka-pdc-trail__text">
+            <span class="eureka-pdc-trail__label">Sottoconto</span>
+            {% if livello == 2 %}
+            <span class="eureka-pdc-trail__value">{{ conto.codice }}</span>
+            {% else %}
+            <span class="eureka-pdc-trail__value text-secondary">Livello inferiore</span>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon eureka-pdc-kpi-icon"><i class="ti ti-layers-intersect"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Livello</div>
+            <div class="eureka-mask-kpi__value">{{ livello_label }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if not conto.tipo_conto %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-category"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Tipo conto</div>
+            <div class="eureka-mask-kpi__value">{{ conto.tipo_conto|default:"Non impostato" }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if not conto.gruppo %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-blue-lt text-blue"><i class="ti ti-sitemap"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Gruppo</div>
+            <div class="eureka-mask-kpi__value">
+                {% if conto.gruppo %}
+                <a href="{% url 'raggruppamento_conti:detail' conto.gruppo %}" class="text-decoration-none">{{ gruppo_label|default:conto.gruppo }}</a>
+                {% else %}
+                Non impostato
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon {% if conto.disabilitato %}bg-danger-lt text-danger{% else %}bg-green-lt text-green{% endif %}">
+            <i class="ti ti-{% if conto.disabilitato %}ban{% else %}circle-check{% endif %}"></i>
+        </span>
+        <div>
+            <div class="eureka-mask-kpi__label">Stato</div>
+            <div class="eureka-mask-kpi__value">{% if conto.disabilitato %}Disabilitato{% else %}Attivo{% endif %}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card eureka-mask-card--pdc">
+    <div class="card-header py-2">
+        <h3 class="card-title mb-0">
+            <span class="eureka-mask-card__icon"><i class="ti ti-list-details"></i></span>
+            Dati del {{ livello_label|lower }}
+        </h3>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            {% for name, value in campi %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% empty %}
+            <div class="text-secondary">Nessun dato disponibile.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaPdcWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaPdc">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaPdc" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ livello_label }} {{ conto.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaPdc">Annulla</button>
+                        <button type="submit" form="formEliminaPdc" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaPdc" method="post" action="{% url 'pdc:delete' conto.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+    {% if livello == 2 %}<input type="hidden" name="mastro" value="{{ conto.codice_mastro }}"><input type="hidden" name="conto" value="{{ conto.codice_conto }}">{% elif livello == 1 %}<input type="hidden" name="mastro" value="{{ conto.codice_mastro }}">{% endif %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaPdc");
+  document.getElementById("btnApriEliminaPdc")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaPdc")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

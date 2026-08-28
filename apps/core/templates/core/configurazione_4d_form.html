@@ -159,6 +159,7 @@
 
 <div class="card mt-3" id="sync4dApp"
      data-start-url="{% url 'core:sync_4d_start' %}"
+     data-cancel-url="{% url 'core:sync_4d_cancel' %}"
      data-clear-url="{% url 'core:sync_4d_clear' %}"
      data-status-base="{% url 'core:sync_4d_status' 'TASK_ID' %}">
     <div class="card-header">
@@ -168,21 +169,97 @@
         </h3>
     </div>
     <div class="card-body">
-        <div class="row row-cards mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h4 class="mb-0">Tabelle da sincronizzare</h4>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary" id="sync4dSelectAllSteps">
+                    Seleziona tutte
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="sync4dSelectNoneSteps">
+                    Deseleziona tutte
+                </button>
+            </div>
+        </div>
+
+        <div class="row row-cards mb-3" id="sync4dStepSelection">
             {% for step in sync_steps %}
             <div class="col-sm-6 col-lg-4 col-xl-3">
-                <div class="card">
+                <div class="card {% if step.key == 'documenti' %}sync4d-step-documenti{% endif %}">
                     <div class="card-body py-3">
-                        <div class="subheader">{{ step.label }}</div>
+                        <label class="form-check mb-2">
+                            <input type="checkbox"
+                                   name="steps"
+                                   value="{{ step.key }}"
+                                   class="form-check-input sync4d-step-checkbox"
+                                   data-step-key="{{ step.key }}"
+                                   checked>
+                            <span class="form-check-label fw-semibold">{{ step.label }}</span>
+                        </label>
                         <div class="text-secondary small mb-1">{{ step.description }}</div>
                         <div class="small">
                             {% for table in step.tables %}
                             <div class="d-flex justify-content-between gap-2">
                                 <code>{{ table.name }}</code>
-                                <span class="fw-semibold">{{ table.count }}</span>
+                                <span class="fw-semibold" data-sync-table-count="{{ table.name }}">{{ table.count }}</span>
                             </div>
                             {% endfor %}
                         </div>
+                        {% if step.key == "documenti" %}
+                        <div class="mt-3 pt-2 border-top sync4d-documenti-tipos" id="sync4dDocumentiTipos">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small fw-semibold">Tipi documento</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-secondary" style="font-size: .7rem;">teste / righe</span>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" id="sync4dSelectAllTipos">
+                                            Tutte
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" id="sync4dSelectNoneTipos">
+                                            Nessuna
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% for item in tipi_con_flags %}
+                            {% with tipo=item.tipo enabled=item.enabled %}
+                            <label class="d-flex gap-2 align-items-center mb-1 small {% if not enabled %}text-secondary{% endif %}">
+                                <input type="checkbox"
+                                       name="tipos"
+                                       value="{{ tipo.codice }}"
+                                       class="form-check-input mt-0 sync4d-tipo-checkbox"
+                                       {% if not enabled %}disabled data-program-disabled="1"{% endif %}
+                                       checked>
+                                <span class="flex-fill min-w-0">
+                                    {{ tipo.label }} ({{ tipo.codice }})
+                                    {% if not enabled %}
+                                    <span class="badge bg-secondary-lt text-secondary">disabilitato</span>
+                                    {% endif %}
+                                </span>
+                                <span class="text-nowrap fw-semibold sync4d-tipo-counts"
+                                      data-tipo="{{ tipo.codice }}"
+                                      title="Teste / righe in PostgreSQL">
+                                    <span data-count="teste">{{ item.teste_count }}</span><span class="text-secondary fw-normal"> / </span><span data-count="righe">{{ item.righe_count }}</span>
+                                </span>
+                            </label>
+                            {% endwith %}
+                            {% endfor %}
+                            <label class="d-flex gap-2 align-items-start mt-2 small {% if not fatture_mirror_available %}text-secondary{% endif %}">
+                                <input type="checkbox"
+                                       name="from_fatture_mirror"
+                                       id="sync4dFromFattureMirror"
+                                       value="on"
+                                       class="form-check-input mt-0"
+                                       data-mirror-available="{% if fatture_mirror_available %}1{% else %}0{% endif %}"
+                                       {% if not fatture_mirror_available %}disabled{% endif %}>
+                                <span>
+                                    Bridge mirror fatture (FAT/NCR/NDB, senza ODBC)
+                                    {% if not fatture_mirror_available %}
+                                    <span class="badge bg-secondary-lt text-secondary">tabelle assenti — usare ODBC</span>
+                                    {% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -190,10 +267,11 @@
         </div>
 
         <p class="mb-3">
-            Un solo bottone avvia in sequenza tutti gli step sotto
-            (anagrafiche, tabelle, <strong>CARBON</strong>, lavorazioni extra, operatori, timbrature, fatture, …).
-            Usa <strong>Azzera tabelle</strong> per eliminare i dati mirror su PostgreSQL prima di un nuovo import da 4D.
+            Seleziona gli step da importare da 4D ODBC, poi avvia la sincronizzazione.
+            Usa <strong>Azzera tabelle</strong> per eliminare i dati mirror su PostgreSQL prima di un nuovo import.
         </p>
+
+        {% include "core/partials/sync_mode_options.html" %}
 
         <div class="progress mb-2" style="height: 1.2rem;">
             <div id="sync4dProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
@@ -219,7 +297,7 @@
                         <td class="fw-semibold">{{ step.label }}</td>
                         <td class="text-secondary">{{ step.description }}</td>
                         <td><span class="badge bg-secondary-lt">In attesa</span></td>
-                        <td class="text-secondary small">-</td>
+                        <td class="text-secondary small sync4d-step-detail" style="white-space: pre-line;">-</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -235,9 +313,13 @@
                 <i class="ti ti-trash"></i>
                 Azzera tabelle
             </button>
+            <button type="button" class="btn btn-danger d-none" id="sync4dCancelBtn">
+                <i class="ti ti-player-stop"></i>
+                Blocca sincronizzazione
+            </button>
             <button type="button" class="btn btn-primary" id="sync4dStartBtn">
                 <i class="ti ti-player-play"></i>
-                Avvia sincronizzazione completa
+                Avvia sincronizzazione selezionate
             </button>
         </div>
     </div>
@@ -251,17 +333,235 @@ document.addEventListener("DOMContentLoaded", function () {
     const app = document.getElementById("sync4dApp");
     if (!app) return;
 
+    const STORAGE_STEPS_KEY = "eureka_sync_4d_steps";
+    const STORAGE_TIPOS_KEY = "eureka_sync_4d_tipos";
+    const STORAGE_MIRROR_KEY = "eureka_sync_4d_from_mirror";
+
     const startBtn = document.getElementById("sync4dStartBtn");
+    const cancelBtn = document.getElementById("sync4dCancelBtn");
     const clearBtn = document.getElementById("sync4dClearBtn");
     const progressBar = document.getElementById("sync4dProgressBar");
     const statusText = document.getElementById("sync4dStatusText");
+
+    function showSyncToast(message, type) {
+        const toastType = type === "danger" ? "danger" : type === "success" ? "success" : "info";
+        const toast = document.createElement("div");
+        toast.className = "eureka-voice-toast alert alert-" + toastType;
+        toast.setAttribute("role", "alert");
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        window.setTimeout(function () {
+            toast.classList.add("is-hiding");
+            window.setTimeout(function () { toast.remove(); }, 300);
+        }, toastType === "danger" ? 8000 : 4500);
+    }
+
+    function parseJsonResponse(res) {
+        return res.text().then(function (text) {
+            let data = null;
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (_) {
+                    throw new Error(
+                        res.status === 403
+                            ? "Sessione scaduta o CSRF non valido. Ricarica la pagina."
+                            : ("Risposta non valida dal server (HTTP " + res.status + ").")
+                    );
+                }
+            }
+            return { ok: res.ok, status: res.status, data: data || {} };
+        });
+    }
     const stepsBody = document.getElementById("sync4dStepsBody");
+    const stepBoxes = () => Array.from(document.querySelectorAll(".sync4d-step-checkbox"));
+    // All tipo checkboxes (including temporarily disabled when Documenti is unchecked).
+    const allTipoBoxes = () =>
+        Array.from(document.querySelectorAll(".sync4d-tipo-checkbox"));
+    // Tipi enabled in parametri programma — independent of current DOM disabled state.
+    const selectableTipoBoxes = () =>
+        allTipoBoxes().filter(function (box) {
+            return !box.hasAttribute("data-program-disabled");
+        });
+    const documentiStepBox = () =>
+        document.querySelector('.sync4d-step-checkbox[data-step-key="documenti"]');
+    const documentiTiposPanel = document.getElementById("sync4dDocumentiTipos");
+    const mirrorBox = document.getElementById("sync4dFromFattureMirror");
     let timer = null;
 
     function csrfToken() {
         const input = document.querySelector("input[name=csrfmiddlewaretoken]");
         return input ? input.value : "";
     }
+
+    function markProgramDisabledTipos() {
+        // Call only at init, before updateDocumentiPanelState. Boxes rendered disabled
+        // in HTML are program-disabled; temporary disable must not become permanent.
+        allTipoBoxes().forEach(function (box) {
+            if (box.disabled && !box.hasAttribute("data-program-disabled")) {
+                box.setAttribute("data-program-disabled", "1");
+            }
+        });
+    }
+
+    function updateDocumentiPanelState() {
+        const docSelected = !!documentiStepBox()?.checked;
+        const mirrorAvailable = mirrorBox && mirrorBox.getAttribute("data-mirror-available") === "1";
+        if (documentiTiposPanel) {
+            documentiTiposPanel.classList.toggle("opacity-50", !docSelected);
+            // Must iterate ALL tipo boxes — :not(:disabled) cannot re-enable after a prior disable.
+            allTipoBoxes().forEach(function (box) {
+                box.disabled = !docSelected || box.hasAttribute("data-program-disabled");
+            });
+            if (mirrorBox) mirrorBox.disabled = !docSelected || !mirrorAvailable;
+        }
+    }
+
+    function saveSelection() {
+        localStorage.setItem(
+            STORAGE_STEPS_KEY,
+            JSON.stringify(stepBoxes().filter(function (b) { return b.checked; }).map(function (b) { return b.value; }))
+        );
+        // Persist checked state even when Documenti step is unchecked (boxes may be disabled).
+        localStorage.setItem(
+            STORAGE_TIPOS_KEY,
+            JSON.stringify(selectableTipoBoxes().filter(function (b) { return b.checked; }).map(function (b) { return b.value; }))
+        );
+        if (mirrorBox) {
+            localStorage.setItem(STORAGE_MIRROR_KEY, mirrorBox.checked ? "1" : "0");
+        }
+    }
+
+    function loadSelection() {
+        try {
+            const savedSteps = JSON.parse(localStorage.getItem(STORAGE_STEPS_KEY) || "null");
+            if (Array.isArray(savedSteps)) {
+                stepBoxes().forEach(function (box) {
+                    box.checked = savedSteps.includes(box.value);
+                });
+            }
+            const savedTipos = JSON.parse(localStorage.getItem(STORAGE_TIPOS_KEY) || "null");
+            if (Array.isArray(savedTipos)) {
+                selectableTipoBoxes().forEach(function (box) {
+                    box.checked = savedTipos.includes(box.value);
+                });
+            }
+            if (mirrorBox) {
+                const mirrorAvailable = mirrorBox.getAttribute("data-mirror-available") === "1";
+                if (mirrorAvailable) {
+                    mirrorBox.checked = localStorage.getItem(STORAGE_MIRROR_KEY) === "1";
+                } else {
+                    // Do not restore bridge from localStorage when fatture tables are missing.
+                    mirrorBox.checked = false;
+                    localStorage.setItem(STORAGE_MIRROR_KEY, "0");
+                }
+            }
+        } catch (_) {
+            /* ignore */
+        }
+        updateDocumentiPanelState();
+    }
+
+    function validateSelection() {
+        const selectedSteps = stepBoxes().filter(function (b) { return b.checked; });
+        if (!selectedSteps.length) {
+            return "Selezionare almeno uno step da sincronizzare.";
+        }
+        const docSelected = documentiStepBox()?.checked;
+        if (docSelected) {
+            const tipos = selectableTipoBoxes().filter(function (b) { return b.checked; });
+            const mirror = mirrorBox && mirrorBox.checked;
+            if (!tipos.length && !mirror) {
+                return "Selezionare almeno un tipo documento o il bridge mirror fatture.";
+            }
+        }
+        return null;
+    }
+
+    function buildStartFormData() {
+        const body = new FormData();
+        stepBoxes().filter(function (b) { return b.checked; }).forEach(function (b) {
+            body.append("steps", b.value);
+        });
+        const incrementalBox = document.querySelector(".sync-incremental-checkbox");
+        const fullBox = document.querySelector(".sync-full-checkbox");
+        if (fullBox && fullBox.checked) {
+            body.append("full_sync", "on");
+        } else if (incrementalBox && incrementalBox.checked) {
+            body.append("incremental_only", "on");
+        }
+        if (documentiStepBox()?.checked) {
+            selectableTipoBoxes().filter(function (b) { return b.checked; }).forEach(function (b) {
+                body.append("tipos", b.value);
+            });
+            if (mirrorBox && mirrorBox.checked) {
+                body.append("from_fatture_mirror", "on");
+            }
+        }
+        return body;
+    }
+
+    function setSelectionDisabled(disabled) {
+        stepBoxes().forEach(function (box) { box.disabled = disabled; });
+        if (disabled) {
+            allTipoBoxes().forEach(function (box) { box.disabled = true; });
+            if (mirrorBox) mirrorBox.disabled = true;
+        } else {
+            updateDocumentiPanelState();
+        }
+        document.getElementById("sync4dSelectAllSteps")?.toggleAttribute("disabled", disabled);
+        document.getElementById("sync4dSelectNoneSteps")?.toggleAttribute("disabled", disabled);
+        document.getElementById("sync4dSelectAllTipos")?.toggleAttribute("disabled", disabled);
+        document.getElementById("sync4dSelectNoneTipos")?.toggleAttribute("disabled", disabled);
+    }
+
+    document.getElementById("sync4dSelectAllSteps")?.addEventListener("click", function () {
+        stepBoxes().forEach(function (box) { box.checked = true; });
+        updateDocumentiPanelState();
+        saveSelection();
+    });
+    document.getElementById("sync4dSelectNoneSteps")?.addEventListener("click", function () {
+        stepBoxes().forEach(function (box) { box.checked = false; });
+        updateDocumentiPanelState();
+        saveSelection();
+    });
+    document.getElementById("sync4dSelectAllTipos")?.addEventListener("click", function () {
+        selectableTipoBoxes().forEach(function (box) {
+            if (!box.disabled) box.checked = true;
+        });
+        saveSelection();
+    });
+    document.getElementById("sync4dSelectNoneTipos")?.addEventListener("click", function () {
+        selectableTipoBoxes().forEach(function (box) {
+            if (!box.disabled) box.checked = false;
+        });
+        saveSelection();
+    });
+    stepBoxes().forEach(function (box) {
+        box.addEventListener("change", function () {
+            updateDocumentiPanelState();
+            saveSelection();
+        });
+    });
+    markProgramDisabledTipos();
+    selectableTipoBoxes().forEach(function (box) {
+        box.addEventListener("change", saveSelection);
+    });
+    mirrorBox?.addEventListener("change", saveSelection);
+
+    loadSelection();
+
+    (function initSyncModeToggles() {
+        const incrementalBox = document.querySelector(".sync-incremental-checkbox");
+        const fullBox = document.querySelector(".sync-full-checkbox");
+        if (!incrementalBox || !fullBox) return;
+        incrementalBox.addEventListener("change", function () {
+            if (incrementalBox.checked) fullBox.checked = false;
+        });
+        fullBox.addEventListener("change", function () {
+            if (fullBox.checked) incrementalBox.checked = false;
+        });
+    })();
 
     function setProgress(pct) {
         const value = Math.max(0, Math.min(100, Number(pct) || 0));
@@ -273,36 +573,88 @@ document.addEventListener("DOMContentLoaded", function () {
     function badge(status) {
         if (status === "done") return '<span class="badge bg-green-lt">OK</span>';
         if (status === "running") return '<span class="badge bg-blue-lt">In corso</span>';
+        if (status === "cancelled") return '<span class="badge bg-warning-lt">Interrotta</span>';
         if (status === "error") return '<span class="badge bg-red-lt">Errore</span>';
+        if (status === "skipped") return '<span class="badge bg-secondary-lt">Saltato</span>';
         return '<span class="badge bg-secondary-lt">In attesa</span>';
+    }
+
+    function updateMirrorCounts(task) {
+        const tableCounts = (task.counts_after && Object.keys(task.counts_after).length)
+            ? task.counts_after
+            : task.counts_before;
+        if (tableCounts) {
+            document.querySelectorAll("[data-sync-table-count]").forEach(function (el) {
+                const name = el.getAttribute("data-sync-table-count");
+                if (name && Object.prototype.hasOwnProperty.call(tableCounts, name)) {
+                    el.textContent = String(tableCounts[name] || 0);
+                }
+            });
+        }
+        const byTipo = task.documenti_counts_by_tipo || {};
+        document.querySelectorAll(".sync4d-tipo-counts").forEach(function (el) {
+            const tipo = el.getAttribute("data-tipo");
+            const row = byTipo[tipo] || { teste: 0, righe: 0 };
+            const testeEl = el.querySelector('[data-count="teste"]');
+            const righeEl = el.querySelector('[data-count="righe"]');
+            if (testeEl) testeEl.textContent = String(row.teste || 0);
+            if (righeEl) righeEl.textContent = String(row.righe || 0);
+        });
     }
 
     function renderTask(task) {
         setProgress(task.progress_pct);
         statusText.textContent = task.message || "Pronto.";
+        updateMirrorCounts(task);
         (task.steps || []).forEach(function (step) {
             const row = stepsBody.querySelector('[data-step-key="' + step.key + '"]');
             if (!row) return;
             row.children[2].innerHTML = badge(step.status);
-            row.children[3].textContent = step.message || "-";
+            const detailCell = row.children[3];
+            let detail = step.message || "-";
+            // I conteggi per tipo restano nella card Documenti unificati.
+            if (step.key === "documenti" && detail.indexOf("\n") !== -1) {
+                detail = detail.split("\n")[0];
+            }
+            detailCell.textContent = detail;
+            detailCell.style.whiteSpace = "pre-line";
+            detailCell.classList.add("text-secondary");
+            detailCell.classList.remove("fw-semibold", "text-body");
         });
         const running = task.status === "running" || task.status === "pending";
         startBtn.disabled = running;
+        setSelectionDisabled(running);
+        if (cancelBtn) cancelBtn.classList.toggle("d-none", !running);
         if (clearBtn) clearBtn.disabled = running;
         if (task.status === "done") {
-            progressBar.classList.remove("bg-danger");
+            progressBar.classList.remove("bg-danger", "bg-warning");
             progressBar.classList.add("bg-success");
+        } else if (task.status === "cancelled") {
+            progressBar.classList.remove("bg-success", "bg-danger");
+            progressBar.classList.add("bg-warning");
         } else if (task.status === "error") {
-            progressBar.classList.remove("bg-success");
+            progressBar.classList.remove("bg-success", "bg-warning");
             progressBar.classList.add("bg-danger");
         }
     }
+
+    let activeTaskId = null;
 
     function stopPolling() {
         if (timer) {
             clearTimeout(timer);
             timer = null;
         }
+    }
+
+    function resetStepRows() {
+        stepsBody.querySelectorAll("tr[data-step-key]").forEach(function (row) {
+            row.children[2].innerHTML = badge("pending");
+            const detailCell = row.children[3];
+            detailCell.textContent = "-";
+            detailCell.classList.add("text-secondary");
+            detailCell.classList.remove("fw-semibold", "text-body");
+        });
     }
 
     function poll(taskId) {
@@ -315,57 +667,107 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 renderTask(data.task);
                 if (data.task.status === "running" || data.task.status === "pending") {
+                    activeTaskId = taskId;
                     timer = setTimeout(function () { poll(taskId); }, 1500);
                 } else {
+                    activeTaskId = null;
                     stopPolling();
                 }
             })
             .catch(function (err) {
                 statusText.textContent = err.message || "Errore durante il polling.";
                 startBtn.disabled = false;
+                setSelectionDisabled(false);
                 if (clearBtn) clearBtn.disabled = false;
                 stopPolling();
             });
     }
 
     startBtn.addEventListener("click", function () {
+        const validationError = validateSelection();
+        if (validationError) {
+            statusText.textContent = validationError;
+            return;
+        }
+        saveSelection();
         startBtn.disabled = true;
+        setSelectionDisabled(true);
         if (clearBtn) clearBtn.disabled = true;
-        progressBar.classList.remove("bg-success", "bg-danger");
+        progressBar.classList.remove("bg-success", "bg-danger", "bg-warning");
+        resetStepRows();
         statusText.textContent = "Avvio sync...";
         fetch(app.dataset.startUrl, {
             method: "POST",
             headers: {
                 "X-CSRFToken": csrfToken(),
                 "X-Requested-With": "XMLHttpRequest"
-            }
+            },
+            body: buildStartFormData()
         })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (!data.ok) {
-                    throw new Error(data.error || "Impossibile avviare il sync.");
+            .then(function (res) {
+                return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+            })
+            .then(function (result) {
+                if (!result.data.ok) {
+                    throw new Error(result.data.error || "Impossibile avviare il sync.");
                 }
                 stopPolling();
-                poll(data.task_id);
+                activeTaskId = result.data.task_id;
+                poll(result.data.task_id);
             })
             .catch(function (err) {
                 statusText.textContent = err.message || "Errore di avvio.";
                 startBtn.disabled = false;
+                setSelectionDisabled(false);
                 if (clearBtn) clearBtn.disabled = false;
             });
     });
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", function () {
+            if (!activeTaskId) return;
+            cancelBtn.disabled = true;
+            statusText.textContent = "Interruzione in corso...";
+            const body = new FormData();
+            body.append("task_id", activeTaskId);
+            fetch(app.dataset.cancelUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken(),
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: body
+            })
+                .then(function (res) {
+                    return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+                })
+                .then(function (result) {
+                    if (!result.data.ok) {
+                        throw new Error(result.data.error || "Impossibile interrompere il sync.");
+                    }
+                    statusText.textContent = "Interruzione richiesta, attendere...";
+                })
+                .catch(function (err) {
+                    statusText.textContent = err.message || "Errore interruzione.";
+                })
+                .finally(function () {
+                    cancelBtn.disabled = false;
+                });
+        });
+    }
 
     if (clearBtn) {
         clearBtn.addEventListener("click", function () {
             const confirmed = window.confirm(
                 "Azzerare tutte le tabelle mirror su PostgreSQL?\n\n" +
-                "Verranno eliminate le tabelle importate da 4D (clienti, fornitori, agenti, aziende, articoli, categorie, magazzini, stampi, operatori, timbrature, fatture, ...).\n" +
+                "Verranno eliminate le tabelle importate da 4D (clienti, fornitori, agenti, aziende, articoli, categorie, magazzini, stampi, operatori, timbrature, fatture, documenti, ...).\n" +
                 "I dati in 4D non vengono modificati. Poi potrai rilanciare il sync completo."
             );
             if (!confirmed) return;
 
             clearBtn.disabled = true;
             startBtn.disabled = true;
+            setSelectionDisabled(true);
             statusText.textContent = "Azzeramento tabelle in corso...";
             fetch(app.dataset.clearUrl, {
                 method: "POST",
@@ -374,18 +776,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     "X-Requested-With": "XMLHttpRequest"
                 }
             })
-                .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+                .then(parseJsonResponse)
                 .then(function (result) {
                     if (!result.data.ok) {
                         throw new Error(result.data.error || "Azzeramento non riuscito.");
                     }
-                    statusText.textContent = result.data.message || "Tabelle azzerate.";
+                    const msg = result.data.message || "Tabelle azzerate.";
+                    statusText.textContent = msg;
+                    showSyncToast(msg, "success");
                     window.location.reload();
                 })
                 .catch(function (err) {
-                    statusText.textContent = err.message || "Errore durante l'azzeramento.";
+                    const msg = err.message || "Errore durante l'azzeramento.";
+                    statusText.textContent = msg;
+                    statusText.classList.add("text-danger");
+                    showSyncToast(msg, "danger");
                     clearBtn.disabled = false;
                     startBtn.disabled = false;
+                    setSelectionDisabled(false);
                 });
         });
     }

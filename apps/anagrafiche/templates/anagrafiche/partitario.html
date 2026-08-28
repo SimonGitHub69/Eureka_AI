@@ -1,0 +1,206 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+{% load pagination_tags %}
+
+{% block title %}Partitario {{ subject.codice }} · {{ subject_label }} · Eureka AI{% endblock %}
+{% block page_title %}Partitario{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-report-money"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">Partitario {{ subject_label|lower }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ subject.codice }}</span>
+                <span class="text-secondary text-truncate">
+                    {% if kind == "P" %}
+                        {{ subject.descrizione|default:subject.codice }}
+                    {% else %}
+                        {{ subject.ragione_sociale|default:subject.codice }}
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url detail_url_name subject.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> {{ subject_detail_label|default:"Anagrafica" }}
+        </a>
+        <a href="{% url list_url_name %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card mb-3">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+            {% if dir %}<input type="hidden" name="dir" value="{{ dir }}">{% endif %}
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label" for="id_data_da">Da data</label>
+                <input type="date" class="form-control" id="id_data_da" name="data_da" value="{{ data_da }}">
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label" for="id_data_a">A data</label>
+                <input type="date" class="form-control" id="id_data_a" name="data_a" value="{{ data_a }}">
+            </div>
+            <div class="col-sm-8 col-md-6 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="ti ti-filter"></i> Applica
+                </button>
+                <a
+                    class="btn btn-outline-secondary"
+                    href="?data_da={{ data_da_default }}&amp;data_a={{ data_a_default }}{% if sort %}&amp;sort={{ sort }}&amp;dir={{ dir }}{% endif %}"
+                    title="Da inizio anno a oggi"
+                >
+                    <i class="ti ti-calendar"></i> Anno corrente
+                </a>
+            </div>
+        </form>
+        <div class="text-secondary small mt-2">
+            Layout come 4D · Primanota Tipo <strong>1–4</strong>
+            (Generico, IVA, Corrispettivi, Autofattura)
+            · {{ movimenti_count }} riga{{ movimenti_count|pluralize:"e" }}
+            · saldo = Dare − Avere (da zero sul periodo)
+        </div>
+    </div>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card eureka-mask-card h-100">
+            <div class="card-body py-2">
+                <div class="text-secondary small">Saldo precedente</div>
+                <div class="fs-4 fw-semibold">{{ partitario.saldo_precedente|euro }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card eureka-mask-card h-100">
+            <div class="card-body py-2">
+                <div class="text-secondary small">Totale Dare periodo</div>
+                <div class="fs-4 fw-semibold">{{ partitario.totale_dare|euro }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card eureka-mask-card h-100">
+            <div class="card-body py-2">
+                <div class="text-secondary small">Totale Avere periodo</div>
+                <div class="fs-4 fw-semibold">{{ partitario.totale_avere|euro }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card eureka-mask-card h-100">
+            <div class="card-body py-2">
+                <div class="text-secondary small">Saldo finale</div>
+                <div class="fs-4 fw-semibold {% if partitario.saldo_finale < 0 %}text-danger{% elif partitario.saldo_finale > 0 %}text-success{% endif %}">
+                    {{ partitario.saldo_finale|euro }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="table-responsive">
+        <table class="table table-vcenter table-sm table-hover card-table mb-0 eureka-tlist-table">
+            <thead>
+                <tr>
+                    {% sort_th "numero_reg" "Rif." default_dir="asc" %}
+                    {% sort_th "data_reg" "Dt Reg." default_dir="asc" %}
+                    {% sort_th "data_comp" "Dt Comp." default_dir="asc" %}
+                    {% sort_th "causale" "Causale" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    {% sort_th "pagamento" "Pagamento" default_dir="asc" %}
+                    {% sort_th "contro_codice" "C/Part." default_dir="asc" %}
+                    {% sort_th "numero_prot" "Prot." default_dir="asc" %}
+                    {% sort_th "numero_doc" "N. Doc." default_dir="asc" %}
+                    {% sort_th "data_doc" "Dt Doc." default_dir="asc" %}
+                    {% sort_th "dare" "Imp. Dare" align="end" default_dir="desc" %}
+                    {% sort_th "avere" "Imp. Avere" align="end" default_dir="desc" %}
+                    {% sort_th "saldo" "Saldo" align="end" default_dir="desc" %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for riga in partitario.righe %}
+                <tr class="{% if riga.is_saldo_precedente or riga.is_totale %}table-active fw-semibold{% endif %}">
+                    <td class="text-nowrap">
+                        {% if riga.id_testa %}
+                        <a href="{% url 'primanota:detail' riga.id_testa %}?next={{ request.get_full_path|urlencode }}">{{ riga.numero_reg }}</a>
+                        {% elif riga.numero_reg %}
+                        {{ riga.numero_reg }}
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        {% if riga.data_reg %}{{ riga.data_reg|date:"d/m/Y" }}{% endif %}
+                    </td>
+                    <td class="text-nowrap">
+                        {% if riga.data_comp %}{{ riga.data_comp|date:"d/m/Y" }}{% endif %}
+                    </td>
+                    <td>
+                        {% if riga.causale_descrizione %}
+                        <div class="text-truncate" style="max-width: 160px;" title="{{ riga.causale }} — {{ riga.causale_descrizione }}">
+                            {{ riga.causale_descrizione }}
+                        </div>
+                        {% elif riga.causale %}
+                        {{ riga.causale }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="text-truncate" style="max-width: 220px;" title="{{ riga.descrizione }}">
+                            {{ riga.descrizione }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if riga.pagamento_descrizione %}
+                        <div class="text-truncate" style="max-width: 120px;" title="{{ riga.pagamento }} — {{ riga.pagamento_descrizione }}">
+                            {{ riga.pagamento_descrizione }}
+                        </div>
+                        {% elif riga.pagamento %}
+                        {{ riga.pagamento }}
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap" title="{{ riga.contro_descrizione }}">
+                        {{ riga.contro_codice }}
+                    </td>
+                    <td class="text-nowrap">{% if riga.numero_prot %}{{ riga.numero_prot }}{% endif %}</td>
+                    <td class="text-nowrap">
+                        <div class="text-truncate" style="max-width: 110px;" title="{{ riga.numero_doc }}">
+                            {{ riga.numero_doc }}
+                        </div>
+                    </td>
+                    <td class="text-nowrap">
+                        {% if riga.data_doc %}{{ riga.data_doc|date:"d/m/y" }}{% endif %}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        {% if riga.dare %}{{ riga.dare|euro }}{% endif %}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        {% if riga.avere %}{{ riga.avere|euro }}{% endif %}
+                    </td>
+                    <td class="text-end text-nowrap {% if riga.saldo < 0 %}text-danger{% endif %}">
+                        {{ riga.saldo|euro }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="13" class="text-center text-secondary py-4">
+                        Nessun movimento nel periodo selezionato.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+{% endblock %}

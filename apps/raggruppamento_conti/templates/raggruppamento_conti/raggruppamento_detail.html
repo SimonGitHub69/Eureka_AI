@@ -1,0 +1,135 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ raggruppamento.codice }} · Raggruppamento Conti · Eureka AI{% endblock %}
+{% block page_title %}Raggruppamento Conti{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-category-2"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ raggruppamento.descrizione|default:raggruppamento.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ raggruppamento.codice }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'pdc:list' %}?gruppo={{ raggruppamento.codice }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-report-money"></i> Conti PDC ({{ pdc_totale }})
+        </a>
+        <a href="{% url 'raggruppamento_conti:edit' raggruppamento.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'raggruppamento_conti:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice</div>
+                <div class="eureka-mask-field__value">{{ raggruppamento.codice }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione</div>
+                <div class="eureka-mask-field__value">{{ raggruppamento.descrizione|default:"—" }}</div>
+            </div>
+            {% if raggruppamento.data_modifica %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultima modifica</div>
+                <div class="eureka-mask-field__value">{{ raggruppamento.data_modifica|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% for name, value in campi %}
+            {% if name != "Codice" and name != "Descrizione" and name != "DataModifica" and name != "OraModifica" %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if pdc_totale %}
+<div class="card eureka-mask-card mb-3">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+        <h3 class="card-title mb-0">Conti PDC collegati</h3>
+        <a href="{% url 'pdc:list' %}?gruppo={{ raggruppamento.codice }}" class="btn btn-sm btn-outline-primary">Vedi tutti</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Livello</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conto in pdc_conti %}
+                <tr>
+                    <td><a href="{% url 'pdc:detail' conto.codice %}">{{ conto.codice }}</a></td>
+                    <td>{{ conto.descrizione|default:"—" }}</td>
+                    <td><span class="badge bg-secondary-lt">{{ conto.livello_label }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if pdc_totale > pdc_conti|length %}
+    <div class="card-footer text-secondary small py-2">
+        Mostrati {{ pdc_conti|length }} di {{ pdc_totale }} conti.
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="eureka-mask-delete" id="eliminaRaggruppamentoWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaRaggruppamento">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaRaggruppamento" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ raggruppamento.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaRaggruppamento">Annulla</button>
+                        <button type="submit" form="formEliminaRaggruppamento" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaRaggruppamento" method="post" action="{% url 'raggruppamento_conti:delete' raggruppamento.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaRaggruppamento");
+  document.getElementById("btnApriEliminaRaggruppamento")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaRaggruppamento")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

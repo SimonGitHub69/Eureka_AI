@@ -12,8 +12,11 @@
             <h2 class="page-title">Presenze operatori</h2>
             <div class="text-secondary">
                 Ingressi e uscite dallo stabilimento · dati da 4D <code>Timbrature</code>
+                {% include "partials/tlist_count.html" with list_count_filter_noun="presenze" %}
             </div>
         </div>
+        {% include "partials/stampa_lista_button.html" with print_url="timbrature:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="timbrature:export_list" %}
     </div>
 </div>
 
@@ -54,7 +57,9 @@
 
 <div class="card mb-3">
     <div class="card-body">
+        {% include "partials/tlist_search_count.html" with list_count_filter_noun="presenze" %}
         <form method="get" action="{% url 'timbrature:list' %}">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end mb-2">
                 <div class="col-12">
                     <div class="text-secondary small mb-1">Periodo rapido</div>
@@ -114,18 +119,19 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card" data-eureka-list-next>
     <div class="table-responsive">
         <table class="table table-vcenter card-table table-hover">
             <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Operatore</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "data" "Data" default_dir="desc" %}
+                    {% sort_th "operatore_nome" "Operatore" default_dir="asc" %}
                     <th>Mattina</th>
                     <th>Pomeriggio</th>
                     <th>Serale</th>
                     <th class="text-end">Ore</th>
-                    <th>Stato</th>
+                    {% sort_th "scheda_validata" "Stato" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>

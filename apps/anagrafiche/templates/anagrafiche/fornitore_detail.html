@@ -1,152 +1,199 @@
 {% extends "base/layout.html" %}
+{% load static %}
 
 {% block title %}{{ fornitore.ragione_sociale|default:fornitore.codice }} · Fornitori · Eureka AI{% endblock %}
-
 {% block page_title %}Fornitore{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ fornitore.ragione_sociale|default:fornitore.codice }}</h2>
-            <div class="text-secondary">
-                Codice {{ fornitore.codice }}
-                {% if fornitore.fl_disattivato %}· <span class="badge bg-secondary">Disattivato</span>{% endif %}
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-truck"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ fornitore.ragione_sociale|default:fornitore.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ fornitore.codice }}</span>
+                {% if fornitore.fl_disattivato %}<span class="badge bg-secondary-lt">Disattivato</span>{% endif %}
             </div>
         </div>
-        <a href="{% url 'anagrafiche:fornitori_list' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Elenco
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-notebook"></i> {{ back_label }}
         </a>
+        {% endif %}
+        <a href="{% url 'anagrafiche:fornitore_partitario' fornitore.codice %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-report-money"></i> Partitario
+        </a>
+        <a href="{% url 'anagrafiche:fornitore_edit' fornitore.codice %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        {% if not back_url %}
+        <a href="{% url 'anagrafiche:fornitori_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+        {% endif %}
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Anagrafica</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="datagrid-title">Ragione sociale</div>
-                <div class="datagrid-content">{{ fornitore.ragione_sociale1|default:"—" }}</div>
-                {% if fornitore.ragione_sociale2 %}
-                <div class="datagrid-content text-secondary">{{ fornitore.ragione_sociale2 }}</div>
-                {% endif %}
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ragione sociale 1</div>
+                <div class="eureka-mask-field__value">{{ fornitore.ragione_sociale1|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">P. IVA</div>
-                <div class="datagrid-content">{{ fornitore.partita_iva|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ragione sociale 2</div>
+                <div class="eureka-mask-field__value">{{ fornitore.ragione_sociale2|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Codice fiscale</div>
-                <div class="datagrid-content">{{ fornitore.cod_fiscale|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">P. IVA</div>
+                <div class="eureka-mask-field__value">{{ fornitore.partita_iva|default:"—" }}</div>
             </div>
-            <div class="col-md-6">
-                <div class="datagrid-title">Indirizzo</div>
-                <div class="datagrid-content">
-                    {{ fornitore.indirizzo|default:"—" }}
-                    {% if fornitore.cap or fornitore.localita %}
-                    <div class="text-secondary">
-                        {% if fornitore.cap %}{{ fornitore.cap }} {% endif %}{{ fornitore.localita|default:"" }}
-                        {% if fornitore.provincia %} ({{ fornitore.provincia }}){% endif %}
-                    </div>
-                    {% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice fiscale</div>
+                <div class="eureka-mask-field__value">{{ fornitore.cod_fiscale|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Indirizzo</div>
+                <div class="eureka-mask-field__value">{{ fornitore.indirizzo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">CAP</div>
+                <div class="eureka-mask-field__value">{{ fornitore.cap|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Località</div>
+                <div class="eureka-mask-field__value">{{ fornitore.localita|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Provincia</div>
+                <div class="eureka-mask-field__value">{{ fornitore.provincia|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Nazione</div>
+                <div class="eureka-mask-field__value">{{ fornitore.cod_nazione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Telefono</div>
+                <div class="eureka-mask-field__value">{{ fornitore.telefono|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cellulare</div>
+                <div class="eureka-mask-field__value">{{ fornitore.cellulare|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Fax</div>
+                <div class="eureka-mask-field__value">{{ fornitore.fax|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email</div>
+                <div class="eureka-mask-field__value">{{ fornitore.email|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">PEC</div>
+                <div class="eureka-mask-field__value">{{ fornitore.pec|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email commerciale</div>
+                <div class="eureka-mask-field__value">{{ fornitore.email_commerciale|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Sito web</div>
+                <div class="eureka-mask-field__value">{{ fornitore.www|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Agente</div>
+                <div class="eureka-mask-field__value">{{ agente_display|default:fornitore.agente|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Gruppo / Zona</div>
+                <div class="eureka-mask-field__value">{{ fornitore.gruppo|default:"—" }}{% if fornitore.zona %} · {{ fornitore.zona }}{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cond. pagamento</div>
+                <div class="eureka-mask-field__value">{{ cond_paga_display|default:fornitore.cond_paga|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Banca</div>
+                <div class="eureka-mask-field__value">{{ fornitore.banca|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Listino</div>
+                <div class="eureka-mask-field__value">{{ fornitore.listino|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Note</div>
+                <div class="eureka-mask-field__value">{{ fornitore.note|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Annotazioni</div>
+                <div class="eureka-mask-field__value">{{ fornitore.annotazioni|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultima modifica</div>
+                <div class="eureka-mask-field__value">
+                    {% if fornitore.data_modifica %}{{ fornitore.data_modifica|date:"d/m/Y" }}{% else %}—{% endif %}
+                    {% if fornitore.ora_modifica %} {{ fornitore.ora_modifica|time:"H:i" }}{% endif %}
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Nazione</div>
-                <div class="datagrid-content">{{ fornitore.cod_nazione|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Gruppo / Zona</div>
-                <div class="datagrid-content">
-                    {{ fornitore.gruppo|default:"—" }}
-                    {% if fornitore.zona %} · {{ fornitore.zona }}{% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Contatti</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="datagrid-title">Telefono</div>
-                <div class="datagrid-content">{{ fornitore.telefono|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Cellulare</div>
-                <div class="datagrid-content">{{ fornitore.cellulare|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Fax</div>
-                <div class="datagrid-content">{{ fornitore.fax|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Email</div>
-                <div class="datagrid-content">{{ fornitore.email|default:"—" }}</div>
-            </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">PEC</div>
-                <div class="datagrid-content">{{ fornitore.pec|default:"—" }}</div>
-            </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Email commerciale</div>
-                <div class="datagrid-content">{{ fornitore.email_commerciale|default:"—" }}</div>
-            </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Sito web</div>
-                <div class="datagrid-content">{{ fornitore.www|default:"—" }}</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Altri dati</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="datagrid-title">Agente</div>
-                <div class="datagrid-content">{{ fornitore.agente|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Cond. pagamento</div>
-                <div class="datagrid-content">{{ fornitore.cond_paga|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Banca</div>
-                <div class="datagrid-content">{{ fornitore.banca|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Listino</div>
-                <div class="datagrid-content">{{ fornitore.listino|default:"—" }}</div>
-            </div>
-            <div class="col-md-6">
-                <div class="datagrid-title">Note</div>
-                <div class="datagrid-content">{{ fornitore.note|default:"—" }}</div>
-            </div>
-            {% if fornitore.annotazioni %}
-            <div class="col-md-6">
-                <div class="datagrid-title">Annotazioni</div>
-                <div class="datagrid-content">{{ fornitore.annotazioni }}</div>
-            </div>
-            {% endif %}
             {% if fornitore.synced_at %}
-            <div class="col-12">
-                <div class="text-secondary small">Ultimo sync: {{ fornitore.synced_at|date:"d/m/Y H:i" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ fornitore.synced_at|date:"d/m/Y H:i" }}</div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
 
+{% include "anagrafiche/partials/vies_panel.html" with subject=fornitore subject_label="Fornitore" %}
+{% include "anagrafiche/partials/cf_panel.html" with subject=fornitore subject_label="Fornitore" %}
+{% include "destinazioni/partials/anagrafica_card.html" %}
+
+<div class="eureka-mask-delete" id="eliminaFornitoreWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaFornitore">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaFornitore" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ fornitore.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaFornitore">Annulla</button>
+                        <button type="submit" form="formEliminaFornitore" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaFornitore" method="post" action="{% url 'anagrafiche:fornitore_delete' fornitore.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/vies-check.js' %}?v=2"></script>
+<script src="{% static 'eureka/js/cf-check.js' %}?v=1"></script>
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaFornitore");
+  document.getElementById("btnApriEliminaFornitore")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaFornitore")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
 {% endblock %}

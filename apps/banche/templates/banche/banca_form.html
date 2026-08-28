@@ -1,0 +1,103 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Banche · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--bank">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--bank"><i class="ti ti-building-bank"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if is_create %}Nuova banca{% else %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ banca.codice }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'banche:detail' banca.codice %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Dettaglio</a>
+        {% endif %}
+        <a href="{% url 'banche:list' %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list"></i> Elenco</a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" class="eureka-mask-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-building-bank"></i></span>
+                Anagrafica banca
+            </h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-8 col-sm-10" %}
+                {% include "partials/mask_field.html" with field=form.indirizzo col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.cap col="col-6 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.localita col="col-sm-7" %}
+                {% include "partials/mask_field.html" with field=form.provincia col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.telefono col="col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.fax col="col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.codice_abi col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.codice_cab col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.agenzia col="col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.swift_code col="col-sm-6" %}
+                {% if not is_create and banca.data_modifica %}
+                <div class="col-sm-4">
+                    <div class="form-label">Data ultima modifica</div>
+                    <div class="form-control form-control-sm bg-light text-secondary">{{ banca.data_modifica|date:"d/m/Y" }}</div>
+                </div>
+                {% endif %}
+                {% include "partials/mask_field.html" with field=form.note col="col-12" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--company-bank mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-building-store"></i></span>
+                Campi riservati alla banca dell'azienda
+            </h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                <div class="col-sm-6">
+                    {% include "partials/mask_field.html" with field=form.numero_cc col="col-12" %}
+                    {% if form.numero_cc.help_text %}
+                    <div class="eureka-field-hint-4d">{{ form.numero_cc.help_text }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-sm-6">
+                    {% include "partials/mask_field.html" with field=form.iban col="col-12" %}
+                    {% if form.iban.help_text %}
+                    <div class="eureka-field-hint-4d">{{ form.iban.help_text }}</div>
+                    {% endif %}
+                </div>
+                {% include "partials/mask_field.html" with field=form.cin col="col-6 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.fido col="col-6 col-sm-3" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="eureka-mask-actions">
+        {% if is_create %}
+        <a href="{% url 'banche:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% else %}
+        <a href="{% url 'banche:detail' banca.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,281 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ parametro.label }} · Parametri documento · Eureka AI{% endblock %}
+{% block page_title %}Parametro documento{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-file-settings"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ parametro.label }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ parametro.codice }}{% if parametro.serie %} · {{ parametro.serie }}{% endif %}</span>
+                <span class="badge bg-primary-lt">{{ parametro.categoria_label }}</span>
+                {% if parametro.clifor_tipo == "F" %}
+                <span class="badge bg-orange-lt">Fornitore</span>
+                {% elif parametro.clifor_tipo == "C" %}
+                <span class="badge bg-azure-lt">Cliente</span>
+                {% endif %}
+                {% if parametro.attivo %}
+                <span class="badge bg-green-lt">Attivo</span>
+                {% else %}
+                <span class="badge bg-red-lt">Disattivo</span>
+                {% endif %}
+                {% if parametro.scadenze_obbligatorie %}
+                <span class="badge bg-orange-lt">Scadenze obbligatorie</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'documenti:parametri_edit' parametro.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'documenti:parametri_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Famiglia</div>
+                <div class="eureka-mask-field__value">{{ parametro.categoria_label }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Anagrafica</div>
+                <div class="eureka-mask-field__value">{{ parametro.clifor_label }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Scadenze</div>
+                <div class="eureka-mask-field__value">
+                    {% if parametro.scadenze_obbligatorie %}
+                    <span class="badge bg-orange-lt">Obbligatorie</span>
+                    {% else %}
+                    <span class="badge bg-azure-lt">Facoltative</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ordine</div>
+                <div class="eureka-mask-field__value">{{ parametro.ordine }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Contatore predefinito</div>
+                <div class="eureka-mask-field__value">
+                    {% if parametro.contatore_id %}
+                    <a href="{% url 'documenti:contatori_detail' parametro.contatore.pk %}">{{ parametro.contatore_label }}</a>
+                    {% else %}
+                    <span class="text-secondary">Per tipo (legacy)</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Contatori / serie</div>
+                <div class="eureka-mask-field__value">
+                    {% with lista=parametro.contatori.all %}
+                    {% if lista %}
+                    <ul class="list-unstyled mb-0">
+                        {% for c in lista %}
+                        <li>
+                            <a href="{% url 'documenti:contatori_detail' c.pk %}">
+                                {% if c.serie_default %}{{ c.serie_default }} — {% endif %}{{ c.codice }} · {{ c.esercizio }} — {{ c.label }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% elif parametro.contatore_id %}
+                    <span class="text-secondary">Solo il predefinito</span>
+                    {% else %}
+                    <span class="text-secondary">—</span>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Serie</div>
+                <div class="eureka-mask-field__value">{{ parametro.serie|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Note</div>
+                <div class="eureka-mask-field__value">{{ parametro.descrizione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tabella 4D testata</div>
+                <div class="eureka-mask-field__value">{% if parametro.source_table_4d %}<code>{{ parametro.source_table_4d }}</code>{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tabella 4D righe</div>
+                <div class="eureka-mask-field__value">{% if parametro.source_detail_4d %}<code>{{ parametro.source_detail_4d }}</code>{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field" style="grid-column: 1 / -1;">
+                <div class="eureka-mask-field__label">Testo mail</div>
+                <div class="eureka-mask-field__value" style="white-space: pre-wrap;">{{ parametro.testo_mail|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if parametro.attivo %}
+<div class="mt-3">
+    <a href="{% url 'documenti:list' tipo_doc=parametro.codice %}" class="btn btn-outline-primary btn-sm">
+        <i class="ti ti-list"></i> Apri elenco {{ parametro.codice }}
+    </a>
+</div>
+{% endif %}
+
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+            <i class="ti ti-columns eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title mb-0">Riga di dettaglio</h3>
+        </div>
+        <span class="text-secondary small">Posizione e campo di ogni colonna, per personalizzare il documento</span>
+    </div>
+    <form method="post" action="{% url 'documenti:parametri_colonne' parametro.codice %}" autocomplete="off">
+        {% csrf_token %}
+        {{ colonne_formset.management_form }}
+        {% if colonne_formset.non_form_errors %}
+        <div class="alert alert-danger mx-3 mt-3 py-2">{{ colonne_formset.non_form_errors }}</div>
+        {% endif %}
+        <div class="table-responsive">
+            <table class="table table-vcenter table-sm mb-0" id="colonneRigaTable">
+                <thead>
+                    <tr>
+                        <th style="width:6rem;">Posizione</th>
+                        <th style="min-width:12rem;">Campo</th>
+                        <th>Etichetta</th>
+                        <th style="width:8rem;">Larghezza</th>
+                        <th style="width:3.5rem;" class="text-center" title="Elimina"><i class="ti ti-trash"></i></th>
+                    </tr>
+                </thead>
+                <tbody id="colonneRigaBody">
+                    {% for f in colonne_formset %}
+                    <tr class="colonna-riga-row{% if f.DELETE.value %} d-none{% endif %}" data-colonna-row>
+                        <td>
+                            {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                            {{ f.posizione }}
+                            {% if f.posizione.errors %}<div class="invalid-feedback d-block">{{ f.posizione.errors|striptags }}</div>{% endif %}
+                        </td>
+                        <td>
+                            {{ f.campo }}
+                            {% if f.campo.errors %}<div class="invalid-feedback d-block">{{ f.campo.errors|striptags }}</div>{% endif %}
+                        </td>
+                        <td>{{ f.etichetta }}</td>
+                        <td>{{ f.larghezza }}</td>
+                        <td class="text-center">
+                            {% if f.DELETE %}
+                            <div class="visually-hidden">{{ f.DELETE }}</div>
+                            <button type="button" class="btn btn-ghost-danger btn-icon btn-sm btn-elimina-colonna" title="Rimuovi colonna">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center gap-2 py-2 flex-wrap">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAggiungiColonna">
+                <i class="ti ti-plus"></i> Aggiungi colonna
+            </button>
+            <div class="d-flex gap-2">
+                <button type="submit" name="ripristina_default" value="1" class="btn btn-outline-secondary btn-sm" formnovalidate>
+                    Ripristina predefinite
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="ti ti-device-floppy"></i> Salva colonne
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<template id="colonnaEmptyFormTemplate">
+    <tr class="colonna-riga-row" data-colonna-row>
+        <td>
+            {% for hidden in colonne_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            {{ colonne_formset.empty_form.posizione }}
+        </td>
+        <td>{{ colonne_formset.empty_form.campo }}</td>
+        <td>{{ colonne_formset.empty_form.etichetta }}</td>
+        <td>{{ colonne_formset.empty_form.larghezza }}</td>
+        <td class="text-center">
+            {% if colonne_formset.empty_form.DELETE %}
+            <div class="visually-hidden">{{ colonne_formset.empty_form.DELETE }}</div>
+            <button type="button" class="btn btn-ghost-danger btn-icon btn-sm btn-elimina-colonna" title="Rimuovi colonna">
+                <i class="ti ti-trash"></i>
+            </button>
+            {% endif %}
+        </td>
+    </tr>
+</template>
+
+<div class="eureka-mask-delete mt-4" id="eliminaParametroWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaParametro">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaParametro" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ parametro.codice }}?</div>
+                    <div class="text-secondary small mb-2">Non è possibile se esistono documenti collegati.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaParametro">Annulla</button>
+                        <button type="submit" form="formEliminaParametro" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaParametro" method="post" action="{% url 'documenti:parametri_delete' parametro.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaParametro");
+  document.getElementById("btnApriEliminaParametro")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaParametro")?.addEventListener("click", () => panel?.classList.add("d-none"));
+
+    const totalInput = document.querySelector("input[name$='-TOTAL_FORMS']");
+    const body = document.getElementById("colonneRigaBody");
+    const tpl = document.getElementById("colonnaEmptyFormTemplate");
+    if (totalInput && body && tpl) {
+      document.getElementById("btnAggiungiColonna")?.addEventListener("click", () => {
+      const idx = parseInt(totalInput.value || "0", 10);
+      const html = tpl.innerHTML.replaceAll("__prefix__", String(idx));
+      body.insertAdjacentHTML("beforeend", html);
+      totalInput.value = String(idx + 1);
+    });
+    body.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".btn-elimina-colonna");
+      if (!btn) return;
+      const row = btn.closest("[data-colonna-row]");
+      if (!row) return;
+      const checkbox = row.querySelector("input[type='checkbox'][name$='-DELETE']");
+      if (checkbox) checkbox.checked = true;
+      row.classList.add("d-none");
+    });
+  }
+})();
+</script>
+{% endblock %}

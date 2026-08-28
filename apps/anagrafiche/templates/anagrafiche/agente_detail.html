@@ -1,145 +1,157 @@
 {% extends "base/layout.html" %}
+{% load format_tags %}
 
 {% block title %}{{ agente.ragione_sociale|default:agente.codice }} · Agenti · Eureka AI{% endblock %}
-
 {% block page_title %}Agente{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ agente.ragione_sociale|default:agente.codice }}</h2>
-            <div class="text-secondary">Codice {{ agente.codice }}</div>
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-user-star"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ agente.ragione_sociale|default:agente.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ agente.codice }}</span>
+                {% if agente.flag_mono_mandatario %}<span class="badge bg-azure-lt">Mono mandatario</span>{% endif %}
+                {% if agente.flag_agente_venditore %}<span class="badge bg-green-lt">Venditore</span>{% endif %}
+                {% if agente.flag_soc_capitale %}<span class="badge bg-blue-lt">Soc. capitale</span>{% endif %}
+            </div>
         </div>
-        <a href="{% url 'anagrafiche:agenti_list' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Elenco
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'anagrafiche:agente_edit' agente.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'anagrafiche:agenti_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
         </a>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Anagrafica</h3>
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-percentage"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Provvigione</div>
+            <div class="eureka-mask-kpi__value">{% if agente.provvigione is not None %}{{ agente.provvigione|floatformat:2 }}%{% else %}—{% endif %}</div>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="datagrid-title">Ragione sociale</div>
-                <div class="datagrid-content">{{ agente.ragione_sociale|default:"—" }}</div>
-            </div>
-            <div class="col-md-6">
-                <div class="datagrid-title">Email</div>
-                <div class="datagrid-content">{{ agente.email|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Provvigione</div>
-                <div class="datagrid-content">
-                    {% if agente.provvigione is not None %}{{ agente.provvigione|floatformat:2 }}%{% else %}—{% endif %}
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Sconto base</div>
-                <div class="datagrid-content">
-                    {% if agente.sconto_base is not None %}{{ agente.sconto_base|floatformat:2 }}%{% else %}—{% endif %}
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Listino articoli</div>
-                <div class="datagrid-content">{{ agente.listino_art|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Ritenuta acconto</div>
-                <div class="datagrid-content">
-                    {% if agente.ritenuta_acconto is not None %}{{ agente.ritenuta_acconto|floatformat:2 }}%{% else %}—{% endif %}
-                </div>
-            </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-discount"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Sconto base</div>
+            <div class="eureka-mask-kpi__value">{% if agente.sconto_base is not None %}{{ agente.sconto_base|floatformat:2 }}%{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-list-numbers"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Listino art.</div>
+            <div class="eureka-mask-kpi__value">{{ agente.listino_art|default:"—" }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-receipt-tax"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Ritenuta</div>
+            <div class="eureka-mask-kpi__value">{% if agente.ritenuta_acconto is not None %}{{ agente.ritenuta_acconto|floatformat:2 }}%{% else %}—{% endif %}</div>
         </div>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Flag e provvigioni</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="datagrid-title">Mono mandatario</div>
-                <div class="datagrid-content">
-                    {% if agente.flag_mono_mandatario %}Sì{% elif agente.flag_mono_mandatario is False %}No{% else %}—{% endif %}
-                </div>
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ragione sociale</div>
+                <div class="eureka-mask-field__value">{{ agente.ragione_sociale|default:"—" }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Agente venditore</div>
-                <div class="datagrid-content">
-                    {% if agente.flag_agente_venditore %}Sì{% elif agente.flag_agente_venditore is False %}No{% else %}—{% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email</div>
+                <div class="eureka-mask-field__value">{{ agente.email|default:"—" }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Soc. capitale</div>
-                <div class="datagrid-content">
-                    {% if agente.flag_soc_capitale %}Sì{% elif agente.flag_soc_capitale is False %}No{% else %}—{% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">% imp. rit. acc.</div>
+                <div class="eureka-mask-field__value">{% if agente.perc_imp_rit_acc is not None %}{{ agente.perc_imp_rit_acc|floatformat:2 }}%{% else %}—{% endif %}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">% imp. rit. acc.</div>
-                <div class="datagrid-content">
-                    {% if agente.perc_imp_rit_acc is not None %}{{ agente.perc_imp_rit_acc|floatformat:2 }}%{% else %}—{% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Prog. fatture</div>
+                <div class="eureka-mask-field__value">{{ agente.progr_fatt|euro }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Prog. fatture</div>
-                <div class="datagrid-content">{{ agente.progr_fatt|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Prog. provvigioni</div>
+                <div class="eureka-mask-field__value">{{ agente.progr_provv|euro }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Prog. provvigioni</div>
-                <div class="datagrid-content">{{ agente.progr_provv|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Prog. ENASARCO</div>
+                <div class="eureka-mask-field__value">{{ agente.progr_enasarco|euro }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Prog. ENASARCO</div>
-                <div class="datagrid-content">{{ agente.progr_enasarco|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Target annuale 1</div>
+                <div class="eureka-mask-field__value">{{ agente.target_annuale1|euro }}</div>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Target e altri dati</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="datagrid-title">Target annuale 1</div>
-                <div class="datagrid-content">{{ agente.target_annuale1|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Target annuale 2</div>
+                <div class="eureka-mask-field__value">{{ agente.target_annuale2|euro }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Target annuale 2</div>
-                <div class="datagrid-content">{{ agente.target_annuale2|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Target annuale 3</div>
+                <div class="eureka-mask-field__value">{{ agente.target_annuale3|euro }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Target annuale 3</div>
-                <div class="datagrid-content">{{ agente.target_annuale3|default:"—" }}</div>
-            </div>
-            <div class="col-md-6">
-                <div class="datagrid-title">Ultimo conguaglio shopping</div>
-                <div class="datagrid-content">
-                    {% if agente.data_ultimo_conguaglio_shopping %}
-                        {{ agente.data_ultimo_conguaglio_shopping|date:"d/m/Y H:i" }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo conguaglio shopping</div>
+                <div class="eureka-mask-field__value">{% if agente.data_ultimo_conguaglio_shopping %}{{ agente.data_ultimo_conguaglio_shopping|date:"d/m/Y H:i" }}{% else %}—{% endif %}</div>
             </div>
             {% if agente.synced_at %}
-            <div class="col-12">
-                <div class="text-secondary small">Ultimo sync: {{ agente.synced_at|date:"d/m/Y H:i" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ agente.synced_at|date:"d/m/Y H:i" }}</div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
 
+<div class="eureka-mask-delete" id="eliminaAgenteWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaAgente">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaAgente" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ agente.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaAgente">Annulla</button>
+                        <button type="submit" form="formEliminaAgente" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaAgente" method="post" action="{% url 'anagrafiche:agente_delete' agente.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaAgente");
+  document.getElementById("btnApriEliminaAgente")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaAgente")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
 {% endblock %}

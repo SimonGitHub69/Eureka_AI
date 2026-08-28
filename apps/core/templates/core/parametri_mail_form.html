@@ -1,0 +1,211 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Parametri mail · Eureka AI{% endblock %}
+
+{% block page_title %}Parametri mail{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Parametri mail</h2>
+            <div class="text-secondary">
+                Configurazione SMTP per l'invio automatico di email
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="post" autocomplete="off">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="ti ti-mail-cog me-1"></i>
+                Server SMTP
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-check">
+                        {{ form.attiva }}
+                        <span class="form-check-label">{{ form.attiva.label }}</span>
+                    </label>
+                    {% if form.attiva.help_text %}
+                    <div class="form-hint">{{ form.attiva.help_text }}</div>
+                    {% endif %}
+                    {% if form.attiva.errors %}
+                    <div class="invalid-feedback d-block">{{ form.attiva.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-check">
+                        {{ form.usa_tls }}
+                        <span class="form-check-label">{{ form.usa_tls.label }}</span>
+                    </label>
+                    {% if form.usa_tls.help_text %}
+                    <div class="form-hint">{{ form.usa_tls.help_text }}</div>
+                    {% endif %}
+                    {% if form.usa_tls.errors %}
+                    <div class="invalid-feedback d-block">{{ form.usa_tls.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-check">
+                        {{ form.usa_ssl }}
+                        <span class="form-check-label">{{ form.usa_ssl.label }}</span>
+                    </label>
+                    {% if form.usa_ssl.help_text %}
+                    <div class="form-hint">{{ form.usa_ssl.help_text }}</div>
+                    {% endif %}
+                    {% if form.usa_ssl.errors %}
+                    <div class="invalid-feedback d-block">{{ form.usa_ssl.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-8">
+                    <label class="form-label" for="{{ form.server_smtp.id_for_label }}">{{ form.server_smtp.label }}</label>
+                    {{ form.server_smtp }}
+                    {% if form.server_smtp.help_text %}
+                    <div class="form-hint">{{ form.server_smtp.help_text }}</div>
+                    {% endif %}
+                    {% if form.server_smtp.errors %}
+                    <div class="invalid-feedback d-block">{{ form.server_smtp.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="{{ form.porta.id_for_label }}">{{ form.porta.label }}</label>
+                    {{ form.porta }}
+                    {% if form.porta.help_text %}
+                    <div class="form-hint">{{ form.porta.help_text }}</div>
+                    {% endif %}
+                    {% if form.porta.errors %}
+                    <div class="invalid-feedback d-block">{{ form.porta.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.utente.id_for_label }}">{{ form.utente.label }}</label>
+                    {{ form.utente }}
+                    {% if form.utente.errors %}
+                    <div class="invalid-feedback d-block">{{ form.utente.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                    {{ form.password }}
+                    <div class="form-hint">Lascia vuoto per non modificare la password già salvata.</div>
+                    {% if form.password.errors %}
+                    <div class="invalid-feedback d-block">{{ form.password.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="{{ form.timeout_secondi.id_for_label }}">{{ form.timeout_secondi.label }}</label>
+                    {{ form.timeout_secondi }}
+                    {% if form.timeout_secondi.help_text %}
+                    <div class="form-hint">{{ form.timeout_secondi.help_text }}</div>
+                    {% endif %}
+                    {% if form.timeout_secondi.errors %}
+                    <div class="invalid-feedback d-block">{{ form.timeout_secondi.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="ti ti-user-circle me-1"></i>
+                Mittente e destinatari
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.mittente.id_for_label }}">{{ form.mittente.label }}</label>
+                    {{ form.mittente }}
+                    {% if form.mittente.help_text %}
+                    <div class="form-hint">{{ form.mittente.help_text }}</div>
+                    {% endif %}
+                    {% if form.mittente.errors %}
+                    <div class="invalid-feedback d-block">{{ form.mittente.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.nome_mittente.id_for_label }}">{{ form.nome_mittente.label }}</label>
+                    {{ form.nome_mittente }}
+                    {% if form.nome_mittente.help_text %}
+                    <div class="form-hint">{{ form.nome_mittente.help_text }}</div>
+                    {% endif %}
+                    {% if form.nome_mittente.errors %}
+                    <div class="invalid-feedback d-block">{{ form.nome_mittente.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.reply_to.id_for_label }}">{{ form.reply_to.label }}</label>
+                    {{ form.reply_to }}
+                    {% if form.reply_to.help_text %}
+                    <div class="form-hint">{{ form.reply_to.help_text }}</div>
+                    {% endif %}
+                    {% if form.reply_to.errors %}
+                    <div class="invalid-feedback d-block">{{ form.reply_to.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.copia_nascosta.id_for_label }}">{{ form.copia_nascosta.label }}</label>
+                    {{ form.copia_nascosta }}
+                    {% if form.copia_nascosta.help_text %}
+                    <div class="form-hint">{{ form.copia_nascosta.help_text }}</div>
+                    {% endif %}
+                    {% if form.copia_nascosta.errors %}
+                    <div class="invalid-feedback d-block">{{ form.copia_nascosta.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.email_test.id_for_label }}">{{ form.email_test.label }}</label>
+                    {{ form.email_test }}
+                    {% if form.email_test.help_text %}
+                    <div class="form-hint">{{ form.email_test.help_text }}</div>
+                    {% endif %}
+                    {% if form.email_test.errors %}
+                    <div class="invalid-feedback d-block">{{ form.email_test.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="mb-0">
+                <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+                {{ form.note }}
+                {% if form.note.errors %}
+                <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <button type="submit" name="action" value="save" class="btn btn-primary">
+            <i class="ti ti-device-floppy"></i>
+            Salva
+        </button>
+        <button type="submit" name="action" value="test" class="btn btn-outline-secondary">
+            <i class="ti ti-send"></i>
+            Invia mail di prova
+        </button>
+    </div>
+</form>
+
+{% endblock %}

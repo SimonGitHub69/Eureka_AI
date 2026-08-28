@@ -23,6 +23,22 @@ function applyTheme(theme) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    // Liste Tabelle/Gestione: hero + filtri sticky (se abilitato in Parametri)
+    if (!document.body.classList.contains("st-liste-fisse")) return;
+    document.querySelectorAll(".eureka-tlist").forEach(function (list) {
+        if (list.querySelector(":scope > .eureka-tlist-sticky")) return;
+        var hero = list.querySelector(":scope > .eureka-tlist-hero");
+        if (!hero) return;
+        var search = list.querySelector(":scope > .eureka-tlist-search, :scope > .card.eureka-tlist-search");
+        var wrap = document.createElement("div");
+        wrap.className = "eureka-tlist-sticky";
+        list.insertBefore(wrap, hero);
+        wrap.appendChild(hero);
+        if (search) wrap.appendChild(search);
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
     const toggleButton = document.querySelector("[data-theme-toggle]");
 
     applyTheme(getCurrentTheme());
@@ -144,9 +160,67 @@ function syncEurekaDeviceToServer() {
 
 document.addEventListener("DOMContentLoaded", function () {
     const body = document.body;
+    const html = document.documentElement;
     const toggle = document.querySelector("[data-sidebar-toggle]");
+    const compactToggle = document.querySelector("[data-sidebar-compact-toggle]");
+    const compactIcon = document.querySelector("[data-sidebar-compact-icon]");
     const backdrop = document.querySelector("[data-sidebar-backdrop]");
     const sidebar = document.querySelector(".st-sidebar");
+    const COMPACT_KEY = "eureka-sidebar-compact";
+
+    function isDesktop() {
+        return window.matchMedia("(min-width: 1400px)").matches;
+    }
+
+    function applyNavTitles() {
+        if (!sidebar) return;
+        sidebar.querySelectorAll(".st-nav-link").forEach(function (link) {
+            const label = link.querySelector(".st-nav-label");
+            if (label && label.textContent.trim()) {
+                link.setAttribute("title", label.textContent.trim());
+            }
+        });
+    }
+
+    function setCompact(compact) {
+        html.classList.toggle("st-sidebar-compact", compact);
+        body.classList.toggle("st-sidebar-compact", compact);
+        try {
+            localStorage.setItem(COMPACT_KEY, compact ? "1" : "0");
+        } catch (e) { /* ignore */ }
+        if (compactToggle) {
+            compactToggle.setAttribute("aria-pressed", compact ? "true" : "false");
+            compactToggle.setAttribute(
+                "aria-label",
+                compact ? "Espandi menu" : "Compatta menu"
+            );
+            compactToggle.setAttribute(
+                "title",
+                compact ? "Espandi menu laterale" : "Compatta menu laterale"
+            );
+        }
+        if (compactIcon) {
+            compactIcon.classList.toggle("ti-layout-sidebar-left-collapse", !compact);
+            compactIcon.classList.toggle("ti-layout-sidebar-left-expand", compact);
+        }
+    }
+
+    applyNavTitles();
+
+    if (compactToggle) {
+        const savedCompact = (function () {
+            try {
+                return localStorage.getItem(COMPACT_KEY) === "1";
+            } catch (e) {
+                return false;
+            }
+        })();
+        setCompact(savedCompact);
+
+        compactToggle.addEventListener("click", function () {
+            setCompact(!body.classList.contains("st-sidebar-compact"));
+        });
+    }
 
     if (!toggle || !sidebar) {
         return;
@@ -174,7 +248,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.addEventListener("resize", function () {
-        if (window.matchMedia("(min-width: 1400px)").matches) {
+        if (isDesktop()) {
             closeSidebar();
         }
     });
@@ -191,6 +265,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const SCROLL_KEY = "eureka-sidebar-scroll-top";
     const sections = Array.from(document.querySelectorAll("[data-nav-section]"));
     const nav = document.querySelector(".st-sidebar-nav");
+    const sectionsToggles = Array.from(document.querySelectorAll("[data-sidebar-sections-toggle]"));
 
     if (!sections.length) {
         return;
@@ -219,17 +294,52 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function setOpen(section, open) {
-        const toggle = section.querySelector("[data-nav-toggle]");
+        const toggle = section.querySelector(":scope > [data-nav-toggle]");
         section.classList.toggle("is-open", open);
         if (toggle) {
             toggle.setAttribute("aria-expanded", open ? "true" : "false");
         }
     }
 
+    function anySectionOpen() {
+        return sections.some(function (section) {
+            return section.classList.contains("is-open");
+        });
+    }
+
+    function updateSectionsToggleUI() {
+        const collapse = anySectionOpen();
+        const label = collapse ? "Chiudi sezioni" : "Apri sezioni";
+        const title = collapse ? "Chiudi tutte le sezioni" : "Apri tutte le sezioni";
+        sectionsToggles.forEach(function (btn) {
+            btn.setAttribute("aria-label", title);
+            btn.setAttribute("title", title);
+            btn.setAttribute("aria-pressed", collapse ? "true" : "false");
+            const icon = btn.querySelector("[data-sidebar-sections-icon]");
+            if (icon) {
+                icon.classList.toggle("ti-fold", collapse);
+                icon.classList.toggle("ti-fold-down", !collapse);
+            }
+            const text = btn.querySelector("[data-sidebar-sections-label]");
+            if (text) {
+                text.textContent = label;
+            }
+        });
+    }
+
+    function setAllSections(open) {
+        sections.forEach(function (section) {
+            setOpen(section, open);
+        });
+        persist();
+        saveScroll();
+        updateSectionsToggleUI();
+    }
+
     sections.forEach(function (section) {
         const key = section.dataset.navSection;
         const hasActive = Boolean(section.querySelector(".st-nav-link.active"));
-        const toggle = section.querySelector("[data-nav-toggle]");
+        const toggle = section.querySelector(":scope > [data-nav-toggle]");
 
         if (Object.prototype.hasOwnProperty.call(saved, key)) {
             setOpen(section, Boolean(saved[key]) || hasActive);
@@ -245,8 +355,16 @@ document.addEventListener("DOMContentLoaded", function () {
             setOpen(section, !section.classList.contains("is-open"));
             persist();
             saveScroll();
+            updateSectionsToggleUI();
         });
     });
+
+    sectionsToggles.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            setAllSections(!anySectionOpen());
+        });
+    });
+    updateSectionsToggleUI();
 
     if (nav) {
         const savedScroll = parseInt(localStorage.getItem(SCROLL_KEY) || "0", 10);
@@ -833,16 +951,21 @@ document.addEventListener("DOMContentLoaded", function () {
         bar.hidden = !offline;
         document.documentElement.classList.toggle("eureka-is-offline", offline);
 
-        if (!offline) return;
-
-        // Disabilita voci di menu che non sono Dati offline
         document.querySelectorAll(".st-sidebar a[href], .navbar a[href]").forEach(function (a) {
             const href = a.getAttribute("href") || "";
             if (!href || href.charAt(0) === "#") return;
             try {
                 const u = new URL(href, window.location.href);
                 if (u.origin !== window.location.origin) return;
-                const ok = u.pathname === "/offline/" || u.pathname.indexOf("/offline") === 0;
+                if (!offline) {
+                    a.classList.remove("eureka-nav-disabled");
+                    a.removeAttribute("aria-disabled");
+                    return;
+                }
+                // In offline abilitiamo solo alcune pagine: Dati offline e Logout.
+                const ok =
+                    u.pathname === "/offline/" || u.pathname.indexOf("/offline") === 0
+                    || u.pathname === "/logout/" || u.pathname.indexOf("/logout") === 0;
                 a.classList.toggle("eureka-nav-disabled", !ok);
                 if (!ok) {
                     a.setAttribute("aria-disabled", "true");
@@ -865,7 +988,10 @@ document.addEventListener("DOMContentLoaded", function () {
             try {
                 const u = new URL(href, window.location.href);
                 if (u.origin !== window.location.origin) return;
-                if (u.pathname === "/offline/" || u.pathname.indexOf("/offline") === 0) {
+                if (
+                    u.pathname === "/offline/" || u.pathname.indexOf("/offline") === 0
+                    || u.pathname === "/logout/" || u.pathname.indexOf("/logout") === 0
+                ) {
                     return;
                 }
                 event.preventDefault();

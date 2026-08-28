@@ -1,0 +1,73 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Operatori · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-user-cog"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if is_create %}Nuovo operatore{% else %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ operatore.codice }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'operatori:detail' operatore.codice %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Dettaglio</a>
+        {% endif %}
+        <a href="{% url 'operatori:list' %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list"></i> Elenco</a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card">
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.nome col="col-8 col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.nome_breve col="col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.sigla col="col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.email col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.reparto col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.num_badge col="col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.matricola_timbratore col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.tutor col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.calendario_google col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.data_assunzione col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.data_dimissioni col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.ora_e1 col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.ora_u1 col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.ora_e2 col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.ora_u2 col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.data_verifica_formazione col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.esito_formazione col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.tessera_vaccinazioni col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.data_scadenza_vaccinazione col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.operatore_disattivo col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.firma_privacy col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.firma_consegna_dpi col="col-sm-4" check=1 %}
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2 py-2">
+            {% if is_create %}
+            <a href="{% url 'operatori:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% else %}
+            <a href="{% url 'operatori:detail' operatore.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}

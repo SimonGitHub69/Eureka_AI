@@ -110,6 +110,64 @@ class CastellettoMathTests(SimpleTestCase):
         )
         self.assertEqual(result.totale_quantita, Decimal("5.50"))
 
+    def test_quantita_zero_non_conteggiata(self):
+        result = calcola_castelletto(
+            [
+                {
+                    "quantita": 0,
+                    "prezzo_unitario": 100,
+                    "iva": "22",
+                    "codice": "ZERO",
+                },
+                {
+                    "quantita": 2,
+                    "prezzo_unitario": 50,
+                    "iva": "22",
+                    "codice": "B",
+                },
+            ],
+            spese={},
+            include_spese_zero_row=False,
+            aliquote_cache=_CACHE_STD,
+        )
+        self.assertEqual(result.totale_merce, Decimal("100.00"))
+        self.assertEqual(result.totale_netto, Decimal("100.00"))
+        self.assertEqual(result.totale_quantita, Decimal("2.00"))
+
+    def test_quantita_vuota_con_prezzo_conta_come_uno(self):
+        result = calcola_castelletto(
+            [
+                {
+                    "quantita": None,
+                    "prezzo_unitario": 80,
+                    "iva": "22",
+                    "codice": "SOLOPREZZO",
+                }
+            ],
+            spese={},
+            include_spese_zero_row=False,
+            aliquote_cache=_CACHE_STD,
+        )
+        self.assertEqual(result.totale_merce, Decimal("80.00"))
+        self.assertEqual(result.totale_quantita, Decimal("1.00"))
+
+    def test_quantita_stringa_zero_non_conteggiata(self):
+        result = calcola_castelletto(
+            [
+                {
+                    "quantita": "0",
+                    "prezzo_unitario": 40,
+                    "iva": "22",
+                    "codice": "STR0",
+                }
+            ],
+            spese={},
+            include_spese_zero_row=False,
+            aliquote_cache=_CACHE_STD,
+        )
+        self.assertEqual(result.totale_merce, Decimal("0.00"))
+        self.assertEqual(result.totale_quantita, Decimal("0.00"))
+
     def test_sconto_percentuale_su_riga(self):
         # merce = 2×100=200; sconto 10% = 20; netto 180; IVA 22% = 39.60
         result = calcola_castelletto(
@@ -556,6 +614,8 @@ class CastellettoPersistTests(TestCase):
         self.assertIn("fieldNameKey", js)
         self.assertIn("addSpeseEnabled", js)
         self.assertIn("add_spese", js)
+        self.assertIn("qtyMissing", js)
+        self.assertNotIn("if (!qty && prezzo) qty = 1", js)
         disable = Path("static/eureka/js/disable-autocomplete.js").read_text(
             encoding="utf-8"
         )

@@ -11,19 +11,25 @@
             <h2 class="page-title">Reparti</h2>
             <div class="text-secondary">
                 Importati da 4D (<code>Reparti</code>)
-                {% if totale %}· {{ totale }} totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
-        <a href="{% url 'carbon:hub' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            CARBON
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            {% include "partials/stampa_lista_button.html" with print_url="carbon:reparti_print_list" %}
+            {% include "partials/export_lista_button.html" with export_url="carbon:reparti_export_list" %}
+            <a href="{% url 'carbon:hub' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i>
+                CARBON
+            </a>
+        </div>
     </div>
 </div>
 
 <div class="card mb-3">
     <div class="card-body">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'carbon:reparti_list' %}">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end">
                 <div class="col-lg-8">
                     <label class="form-label" for="carbonSearch">Ricerca</label>
@@ -43,14 +49,15 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card" data-eureka-list-next>
     <div class="table-responsive">
         <table class="table table-vcenter card-table table-hover">
             <thead>
-                <tr>
+                                <tr>
+                    {% load pagination_tags %}
                     <th class="w-1 text-secondary">#</th>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>

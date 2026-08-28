@@ -15,18 +15,22 @@
             <h2 class="page-title mb-0">Primanota</h2>
             <div class="text-secondary mt-1">
                 Registrazioni importate da 4D (<code>Primanota</code>)
-                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
     </div>
-    <a href="{% url 'primanota:create' %}" class="btn btn-primary">
-        <i class="ti ti-plus"></i>
-        Nuova registrazione
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="primanota:print_list" %}
+        <a href="{% url 'primanota:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuova registrazione
+        </a>
+    </div>
 </div>
 
 <div class="card mb-3 eureka-tlist-search">
     <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'primanota:list' %}">
             {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-end">
@@ -94,19 +98,27 @@
             <thead>
                 <tr>
                     {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
                     {% sort_th "numero_reg" "N. reg." default_dir="desc" %}
                     {% sort_th "data_reg" "Data" default_dir="desc" %}
                     {% sort_th "causale" "Causale" default_dir="asc" %}
                     {% sort_th "tipo" "Tipo" default_dir="asc" %}
                     {% sort_th "numero_doc" "Documento" default_dir="asc" %}
                     {% sort_th "registro" "Registro" default_dir="asc" %}
-                    {% sort_th "totale_doc_controllo" "Totale" align="end" default_dir="desc" %}
+                    {% sort_th "totale_documento_list" "Totale" align="end" default_dir="desc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for r in registrazioni %}
                 <tr>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </td>
                     <td>
                         <div class="d-flex align-items-center gap-3">
                             <span class="eureka-tlist-avatar bg-green-lt text-green">
@@ -182,7 +194,7 @@
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        {% if r.totale_doc_controllo != None %}€ {{ r.totale_doc_controllo|euro }}{% else %}—{% endif %}
+                        {% if r.totale_documento_list != None %}€ {{ r.totale_documento_list|euro }}{% else %}—{% endif %}
                     </td>
                     <td class="eureka-tlist-actions">
                         <a href="{% url 'primanota:edit' r.id %}" class="btn btn-icon" title="Modifica">
@@ -195,7 +207,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8">
+                    <td colspan="9">
                         <div class="eureka-tlist-empty text-center text-secondary">
                             <div class="eureka-tlist-empty__icon"><i class="ti ti-notebook-off"></i></div>
                             Nessuna registrazione trovata

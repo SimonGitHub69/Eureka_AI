@@ -4,6 +4,7 @@ from django.db.utils import ProgrammingError
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
+from apps.core.sync_incremental import detect_modifica_columns
 from apps.primanota.lookups import (
     attach_causali_contabili,
     attach_line_lookups,
@@ -15,7 +16,27 @@ from apps.primanota.lookups import (
 from apps.primanota.forms import PrimanotaForm, PrimanotaRigaForm, save_primanota_with_righe, riga_formset_for
 from apps.primanota.models import Primanota, PrimanotaDettaglio
 from apps.primanota.sync import TABLES
-from apps.primanota.views import load_primanota_righe
+from apps.primanota.views import _primanota_print_filter_summary, load_primanota_righe
+
+
+class PrimanotaPrintFilterSummaryTests(SimpleTestCase):
+    def test_summary_periodo_e_tipo(self):
+        from django.test import RequestFactory
+
+        request = RequestFactory().get(
+            "/primanota/stampa/",
+            {"data_da": "2025-01-01", "data_a": "2025-01-31", "tipo": "2"},
+        )
+        summary = _primanota_print_filter_summary(request)
+        self.assertIn("01/01/2025", summary)
+        self.assertIn("31/01/2025", summary)
+        self.assertIn("Tipo: IVA", summary)
+
+    def test_summary_vuota_senza_filtri(self):
+        from django.test import RequestFactory
+
+        request = RequestFactory().get("/primanota/stampa/")
+        self.assertEqual(_primanota_print_filter_summary(request), "")
 
 
 class PrimanotaSyncSpecTests(SimpleTestCase):
@@ -25,22 +46,55 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertEqual(testa["target"], "primanota")
         self.assertEqual(testa["pk"], "ID")
         self.assertTrue(testa["page_by_pk"])
+        self.assertTrue(testa.get("incremental_by_pk"))
+        self.assertEqual(testa.get("batch_size"), 5000)
+        self.assertEqual(testa.get("page_size"), 50000)
         self.assertEqual(dettaglio["source"], "Primanota_Dettaglio")
         self.assertEqual(dettaglio["target"], "primanota_dettaglio")
         self.assertEqual(dettaglio["pk"], "ID")
         self.assertTrue(dettaglio["page_by_pk"])
+        self.assertTrue(dettaglio.get("incremental_by_pk"))
+
+    def test_sync_detects_modifica_columns_for_both_tables(self):
+        testa_spec = detect_modifica_columns([{"name": "ID"}], source_table="Primanota")
+        dettaglio_spec = detect_modifica_columns(
+            [{"name": "ID"}],
+            source_table="Primanota_Dettaglio",
+        )
+        self.assertIsNotNone(testa_spec)
+        self.assertIsNotNone(dettaglio_spec)
+        assert testa_spec is not None
+        assert dettaglio_spec is not None
+        self.assertEqual(testa_spec.data_col, "DataModifica")
+        self.assertEqual(testa_spec.ora_col, "OraModifica")
+        self.assertEqual(testa_spec.data_pg_type, "timestamp")
+        self.assertEqual(dettaglio_spec.data_col, "DataModifica")
+        self.assertEqual(dettaglio_spec.ora_col, "OraModifica")
+        self.assertEqual(dettaglio_spec.data_pg_type, "timestamp")
 
     def test_models_are_unmanaged_mirrors(self):
         self.assertFalse(Primanota._meta.managed)
         self.assertEqual(Primanota._meta.db_table, "primanota")
         self.assertEqual(Primanota._meta.get_field("id").db_column, "ID")
         self.assertEqual(Primanota._meta.get_field("numero_reg").db_column, "NumeroReg")
+        self.assertEqual(Primanota._meta.get_field("fornitore_cee").db_column, "FornitoreCEE")
+        self.assertEqual(Primanota._meta.get_field("data_modifica").db_column, "DataModifica")
+        self.assertEqual(Primanota._meta.get_field("ora_modifica").db_column, "OraModifica")
         self.assertFalse(PrimanotaDettaglio._meta.managed)
         self.assertEqual(PrimanotaDettaglio._meta.db_table, "primanota_dettaglio")
         self.assertEqual(PrimanotaDettaglio._meta.get_field("id").db_column, "ID")
         self.assertEqual(
             PrimanotaDettaglio._meta.get_field("id_testa").db_column,
             "id_added_by_converter",
+        )
+        self.assertEqual(PrimanotaDettaglio._meta.get_field("imp_val").db_column, "Imp_Val")
+        self.assertEqual(
+            PrimanotaDettaglio._meta.get_field("data_modifica").db_column,
+            "DataModifica",
+        )
+        self.assertEqual(
+            PrimanotaDettaglio._meta.get_field("ora_modifica").db_column,
+            "OraModifica",
         )
 
     def test_tipo_label(self):
@@ -57,6 +111,17 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertTrue(Primanota(id=9, tipo=1).is_generico)
         self.assertFalse(Primanota(id=10, tipo=2).is_generico)
         self.assertFalse(Primanota(id=11, tipo=3).is_generico)
+        self.assertTrue(Primanota(id=12, tipo=3).is_corrispettivi)
+        self.assertFalse(Primanota(id=13, tipo=2).is_corrispettivi)
+        self.assertFalse(Primanota(id=14, tipo=1).is_corrispettivi)
+        self.assertTrue(Primanota(id=15, tipo=4).is_iva_autofattura)
+        self.assertFalse(Primanota(id=16, tipo=2).is_iva_autofattura)
+        self.assertFalse(Primanota(id=17, tipo=1).is_iva_autofattura)
+
+    def test_generico_detail_hides_scadenze_ins(self):
+        from apps.primanota.views import SCADENZE_CAMPI_EXCLUDE
+
+        self.assertIn("ScadenzeIns", SCADENZE_CAMPI_EXCLUDE)
 
     def test_iva_line_uses_conto_partita_and_imponibile(self):
         vendita = PrimanotaDettaglio(
@@ -69,6 +134,10 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         )
         self.assertEqual(acquisto.conto_partita, "1.10.1")
         self.assertEqual(acquisto.imponibile, 100.0)
+        euro = PrimanotaDettaglio(id=3, conto_avere="3.71.1", avere=34.9, imp_val=None)
+        self.assertEqual(euro.imponibile_valuta, 34.9)
+        usd = PrimanotaDettaglio(id=4, conto_avere="3.71.1", avere=100.0, imp_val=110.0)
+        self.assertEqual(usd.imponibile_valuta, 110.0)
 
     def test_attach_line_lookups_decodes_pdc(self):
         pdc = MagicMock()
@@ -119,6 +188,29 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertEqual(riga.pdc_avere.label, "ACME")
         self.assertIn("/fornitori/", riga.pdc_avere_url)
 
+    def test_attach_line_lookups_decodes_clifor_on_conto_partita(self):
+        riga = PrimanotaDettaglio(id=1, conto_avere="C3567", conto_dare="")
+        qs = MagicMock()
+        qs.annotate.return_value.filter.return_value = []
+        with (
+            patch("apps.pdc.models.PianoConti") as mock_model,
+            patch("apps.primanota.lookups.transaction.atomic") as mock_atomic,
+            patch("apps.primanota.lookups.resolve_partita_clifor") as mock_clifor,
+        ):
+            mock_model.objects = qs
+            mock_atomic.return_value.__enter__ = MagicMock()
+            mock_atomic.return_value.__exit__ = MagicMock(return_value=False)
+            mock_clifor.side_effect = lambda code: {
+                "C3567": {
+                    "codice": "C3567",
+                    "label": "CLIENTE GENERICO U.E.",
+                    "url": "/clienti/C3567/",
+                },
+            }.get((code or "").strip(), {"label": "", "url": ""})
+            attach_line_lookups([riga], iva=True)
+        self.assertEqual(riga.pdc.label, "CLIENTE GENERICO U.E.")
+        self.assertIn("/clienti/", riga.pdc_url)
+
     def test_scadenze_righe_from_header_slots(self):
         from datetime import datetime
 
@@ -143,6 +235,39 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertAlmostEqual(row.totale_scadenze, 33463.97)
         empty = Primanota(id=2, scad1=datetime(1, 1, 1), imp_scad1=0)
         self.assertIsNone(empty.scadenze_righe[0]["data"])
+
+    def test_scadenze_righe_fills_dates_when_4d_left_scad_null(self):
+        """4D con ScadenzeIns=No spesso ha ImpScad valorizzato e Scad NULL."""
+        from datetime import date, datetime
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        row = Primanota(
+            id=435956,
+            tipo=2,
+            scadenze_ins=False,
+            codice_paga="141",
+            data_doc=datetime(2026, 7, 13),
+            data_reg=datetime(2026, 7, 13),
+            scad1=None,
+            imp_scad1=42.0,
+        )
+        cond = SimpleNamespace(
+            numero_rate=1,
+            prima_rata=0,
+            intervallo=0,
+            giorno_fisso=0,
+            fine_mese=False,
+            mese_esclusione=None,
+            mese_esclusione2=None,
+            gg_mese_esclus=None,
+            gg_mese_esclus2=None,
+        )
+        with patch("apps.primanota.scadenze.load_condizione", return_value=cond):
+            slots = row.scadenze_righe
+        self.assertEqual(slots[0]["data"], date(2026, 7, 13))
+        self.assertEqual(slots[0]["importo"], 42.0)
+        self.assertIsNone(slots[1]["data"])
 
     def test_causali_choices_generico_excludes_registro_iva(self):
         from apps.primanota.lookups import causali_contabili_choices
@@ -172,6 +297,85 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertEqual(iva_codes, ["", "FT"])
         self.assertNotIn("PN", iva_codes)
 
+    def test_causali_choices_corrispettivi_only_corrispettivi_register(self):
+        from apps.primanota.lookups import causali_contabili_choices
+
+        catalog = [
+            {"code": "PN", "label": "PN", "has_registro": False, "tipo_registro": ""},
+            {"code": "FT", "label": "FT", "has_registro": True, "tipo_registro": "Vendita"},
+            {"code": "24", "label": "24", "has_registro": True, "tipo_registro": "Corrispettivi"},
+            {"code": "AQ", "label": "AQ", "has_registro": True, "tipo_registro": "Acquisto"},
+        ]
+        corr_codes = [
+            c[0]
+            for c in causali_contabili_choices(
+                registro_corrispettivi=True, catalog=catalog
+            )
+        ]
+        self.assertEqual(corr_codes, ["", "24"])
+        self.assertNotIn("FT", corr_codes)
+        self.assertNotIn("PN", corr_codes)
+
+    def test_causali_choices_autofattura_only_flagged_causali(self):
+        from apps.primanota.lookups import causali_contabili_choices
+
+        catalog = [
+            {"code": "FT", "label": "FT", "has_registro": True, "is_autofattura": False},
+            {"code": "XX", "label": "XX", "has_registro": True, "is_autofattura": True},
+            {"code": "PN", "label": "PN", "has_registro": False, "is_autofattura": True},
+        ]
+        codes = [
+            c[0]
+            for c in causali_contabili_choices(iva_autofattura=True, catalog=catalog)
+        ]
+        self.assertEqual(codes, ["", "XX"])
+        self.assertNotIn("FT", codes)
+        self.assertNotIn("PN", codes)
+
+    def test_causale_is_registro_corrispettivi(self):
+        from apps.primanota.lookups import causale_is_registro_corrispettivi
+
+        causale = MagicMock()
+        causale.registro_iva = "9"
+        registro = MagicMock()
+        registro.tipo_registro = "Corrispettivi"
+        with patch("apps.primanota.lookups.resolve_registro_iva", return_value=registro):
+            self.assertTrue(causale_is_registro_corrispettivi(causale))
+        registro.tipo_registro = "Vendita"
+        with patch("apps.primanota.lookups.resolve_registro_iva", return_value=registro):
+            self.assertFalse(causale_is_registro_corrispettivi(causale))
+        self.assertFalse(causale_is_registro_corrispettivi(None))
+
+    def test_causale_is_iva_autofattura(self):
+        from apps.primanota.lookups import causale_is_iva_autofattura
+
+        causale = MagicMock()
+        causale.registro_iva = "AF"
+        causale.iva_con_autofattura = True
+        causale.autofattura = False
+        self.assertTrue(causale_is_iva_autofattura(causale))
+        causale.iva_con_autofattura = False
+        causale.autofattura = True
+        self.assertTrue(causale_is_iva_autofattura(causale))
+        causale.autofattura = False
+        self.assertFalse(causale_is_iva_autofattura(causale))
+        causale.registro_iva = ""
+        causale.iva_con_autofattura = True
+        self.assertFalse(causale_is_iva_autofattura(causale))
+        self.assertFalse(causale_is_iva_autofattura(None))
+
+    def test_causale_is_autofattura_automatica(self):
+        from apps.primanota.lookups import causale_is_autofattura_automatica
+
+        causale = MagicMock()
+        causale.autofattura = True
+        self.assertTrue(causale_is_autofattura_automatica(causale))
+        causale.autofattura = False
+        self.assertFalse(causale_is_autofattura_automatica(causale))
+        causale.autofattura = None
+        self.assertFalse(causale_is_autofattura_automatica(causale))
+        self.assertFalse(causale_is_autofattura_automatica(None))
+
     def test_form_iva_rejects_causale_without_registro_iva(self):
         causale = MagicMock()
         causale.codice = "PN"
@@ -186,8 +390,113 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
         ):
             form = PrimanotaForm(data={"tipo": "2", "causale": "PN"}, is_create=True)
-        self.assertFalse(form.is_valid())
-        self.assertIn("causale", form.errors)
+            self.assertFalse(form.is_valid())
+            self.assertIn("causale", form.errors)
+
+    def test_form_corrispettivi_rejects_causale_without_corrispettivi_register(self):
+        causale = MagicMock()
+        causale.codice = "FT"
+        causale.registro_iva = "1"
+        with (
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("FT", "FT — Fattura")],
+            ),
+            patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+            patch("apps.primanota.forms.causale_is_registro_corrispettivi", return_value=False),
+            patch("apps.primanota.forms.peek_next_protocollo", return_value=None),
+        ):
+            form = PrimanotaForm(data={"tipo": "3", "causale": "FT"}, is_create=True)
+            self.assertFalse(form.is_valid())
+            self.assertIn("causale", form.errors)
+
+    def test_form_autofattura_rejects_causale_without_autofattura_flag(self):
+        causale = MagicMock()
+        causale.codice = "FT"
+        causale.registro_iva = "1"
+        with (
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("FT", "FT — Fattura")],
+            ),
+            patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+            patch("apps.primanota.forms.causale_is_iva_autofattura", return_value=False),
+            patch("apps.primanota.forms.peek_next_protocollo", return_value=None),
+        ):
+            form = PrimanotaForm(data={"tipo": "4", "causale": "FT"}, is_create=True)
+            self.assertFalse(form.is_valid())
+            self.assertIn("causale", form.errors)
+
+    def test_form_autofattura_keeps_and_uppercases_fornitore(self):
+        causale = MagicMock()
+        causale.codice = "XX"
+        causale.registro_iva = "15"
+        causale.autofattura = True
+        with (
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("XX", "XX — Autofattura")],
+            ),
+            patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—"), ("15", "15")]),
+            patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+            patch("apps.primanota.forms.causale_is_iva_autofattura", return_value=True),
+            patch("apps.primanota.forms.peek_next_protocollo", return_value=None),
+        ):
+            form = PrimanotaForm(
+                data={"tipo": "4", "causale": "XX", "fornitore_cee": "f1871", "data_reg": "2026-08-18"},
+                is_create=True,
+            )
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertEqual(form.cleaned_data["fornitore_cee"], "F1871")
+
+    def test_form_autofattura_non_automatica_clears_fornitore(self):
+        causale = MagicMock()
+        causale.codice = "XX"
+        causale.registro_iva = "15"
+        causale.autofattura = False
+        with (
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("XX", "XX — Autofattura")],
+            ),
+            patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—"), ("15", "15")]),
+            patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+            patch("apps.primanota.forms.causale_is_iva_autofattura", return_value=True),
+            patch("apps.primanota.forms.peek_next_protocollo", return_value=None),
+        ):
+            form = PrimanotaForm(
+                data={"tipo": "4", "causale": "XX", "fornitore_cee": "F1871", "data_reg": "2026-08-18"},
+                is_create=True,
+            )
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertIsNone(form.cleaned_data["fornitore_cee"])
+
+    def test_form_iva_clears_fornitore_cee(self):
+        causale = MagicMock()
+        causale.codice = "FT"
+        causale.registro_iva = "1"
+        with (
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("FT", "FT — Fattura")],
+            ),
+            patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—"), ("1", "1")]),
+            patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+            patch("apps.primanota.forms.peek_next_protocollo", return_value=None),
+        ):
+            form = PrimanotaForm(
+                data={"tipo": "2", "causale": "FT", "fornitore_cee": "F1871", "data_reg": "2026-08-18"},
+                is_create=True,
+            )
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertIsNone(form.cleaned_data["fornitore_cee"])
 
     def test_form_generico_rejects_causale_with_registro_iva(self):
         causale = MagicMock()
@@ -203,8 +512,8 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
         ):
             form = PrimanotaForm(data={"tipo": "1", "causale": "FT"}, is_create=True)
-        self.assertFalse(form.is_valid())
-        self.assertIn("causale", form.errors)
+            self.assertFalse(form.is_valid())
+            self.assertIn("causale", form.errors)
 
     def test_attach_causale_contabile_by_trimmed_code(self):
         causale = MagicMock()
@@ -271,6 +580,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
                     "tipo": "2",
                     "causale": "01",
                     "registro": "",
+                    "data_reg": "2026-08-18",
                 }
             )
             self.assertTrue(form.is_valid(), form.errors)
@@ -290,7 +600,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             patch("apps.primanota.forms.peek_next_protocollo", return_value=12),
         ):
             form = PrimanotaForm(
-                data={"tipo": "2", "causale": "01", "registro": "9"},
+                data={"tipo": "2", "causale": "01", "registro": "9", "data_reg": "2026-08-18"},
                 is_create=True,
             )
             self.assertTrue(form.is_valid(), form.errors)
@@ -317,9 +627,11 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
                     "numero_prot": "12",
                     "alfa_prot": "A",
                     "codice_partita": "C7310",
+                    "fornitore_cee": "F1871",
                     "codice_paga": "31",
                     "valuta": "Euro",
                     "acconto": "10",
+                    "data_reg": "2026-08-18",
                 },
                 is_create=True,
             )
@@ -328,6 +640,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             self.assertIsNone(form.cleaned_data["numero_prot"])
             self.assertIsNone(form.cleaned_data["alfa_prot"])
             self.assertIsNone(form.cleaned_data["codice_partita"])
+            self.assertIsNone(form.cleaned_data["fornitore_cee"])
             self.assertIsNone(form.cleaned_data["codice_paga"])
             self.assertIsNone(form.cleaned_data["valuta"])
             self.assertIsNone(form.cleaned_data["acconto"])
@@ -345,7 +658,10 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
             patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
         ):
-            form = PrimanotaForm(data={"tipo": "1", "causale": "01"}, instance=row)
+            form = PrimanotaForm(
+                data={"tipo": "1", "causale": "01", "data_reg": "2026-08-18"},
+                instance=row,
+            )
             self.assertTrue(form.is_valid(), form.errors)
             self.assertIsNone(form.cleaned_data["registro"])
             self.assertIsNone(form.cleaned_data["numero_prot"])
@@ -364,15 +680,79 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—"), ("1", "1 — Vendite")]),
             patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
             patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+            patch("apps.primanota.forms.causale_is_registro_corrispettivi", return_value=True),
             patch("apps.primanota.forms.peek_next_protocollo", return_value=7),
         ):
             form = PrimanotaForm(
-                data={"tipo": "3", "causale": "01"},
+                data={"tipo": "3", "causale": "01", "data_reg": "2026-08-18"},
                 is_create=True,
             )
             self.assertTrue(form.is_valid(), form.errors)
             self.assertEqual(form.cleaned_data["registro"], "1")
             self.assertEqual(form.initial.get("numero_prot"), 7)
+
+    def test_corrispettivi_extra_from_causale_maps_incasso_and_cassa(self):
+        from apps.primanota.lookups import corrispettivi_extra_from_causale
+
+        causale = MagicMock()
+        causale.causale_colleg_auto_f = "23"
+        causale.c_dare_1 = "C4425"
+        causale.cassa_corrispettivi = "1.10.1"
+        incasso = MagicMock()
+        incasso.label = "Incasso Corrispettivi"
+        with (
+            patch(
+                "apps.primanota.lookups.resolve_causale_contabile",
+                return_value=incasso,
+            ),
+            patch("apps.articoli.lookups.resolve_descrizione", return_value="ASSEGNI E/O CONTANTI"),
+        ):
+            extra = corrispettivi_extra_from_causale(causale)
+        self.assertEqual(extra["incasso_code"], "23")
+        self.assertEqual(extra["incasso_label"], "Incasso Corrispettivi")
+        self.assertEqual(extra["cassa_code"], "1.10.1")
+        self.assertEqual(extra["cassa_label"], "ASSEGNI E/O CONTANTI")
+
+        conto = MagicMock()
+        conto.causale_colleg_auto_f = ""
+        conto.c_dare_1 = "C4425"
+        conto.cassa_corrispettivi = ""
+        self.assertEqual(corrispettivi_extra_from_causale(conto)["incasso_code"], "")
+        self.assertEqual(corrispettivi_extra_from_causale(None)["cassa_code"], "")
+
+    def test_form_template_corrispettivi_layout(self):
+        from pathlib import Path
+
+        form_html = Path("apps/primanota/templates/primanota/primanota_form.html").read_text(
+            encoding="utf-8"
+        )
+        row_html = Path(
+            "apps/primanota/templates/primanota/partials/riga_form_row.html"
+        ).read_text(encoding="utf-8")
+        detail_html = Path(
+            "apps/primanota/templates/primanota/primanota_detail.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("data-corr-kpis", form_html)
+        self.assertIn("data-corr-extra", form_html)
+        self.assertIn("data-doc-block", form_html)
+        self.assertIn("field=form.causale_incasso", form_html)
+        self.assertIn('tipo="causale_contabile"', form_html)
+        self.assertIn("fillCorrIncasso", form_html)
+        self.assertIn("data-corr-cassa-code", form_html)
+        self.assertNotIn("Descrizione contropartita", form_html)
+        self.assertNotIn("data-corr-col", form_html)
+        self.assertIn("data-iva-importo-col", form_html)
+        self.assertIn("data-iva-doc-totale", form_html)
+        self.assertIn("data-anno-col", form_html)
+        self.assertIn("const corr = tipo && tipo.value === \"3\"", form_html)
+        self.assertNotIn("data-corr-col", row_html)
+        self.assertIn("Causale di incasso dei corrispettivi di vendita", detail_html)
+        self.assertIn(
+            "Causale di incasso dei corrispettivi di vendita",
+            Path("apps/primanota/forms.py").read_text(encoding="utf-8"),
+        )
+        self.assertNotIn("Descrizione contropartita", detail_html)
+        self.assertIn("{% if is_iva_layout %}", detail_html)
 
     def test_save_generico_skips_protocol_allocation(self):
         causale = MagicMock()
@@ -400,7 +780,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         ):
             mock_atomic.return_value.__enter__ = MagicMock()
             mock_atomic.return_value.__exit__ = MagicMock(return_value=False)
-            data = {"tipo": "1", "causale": "01", **formset_data}
+            data = {"tipo": "1", "causale": "01", "data_reg": "2026-08-18", **formset_data}
             form = PrimanotaForm(data=data, is_create=True)
             formset = riga_formset_for(data)
             self.assertTrue(form.is_valid(), form.errors)
@@ -414,13 +794,20 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
     def test_form_create_copies_data_valuta_from_data_reg_when_empty(self):
         from datetime import date
 
+        causale = MagicMock()
+        causale.codice = "01"
+        causale.registro_iva = "1"
         with (
-            patch("apps.primanota.forms.causali_contabili_choices", return_value=[("", "—")]),
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("01", "01 — Fattura")],
+            ),
             patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—")]),
             patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
         ):
             form = PrimanotaForm(
-                data={"tipo": "2", "data_reg": "2026-08-18"},
+                data={"tipo": "2", "causale": "01", "data_reg": "2026-08-18"},
                 is_create=True,
             )
         self.assertTrue(form.is_valid(), form.errors)
@@ -434,14 +821,22 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             data_reg=datetime(2026, 8, 18),
             data_valuta=datetime(2026, 1, 5),
         )
+        causale = MagicMock()
+        causale.codice = "01"
+        causale.registro_iva = "1"
         with (
-            patch("apps.primanota.forms.causali_contabili_choices", return_value=[("", "—")]),
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("01", "01 — Fattura")],
+            ),
             patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—")]),
             patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
         ):
             form = PrimanotaForm(
                 data={
                     "tipo": "2",
+                    "causale": "01",
                     "data_reg": "2026-08-18",
                     "data_valuta": "2026-01-05",
                 },
@@ -466,6 +861,49 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertEqual(form.fields["registro"].help_text, "")
         self.assertEqual(form.fields["numero_prot"].help_text, "")
         self.assertEqual(form.fields["data_valuta"].help_text, "")
+
+    def test_tipo_field_only_has_four_selectable_options(self):
+        with (
+            patch("apps.primanota.forms.causali_contabili_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=None),
+        ):
+            form = PrimanotaForm(is_create=True)
+            empty = PrimanotaForm(data={"causale": "01"})
+        values = [choice[0] for choice in form.fields["tipo"].choices]
+        self.assertEqual(values, [1, 2, 3, 4])
+        html = str(form["tipo"])
+        self.assertNotIn("---------", html)
+        self.assertIn("Generico", html)
+        self.assertIn("IVA", html)
+        self.assertIn("Corrispettivi", html)
+        self.assertIn("Iva con Autofattura", html)
+        self.assertFalse(empty.is_valid())
+        self.assertIn("tipo", empty.errors)
+        self.assertFalse(form.fields["tipo"].disabled)
+
+    def test_tipo_locked_when_editing(self):
+        row = Primanota(id=1, tipo=2, causale="01")
+        causale = MagicMock()
+        causale.codice = "01"
+        causale.registro_iva = "1"
+        with (
+            patch("apps.primanota.forms.causali_contabili_choices", return_value=[("", "—"), ("01", "01 — Fattura")]),
+            patch("apps.primanota.forms.registro_iva_choices", return_value=[("", "—"), ("1", "1 — Vendite")]),
+            patch("apps.primanota.forms.valuta_choices", return_value=[("", "—")]),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+        ):
+            shown = PrimanotaForm(instance=row)
+            posted = PrimanotaForm(
+                data={"tipo": "1", "causale": "01", "data_reg": "2026-08-18"},
+                instance=row,
+            )
+            self.assertTrue(shown.fields["tipo"].disabled)
+            self.assertIn("disabled", str(shown["tipo"]))
+            self.assertTrue(posted.fields["tipo"].disabled)
+            self.assertTrue(posted.is_valid(), posted.errors)
+            self.assertEqual(posted.cleaned_data["tipo"], 2)
 
     def test_resolve_causale_ok_if_table_missing(self):
         qs = MagicMock()
@@ -536,6 +974,19 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             reverse("primanota:riga_delete", kwargs={"pk": 12, "riga_pk": 99}),
             "/primanota/12/righe/99/elimina/",
         )
+
+    def test_list_shows_totale_documento_for_iva(self):
+        from pathlib import Path
+
+        from apps.primanota.views import PrimanotaListView
+
+        html = Path("apps/primanota/templates/primanota/primanota_list.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("totale_documento_list", html)
+        self.assertIn("r.totale_documento_list != None", html)
+        self.assertNotIn("totale_doc_controllo", html)
+        self.assertIn("totale_documento_list", PrimanotaListView.sortable_fields)
 
     def test_sync_4d_step_registered(self):
         from apps.core.views import MIRROR_4D_TABLES, SYNC_4D_STEPS
@@ -609,6 +1060,18 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertEqual(form.cleaned_data["conto_dare"], "C7310")
         self.assertEqual(form.cleaned_data["conto_avere"], "F2082")
 
+    def test_riga_form_uppercases_clifor_conto_partita(self):
+        form = PrimanotaRigaForm(
+            data={
+                "conto_partita": "c3567",
+                "imponibile": "34.90",
+            },
+            is_iva=True,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["conto_partita"], "C3567")
+        self.assertEqual(form.cleaned_data["conto_avere"], "C3567")
+
     def test_riga_form_leaves_pdc_codes_unchanged(self):
         form = PrimanotaRigaForm(
             data={
@@ -648,6 +1111,25 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertEqual(form.cleaned_data["dare"], 20696.9)
         self.assertEqual(form.cleaned_data["avere"], 0.0)
 
+    def test_riga_form_imponibile_iva_accepts_italian_thousands(self):
+        from apps.documenti.castelletto import AliquotaInfo
+
+        with patch(
+            "apps.primanota.iva.resolve_aliquota",
+            return_value=AliquotaInfo(codice="22", percentuale=22, descrizione="IVA 22%"),
+        ):
+            form = PrimanotaRigaForm(
+                data={
+                    "conto_partita": "3.71.1",
+                    "imponibile": "5.475,60",
+                    "importo_iva": "1.204,63",
+                    "codice_iva": "22",
+                }
+            )
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertEqual(form.cleaned_data["imponibile"], 5475.6)
+            self.assertEqual(form.cleaned_data["importo_iva"], 1204.63)
+
     def test_riga_form_maps_iva_partita_to_avere(self):
         from apps.documenti.castelletto import AliquotaInfo
 
@@ -666,6 +1148,27 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             self.assertEqual(form.cleaned_data["conto_avere"], "3.71.1")
             self.assertEqual(form.cleaned_data["avere"], 10.5)
             self.assertEqual(form.cleaned_data["importo_iva"], 2.31)
+            self.assertEqual(form.cleaned_data["imp_val"], 10.5)
+
+    def test_riga_form_copies_imp_val_to_imponibile_when_empty(self):
+        from apps.documenti.castelletto import AliquotaInfo
+
+        with patch(
+            "apps.primanota.iva.resolve_aliquota",
+            return_value=AliquotaInfo(codice="22", percentuale=22, descrizione="IVA 22%"),
+        ):
+            form = PrimanotaRigaForm(
+                data={
+                    "conto_partita": "3.71.1",
+                    "imp_val": "110,00",
+                    "imponibile": "0,00",
+                    "codice_iva": "22",
+                }
+            )
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertEqual(form.cleaned_data["imp_val"], 110.0)
+            self.assertEqual(form.cleaned_data["imponibile"], 110.0)
+            self.assertEqual(form.cleaned_data["avere"], 110.0)
         self.assertEqual(
             Primanota(id=9).get_absolute_url(),
             reverse("primanota:detail", kwargs={"pk": 9}),
@@ -716,6 +1219,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         ):
             form = PrimanotaRigaForm(
                 data={
+                    "righe-0-conto_partita": "3.71.1",
                     "righe-0-imponibile": "100",
                     "righe-0-codice_iva": "22",
                 },
@@ -784,16 +1288,20 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         from pathlib import Path
 
         js = Path("static/eureka/js/primanota-righe.js").read_text(encoding="utf-8")
-        self.assertIn("iva.toFixed(2)", js)
+        self.assertIn("formatEuro(iva)", js)
         self.assertNotIn('replace(".", ",")', js)
         disable = Path("static/eureka/js/disable-autocomplete.js").read_text(
             encoding="utf-8"
         )
         self.assertIn("#primanotaForm", disable)
         self.assertIn("data-primanota-riga-form", disable)
-        self.assertIn("updateTotals", js)
+        self.assertIn("updateRigheCount", js)
+        self.assertIn("countVisibleRows", js)
+        self.assertIn("data-righe-count", js)
         self.assertIn("data-totale-documento", js)
         self.assertIn("data-sbilancio", js)
+        self.assertIn("isCorrispettiviMode", js)
+        self.assertIn("isIvaLayoutMode", js)
         self.assertIn("getTotals", js)
         self.assertIn("sbilancio: round2(totDare - totAvere)", js)
         self.assertIn("data-add-riga", js)
@@ -802,7 +1310,16 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertIn("data-sbilancio-banner", js)
         self.assertIn("needsBalance", js)
         self.assertIn("syncBalanceGate", js)
+        self.assertIn("[data-save-primanota]", js)
+        self.assertIn("data-confirm-elimina", js)
+        self.assertIn("confermaEliminaRigaModal", js)
+        self.assertIn("is-open", js)
+        self.assertNotIn("window.confirm", js)
         self.assertIn("formatImportoInput", js)
+        self.assertIn('["dare", "avere", "imp_val", "imponibile", "importo_iva"]', js)
+        self.assertIn("syncFromCambio", js)
+        self.assertIn("headerCambio", js)
+        self.assertIn("EurekaPrimanotaCambio", js)
         self.assertIn(r"\B(?=(\d{3})+(?!\d))", js)
         self.assertNotIn('toLocaleString("it-IT"', js)
         scad = Path("static/eureka/js/primanota-scadenze.js").read_text(encoding="utf-8")
@@ -822,6 +1339,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertIn("Totale documento", html)
         self.assertIn("data-totale-imponibile", html)
         self.assertIn("data-iva-kpis", html)
+        self.assertIn("data-corr-kpis", html)
         self.assertIn("data-gen-kpis", html)
         self.assertIn("data-sbilancio", html)
         self.assertIn("Sbilancio", html)
@@ -839,11 +1357,33 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertIn('tipo="clifor"', html)
         self.assertIn("field=form.codice_partita", html)
         self.assertIn("field=form.valuta", html)
+        self.assertIn("field=form.data_cambio", html)
+        self.assertIn("field=form.cambio", html)
+        self.assertIn("{% if is_generico %} d-none{% endif %}\" data-valuta-col", html)
+        self.assertIn("data-cambio-col", html)
+        self.assertIn("{% if is_generico or not show_cambio %} d-none{% endif %}\" data-cambio-col", html)
+        self.assertIn("field=form.alfa_prot", html)
+        self.assertIn("d-none\" data-serie-prot-col", html)
         self.assertNotIn("mask_field.html\" with field=form.codice_partita", html)
         self.assertIn("data-add-riga", html)
         self.assertIn("rigaEmptyFormTemplate", html)
         self.assertIn('id="righeBody"', html)
         self.assertIn("formset.empty_form", html)
+        self.assertIn("data-righe-count", html)
+        self.assertIn("data-save-primanota", html)
+        self.assertIn("data-eureka-mask-collapse", html)
+        self.assertIn("data-mask-toggle", html)
+        self.assertIn('data-mask-section="documento"', html)
+        self.assertIn('data-mask-empty="collapsed"', html)
+        self.assertIn("data-mask-empty-from", html)
+        self.assertIn('data-summary-kind="linked-label"', html)
+        self.assertIn('data-summary-kind="select-extra"', html)
+        self.assertIn("data-summary-from=\"id_codice_partita\"", html)
+        self.assertIn('data-mask-section="dettaglio"', html)
+        self.assertIn('data-mask-section="scadenze"', html)
+        self.assertIn("confermaEliminaRigaModal", html)
+        self.assertIn("eureka-confirm", html)
+        self.assertIn("data-elimina-riga-ok", html)
 
     def test_templates_hide_iva_when_tipo_generico(self):
         from pathlib import Path
@@ -854,44 +1394,122 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         row_html = Path(
             "apps/primanota/templates/primanota/partials/riga_form_row.html"
         ).read_text(encoding="utf-8")
-        self.assertIn('<th data-iva-col>C. IVA</th>', form_html)
-        self.assertIn('<th class="text-end" data-iva-col>Importo IVA</th>', form_html)
-        self.assertIn("data-iva-col data-totale-iva", form_html)
-        self.assertIn("[data-iva-col], [data-iva-block], [data-iva-kpis]", form_html)
+        self.assertIn('data-iva-col{% if not is_iva_layout %} class="d-none"{% endif %}>C. IVA</th>', form_html)
+        self.assertIn("data-iva-importo-col>Importo IVA</th>", form_html)
+        self.assertIn("data-iva-importo-col data-totale-iva", form_html)
+        self.assertIn("[data-iva-block], [data-iva-kpis], [data-iva-importo-col], [data-iva-doc-totale]", form_html)
         self.assertIn('el.classList.toggle("d-none", !iva)', form_html)
         self.assertIn('data-partita-col', form_html)
         self.assertIn('data-paga-col', form_html)
-        self.assertIn('[data-registro-col], [data-partita-col], [data-paga-col], [data-valuta-col], [data-acconto-col], [data-scadenze-block]', form_html)
+        self.assertIn("[data-registro-col], [data-partita-col], [data-paga-col], [data-valuta-col]", form_html)
+        self.assertIn("{% if is_generico %} d-none{% endif %}\" data-registro-col", form_html)
+        self.assertIn("{% if is_generico %} d-none{% endif %}\" data-partita-col", form_html)
+        self.assertIn("{% if is_generico or is_iva or is_corrispettivi %} d-none{% endif %}\" data-acconto-col", form_html)
+        self.assertIn('el.classList.toggle("d-none", generico || iva || corr)', form_html)
+        self.assertIn("resetExclusive", form_html)
+        self.assertIn("clearGenericoExclusiveFields", form_html)
+        self.assertIn("if (current && !keep)", form_html)
         self.assertIn("data-scadenze-block", form_html)
         self.assertIn('id_codice_partita', form_html)
         self.assertIn('id_codice_paga', form_html)
         self.assertIn('id_valuta', form_html)
         self.assertIn("EUREKA_CAUSALI", form_html)
-        self.assertIn('tipo="pdc_clifor"', row_html)
+        self.assertIn("EUREKA_VALUTE_CAMBI", form_html)
+        self.assertIn("fillCambioFromValuta", form_html)
+        self.assertIn("pickCambioFromCatalog", form_html)
+        self.assertIn("syncCambioCols", form_html)
+        self.assertIn("valutaAbbrevIsEur", form_html)
+        self.assertIn("fillCambioFromValuta();", form_html)
+        self.assertIn('field=f.conto_partita label=labels.conto_partita tipo="pdc_clifor"', row_html)
         self.assertIn("field=f.conto_dare", row_html)
         self.assertNotIn("f.initial.pos", row_html)
+        self.assertIn("btn-elimina-riga", row_html)
+        self.assertIn("data-confirm-elimina", row_html)
+        self.assertNotIn("primanota:riga_delete", row_html)
+        self.assertNotIn('<form method="post"', row_html)
         self.assertIn("has_registro", form_html)
+        self.assertIn("tipo_registro", form_html)
+        self.assertIn("fillCausaleOptions(generico, iva && !autoF, corr, autoF)", form_html)
+        self.assertIn("is_autofattura", form_html)
+        self.assertIn("is_autofattura_automatica", form_html)
+        self.assertIn("show_fornitore_cee", form_html)
+        self.assertIn("syncFornitoreCee", form_html)
+        self.assertIn("Boolean(autoF) && causaleIsAutofatturaAutomatica()", form_html)
+        self.assertIn("data-autofattura-col", form_html)
+        self.assertIn('tipo="fornitore"', form_html)
+        self.assertIn("field=form.fornitore_cee", form_html)
+        self.assertIn("[data-autofattura-col]", form_html)
+        self.assertIn("isCorrReg", form_html)
         self.assertIn("data-sbilancio", form_html)
         self.assertIn("Sbilancio", form_html)
         self.assertIn('data-gen-importo="dare"', form_html)
         self.assertIn('data-gen-importo="avere"', form_html)
+        self.assertIn('data-iva-importo="imponibile"', row_html)
+        self.assertIn('data-iva-importo="imp_val"', row_html)
+        self.assertIn("data-imp-val-col", row_html)
+        self.assertIn("{{ f.imp_val }}", row_html)
+        self.assertIn("Imponibile Valuta", form_html)
+        self.assertIn("data-totale-impon-valuta", form_html)
+        self.assertIn("data-imp-val-col", form_html)
+        self.assertIn("[data-imp-val-col]", form_html)
+        self.assertIn("EurekaPrimanotaCambio", form_html)
+        self.assertIn('data-iva-importo="iva"', row_html)
         self.assertIn('data-gen-sezione="dare"', form_html)
         self.assertIn('data-gen-sezione="avere"', form_html)
+        self.assertNotIn("align-middle", row_html)
+        css_html = Path("static/eureka/css/table-mask.css").read_text(encoding="utf-8")
+        self.assertIn(".eureka-primanota-righe-table.table-vcenter tbody td", css_html)
+        self.assertIn("vertical-align: top", css_html)
+        self.assertIn("[data-iva-importo] .form-control", css_html)
 
         riga_html = Path("apps/primanota/templates/primanota/riga_form.html").read_text(
             encoding="utf-8"
         )
         self.assertIn('class="d-none" aria-hidden="true">{{ form.codice_iva }}', riga_html)
-        self.assertNotIn('field=form.importo_iva col="col-sm-2"', riga_html)
+        self.assertIn('field=form.conto_partita label=labels.conto_partita tipo="pdc_clifor"', riga_html)
+        self.assertIn("field=form.imp_val", riga_html)
+        self.assertIn("{% if show_cambio %}", riga_html)
+        self.assertIn('field=form.importo_iva col="col-sm-2"', riga_html)
 
         detail_html = Path(
             "apps/primanota/templates/primanota/primanota_detail.html"
         ).read_text(encoding="utf-8")
         self.assertNotIn("<th>IVA</th>", detail_html)
         self.assertIn("<th>C. IVA</th>", detail_html)
-        self.assertIn("{% if not registrazione.is_generico %}", detail_html)
+        self.assertIn("Imponibile Valuta", detail_html)
+        self.assertIn("riga.imponibile_valuta", detail_html)
+        self.assertIn("{% if show_cambio %}<th class=\"text-end\">Imponibile Valuta</th>{% endif %}", detail_html)
+        self.assertIn("eureka-mask--primanota", detail_html)
+        self.assertIn("{% if is_iva or is_generico or is_corrispettivi %}", detail_html)
+        self.assertIn("eureka-mask-card--primanota-movimenti", detail_html)
+        self.assertIn("data-eureka-mask-collapse", detail_html)
+        self.assertIn('data-mask-section="dettaglio"', detail_html)
+        self.assertIn('data-mask-section="registrazione"', detail_html)
+        self.assertIn("{% if is_iva %}", detail_html)
+        self.assertIn("Protocollo numero", detail_html)
+        self.assertIn("eureka-mask-grid--compact", detail_html)
+        js_src = Path("static/eureka/js/mask-collapse.js").read_text(encoding="utf-8")
+        self.assertIn("data-mask-empty", js_src)
+        self.assertIn("isCardEmpty", js_src)
+        self.assertIn("clifor.label", detail_html)
+        self.assertIn("{% if show_fornitore_cee %}", detail_html)
+        self.assertIn("registrazione.fornitore_cee", detail_html)
+        self.assertIn("fornitore.label", detail_html)
+        self.assertIn("registrazione.valuta", detail_html)
+        self.assertIn("cambio_info.data", detail_html)
+        self.assertIn("cambio_info.cambio", detail_html)
+        self.assertIn("{% if show_cambio %}", detail_html)
+        self.assertIn("Data cambio", detail_html)
+        self.assertIn("causale_contabile.label", detail_html)
+        self.assertIn("eureka-mask-collapse__chip--name", detail_html)
+        self.assertIn("{% if not is_generico %}", detail_html)
         self.assertIn("Sbilancio", detail_html)
-        self.assertIn("Aggiungi riga", detail_html)
+        self.assertNotIn("Aggiungi riga", detail_html)
+        self.assertNotIn("Acconto", detail_html)
+        scad_html = Path(
+            "apps/primanota/templates/primanota/partials/scadenze_iva.html"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("Acconto", scad_html)
 
     def test_empty_form_row_renders_without_pos_in_initial(self):
         from django.template.loader import render_to_string
@@ -946,6 +1564,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         ]
         totals = _formset_totals(formset)
         self.assertAlmostEqual(totals["totale_imponibile"], 150.5)
+        self.assertAlmostEqual(totals["totale_imponibile_valuta"], 150.5)
         self.assertAlmostEqual(totals["totale_iva"], 33.11)
         self.assertAlmostEqual(totals["totale_documento"], 183.61)
         self.assertAlmostEqual(totals["sbilancio"], 0)
@@ -996,6 +1615,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         reg = Primanota(id=1, tipo=4, causale="FT", registro="1", codice_paga="31")
         riga = MagicMock()
         riga.imponibile = 100.0
+        riga.imponibile_valuta = 100.0
         riga.importo_iva = 22.0
         riga.dare = 0
         riga.avere = 100.0
@@ -1012,7 +1632,10 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             ctx = _primanota_form_context(
                 form, formset, is_create=False, registrazione=reg
             )
-        self.assertTrue(ctx["is_iva"])
+        self.assertTrue(ctx["is_iva_autofattura"])
+        self.assertFalse(ctx["show_fornitore_cee"])
+        self.assertEqual(ctx["fornitore_label"], "")
+        self.assertEqual(ctx["fornitore_url"], "")
         self.assertEqual(ctx["totale_imponibile"], 100.0)
         self.assertEqual(ctx["totale_iva"], 22.0)
         self.assertEqual(ctx["totale_documento"], 122.0)
@@ -1020,6 +1643,56 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         self.assertEqual(ctx["partita_label"], "")
         self.assertEqual(ctx["partita_url"], "")
         self.assertEqual(ctx["righe_count"], 1)
+
+    def test_form_context_show_cambio_depends_on_valuta_abbrev(self):
+        from apps.primanota.views import _primanota_form_context
+
+        form = MagicMock()
+        form.is_bound = False
+        form.initial = {"tipo": 4}
+        form.data = {}
+        form.instance = MagicMock(pk=1, valuta="USD")
+        form.scadenza_slots.return_value = []
+        form.scadenze_editable.return_value = False
+        formset = MagicMock()
+        formset.forms = []
+        with (
+            patch("apps.primanota.views._lookup_context", return_value={}),
+            patch("apps.primanota.views.is_cambio_visible", return_value=True) as mock_vis,
+        ):
+            ctx = _primanota_form_context(form, formset, is_create=False)
+        mock_vis.assert_called()
+        self.assertTrue(ctx["show_cambio"])
+
+        form.instance.valuta = "Euro"
+        with (
+            patch("apps.primanota.views._lookup_context", return_value={}),
+            patch("apps.primanota.views.is_cambio_visible", return_value=False),
+        ):
+            ctx = _primanota_form_context(form, formset, is_create=False)
+        self.assertFalse(ctx["show_cambio"])
+
+    def test_form_context_shows_fornitore_when_autofattura_automatica(self):
+        from apps.primanota.views import _primanota_form_context
+
+        form = MagicMock()
+        form.is_bound = False
+        form.initial = {"tipo": 4}
+        form.data = {}
+        form.instance = MagicMock(pk=1, codice_paga="", codice_partita="", causale="XX")
+        form.scadenza_slots.return_value = []
+        form.scadenze_editable.return_value = False
+        formset = MagicMock()
+        formset.forms = []
+        causale = MagicMock()
+        causale.autofattura = True
+        with (
+            patch("apps.primanota.views._lookup_context", return_value={}),
+            patch("apps.primanota.views.resolve_causale_contabile", return_value=causale),
+        ):
+            ctx = _primanota_form_context(form, formset, is_create=True)
+        self.assertTrue(ctx["is_iva_autofattura"])
+        self.assertTrue(ctx["show_fornitore_cee"])
 
     def test_form_context_partita_label_from_clifor(self):
         from apps.primanota.views import _primanota_form_context
@@ -1046,7 +1719,7 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
             ) as mock_partita,
         ):
             ctx = _primanota_form_context(form, formset, is_create=True)
-        mock_partita.assert_called_once_with("C7310")
+        mock_partita.assert_any_call("C7310")
         self.assertEqual(ctx["partita_label"], "VIVAI DE LAURENTIIS")
         self.assertEqual(ctx["partita_url"], "/clienti/C7310/")
 
@@ -1071,15 +1744,26 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
         ):
             form = PrimanotaForm()
         self.assertEqual(form.fields["codice_paga"].label, "Condizione di pagamento")
-        self.assertEqual(form.fields["codice_partita"].label, "Cliente / Fornitore")
+        self.assertEqual(form.fields["codice_partita"].label, "Codice Partita")
+        self.assertEqual(form.fields["fornitore_cee"].label, "Fornitore")
+        self.assertEqual(form.fields["data_cambio"].label, "Data cambio")
+        self.assertEqual(form.fields["cambio"].label, "Cambio")
+        self.assertTrue(form.fields["data_cambio"].disabled)
+        self.assertTrue(form.fields["cambio"].disabled)
         self.assertEqual(form.fields["valuta"].__class__.__name__, "ChoiceField")
         self.assertEqual(
             list(form.fields["valuta"].choices),
             [("", "—"), ("Euro", "Euro"), ("USD", "USD — Dollaro")],
         )
 
-    def test_form_valuta_must_exist_in_choices(self):
-        choices = [("", "—"), ("Euro", "Euro")]
+    def test_form_cambio_uses_rate_as_of_data_reg(self):
+        from datetime import date, datetime
+
+        row = Primanota(
+            id=1,
+            valuta="USD",
+            data_reg=datetime(2019, 11, 30),
+        )
         with (
             patch(
                 "apps.primanota.forms.causali_contabili_choices",
@@ -1089,10 +1773,57 @@ class PrimanotaSyncSpecTests(SimpleTestCase):
                 "apps.primanota.forms.registro_iva_choices",
                 return_value=[("", "—")],
             ),
-            patch("apps.primanota.forms.valuta_choices", return_value=choices),
+            patch(
+                "apps.primanota.forms.valuta_choices",
+                return_value=[("", "—"), ("USD", "USD — Dollaro")],
+            ),
+            patch("apps.primanota.forms.cambio_info") as mock_info,
         ):
-            invalid = PrimanotaForm(data={"tipo": "2", "valuta": "XXX"})
-            valid = PrimanotaForm(data={"tipo": "2", "valuta": "Euro"})
+            mock_info.return_value = {
+                "cambio": 0.9084,
+                "data": date(2019, 11, 13),
+            }
+            form = PrimanotaForm(instance=row)
+        mock_info.assert_called_once()
+        args, kwargs = mock_info.call_args
+        self.assertEqual(args[0], "USD")
+        self.assertEqual(kwargs.get("alla_data"), date(2019, 11, 30))
+        self.assertEqual(form.initial.get("cambio"), 0.9084)
+        self.assertEqual(form.initial.get("data_cambio"), date(2019, 11, 13))
+
+    def test_form_valuta_must_exist_in_choices(self):
+        choices = [("", "—"), ("Euro", "Euro")]
+        causale = MagicMock()
+        causale.codice = "01"
+        causale.registro_iva = "1"
+        with (
+            patch(
+                "apps.primanota.forms.causali_contabili_choices",
+                return_value=[("", "—"), ("01", "01 — Fattura")],
+            ),
+            patch(
+                "apps.primanota.forms.registro_iva_choices",
+                return_value=[("", "—")],
+            ),
+            patch("apps.primanota.forms.valuta_choices", return_value=choices),
+            patch("apps.primanota.forms.resolve_causale_contabile", return_value=causale),
+        ):
+            invalid = PrimanotaForm(
+                data={
+                    "tipo": "2",
+                    "causale": "01",
+                    "data_reg": "2026-08-18",
+                    "valuta": "XXX",
+                }
+            )
+            valid = PrimanotaForm(
+                data={
+                    "tipo": "2",
+                    "causale": "01",
+                    "data_reg": "2026-08-18",
+                    "valuta": "Euro",
+                }
+            )
         self.assertFalse(invalid.is_valid())
         self.assertIn("valuta", invalid.errors)
         self.assertTrue(valid.is_valid(), valid.errors)

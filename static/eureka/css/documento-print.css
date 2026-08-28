@@ -1,0 +1,581 @@
+/* Stampa documento — un foglio A4 per pagina (header + dettaglio + footer) */
+
+:root {
+    --ink: #111;
+    --muted: #444;
+    --line: #111;
+    --soft: #999;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #e8ecf1;
+    color: var(--ink);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 9pt;
+    line-height: 1.25;
+}
+
+body.doc-print-pdf {
+    background: #fff;
+}
+
+body.doc-print-pdf .doc-print-toolbar {
+    display: none !important;
+}
+
+.doc-print-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid #d0d7de;
+    font-size: 0.9rem;
+}
+
+.doc-print-toolbar .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid #c9d1d9;
+    border-radius: 0.4rem;
+    background: #fff;
+    color: #1f2937;
+    text-decoration: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.doc-print-toolbar .btn-primary {
+    background: #206bc4;
+    border-color: #206bc4;
+    color: #fff;
+}
+
+.doc-print-toolbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.eureka-print-zoom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-right: 0.25rem;
+}
+
+.eureka-print-zoom__value {
+    min-width: 3.4rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.doc-print-wrap {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    zoom: var(--print-preview-zoom, 1);
+}
+
+/* Foglio A4: colonna flex → footer sempre in basso */
+.doc-print-sheet {
+    width: 210mm;
+    height: 297mm;
+    background: #fff;
+    padding: 6mm 11mm 8mm;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+    line-height: normal;
+    font-size: 9pt;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.doc-print-sheet--probe {
+    position: absolute !important;
+    left: -10000px !important;
+    top: 0 !important;
+    box-shadow: none !important;
+    pointer-events: none;
+}
+
+.doc-print-sheet__masthead {
+    flex: 0 0 auto;
+}
+
+.doc-print-sheet__grow {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.doc-print-sheet__foot {
+    flex: 0 0 auto;
+    margin-top: auto;
+}
+
+/* Tabella righe */
+.doc-print-doc {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: fixed;
+    margin: 0;
+    padding: 0;
+    font: 8pt/13pt Arial, Helvetica, sans-serif;
+    flex: 0 0 auto;
+}
+
+.doc-print-doc col.col-cod { width: 14%; }
+.doc-print-doc col.col-desc { width: 39%; }
+.doc-print-doc col.col-um { width: 4%; }
+.doc-print-doc col.col-qty { width: 9%; }
+.doc-print-doc col.col-prz { width: 9%; }
+.doc-print-doc col.col-sc { width: 6%; }
+.doc-print-doc col.col-imp { width: 11%; }
+.doc-print-doc col.col-iva { width: 5%; }
+
+.doc-print-cols th {
+    border-top: 0.6pt solid var(--line);
+    border-bottom: 0.6pt solid var(--line);
+    border-right: 0.4pt solid var(--line);
+    padding: 1mm 1.5mm;
+    font: 700 8pt/1.15 Arial, Helvetica, sans-serif;
+    text-align: center;
+    vertical-align: top;
+    background: #fff;
+}
+
+.doc-print-cols th:last-child {
+    border-right: 0;
+}
+
+.doc-print-cols th span {
+    display: block;
+    font-weight: 400;
+    font-size: 7.5pt;
+    color: var(--muted);
+}
+
+.doc-print-doc tbody td {
+    border-right: 0.4pt solid var(--line);
+    border-bottom: 0;
+    border-top: 0;
+    padding: 0 1.5mm;
+    margin: 0;
+    vertical-align: top;
+    font: 8pt/13pt Arial, Helvetica, sans-serif;
+}
+
+.doc-print-doc tbody td:last-child {
+    border-right: 0;
+}
+
+.doc-print-doc .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.doc-print-doc .c {
+    text-align: center;
+}
+
+.doc-print-doc .desc {
+    text-align: left;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font: 8pt/13pt Arial, Helvetica, sans-serif;
+}
+
+.doc-print-doc tr.is-note .desc {
+    font-style: italic;
+}
+
+/* Continuazione colonne fino al footer */
+.doc-print-doc--cont {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 4mm;
+    border-bottom: 0.6pt solid var(--line);
+}
+
+.doc-print-doc--cont tbody,
+.doc-print-doc--cont tr {
+    height: 100%;
+}
+
+.doc-print-doc--cont td {
+    height: 100%;
+    padding: 0;
+    font-size: 0;
+    line-height: 0;
+    vertical-align: top;
+}
+
+/* —— Logo / testata —— */
+.doc-print-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    margin: 0 0 1.5mm;
+    padding: 0;
+    border: 0;
+    min-height: 0;
+}
+
+.doc-print-header__logo {
+    display: block;
+    width: 100%;
+    max-width: 185mm;
+    height: auto;
+    max-height: 46mm;
+    object-fit: contain;
+    object-position: center top;
+}
+
+.doc-print-header__initials {
+    font-size: 18pt;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 8mm 0;
+}
+
+.lbl {
+    font-size: 6.5pt;
+    color: var(--muted);
+    line-height: 1.15;
+}
+
+.lbl span {
+    display: block;
+    font-size: 6pt;
+}
+
+.val {
+    font-size: 9pt;
+    font-weight: 600;
+    min-height: 1.1em;
+    margin-top: 1px;
+}
+
+.val--lg { font-size: 12pt; font-weight: 700; }
+.val--md { font-size: 11pt; font-weight: 700; }
+.val--note { font-weight: 400; font-size: 8pt; }
+
+.doc-print-cell {
+    padding: 1.5mm 2mm;
+    border-right: 0.4pt solid var(--line);
+    min-width: 0;
+}
+
+.doc-print-cell:last-child {
+    border-right: 0;
+}
+
+.doc-print-top {
+    display: grid;
+    grid-template-columns: 1fr 1.12fr;
+    border-top: 0.6pt solid var(--line);
+    border-bottom: 0.4pt solid var(--line);
+}
+
+.doc-print-top__left {
+    border-right: 0.4pt solid var(--line);
+    display: flex;
+    flex-direction: column;
+}
+
+.doc-print-title-row {
+    padding: 2mm 2mm 1.5mm;
+    border-bottom: 0.4pt solid var(--line);
+}
+
+.doc-print-title {
+    margin: 0;
+    font-size: 14pt;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.doc-print-id-row {
+    display: grid;
+    grid-template-columns: 1.15fr 1.15fr 0.7fr;
+    border-bottom: 0.4pt solid var(--line);
+    flex: 0 0 auto;
+}
+
+.doc-print-rif-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: 1 1 auto;
+}
+
+.doc-print-top__dest {
+    padding: 2.5mm 3mm;
+    font-size: 10pt;
+    line-height: 1.45;
+}
+
+.doc-print-dest__name {
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 1mm;
+}
+
+.doc-print-cli-row {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr 1.15fr 1.2fr 1.55fr;
+    border-bottom: 0.4pt solid var(--line);
+}
+
+.doc-print-bank-row {
+    display: grid;
+    grid-template-columns: 18mm 1fr;
+    gap: 2mm;
+    align-items: center;
+    padding: 1.2mm 2mm;
+    border-bottom: 0.6pt solid var(--line);
+}
+
+.doc-print-bank-row .lbl {
+    white-space: nowrap;
+}
+
+.doc-print-bank-row .val {
+    margin: 0;
+    font-weight: 600;
+}
+
+.doc-print-page-num::after {
+    content: "1";
+}
+
+.doc-print-page-num--set::after {
+    content: none;
+}
+
+/* —— Footer totali —— */
+.doc-print-foot {
+    margin: 0;
+    background: #fff;
+}
+
+.doc-print-foot__summary {
+    display: grid;
+    grid-template-columns: 1.1fr 1.6fr 0.85fr 0.45fr 0.85fr 0.95fr;
+    border-bottom: 0.4pt solid var(--line);
+}
+
+.doc-print-foot__summary .doc-print-cell {
+    border-top: 0.4pt solid var(--line);
+}
+
+.doc-print-foot__summary .num-cell .val {
+    text-align: right;
+    font-size: 9pt;
+    margin-top: 2mm;
+}
+
+.doc-print-foot__spese {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    border-bottom: 0.4pt solid var(--line);
+}
+
+.doc-print-foot__spese .doc-print-cell {
+    border-top: 0;
+}
+
+.doc-print-foot__spese .num-cell .val {
+    text-align: right;
+    font-size: 9pt;
+    margin-top: 1.5mm;
+}
+
+.doc-print-foot__spese .doc-print-cell--total .lbl,
+.doc-print-foot__spese .doc-print-cell--total .val {
+    font-weight: 700;
+}
+
+.doc-print-foot__iva {
+    display: grid;
+    grid-template-columns: 1.55fr 0.9fr 1fr;
+    gap: 0;
+    align-items: stretch;
+    border-bottom: 0.6pt solid var(--line);
+    min-height: 28mm;
+}
+
+.doc-print-iva {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+    border-right: 0.4pt solid var(--line);
+}
+
+.doc-print-iva th,
+.doc-print-iva td {
+    border-bottom: 0.3pt solid var(--soft);
+    padding: 1mm 1.5mm;
+    text-align: left;
+    vertical-align: top;
+}
+
+.doc-print-iva thead th {
+    font-weight: 600;
+    font-size: 6.5pt;
+    color: var(--muted);
+    border-bottom: 0.4pt solid var(--line);
+}
+
+.doc-print-iva .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.doc-print-iva-spacer td {
+    border-bottom: 0;
+    height: 4.5mm;
+}
+
+.doc-print-iva-tot {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    border-right: 0.4pt solid var(--line);
+    padding: 1mm;
+}
+
+.doc-print-iva-tot__box {
+    padding: 1.5mm 2mm;
+    border-top: 0.4pt solid var(--line);
+}
+
+.doc-print-iva-tot__box .lbl {
+    margin-bottom: 1mm;
+}
+
+.doc-print-iva-tot__box .val {
+    text-align: right;
+    font-size: 9pt;
+    min-height: 1.2em;
+}
+
+.doc-print-grand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2.5mm 3mm 2mm;
+    border: 2pt solid var(--line);
+    margin: 1.5mm;
+    text-align: center;
+    min-height: 22mm;
+}
+
+.doc-print-grand__label {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.doc-print-grand__label2 {
+    font-size: 8pt;
+    font-weight: 700;
+    margin-top: 0.5mm;
+}
+
+.doc-print-grand__value {
+    margin-top: auto;
+    padding-top: 6mm;
+    font-size: 12pt;
+    font-weight: 700;
+    display: flex;
+    gap: 4mm;
+    align-items: baseline;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+    min-height: 1.4em;
+}
+
+.doc-print-grand__value strong {
+    font-size: 12pt;
+}
+
+@media print {
+    html, body {
+        background: #fff;
+    }
+
+    .doc-print-toolbar {
+        display: none !important;
+    }
+
+    .doc-print-wrap {
+        padding: 0;
+        gap: 0;
+        display: block;
+        zoom: 1 !important;
+        transform: none !important;
+    }
+
+    .doc-print-sheet {
+        width: 100%;
+        max-width: none;
+        /* A4 intero: i margini stanno nel foglio, non in @page,
+           così Chrome non disegna URL e numerazione in giallo. */
+        height: 297mm;
+        min-height: 297mm;
+        max-height: 297mm;
+        padding: 6mm 11mm 8mm;
+        box-shadow: none;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .doc-print-sheet:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .doc-print-doc,
+    .doc-print-doc tbody td,
+    .doc-print-doc .desc {
+        font: 8pt/13pt Arial, Helvetica, sans-serif !important;
+    }
+
+    @page {
+        size: A4 portrait;
+        margin: 0;
+
+        @top-left { content: none; }
+        @top-center { content: none; }
+        @top-right { content: none; }
+        @bottom-left { content: none; }
+        @bottom-center { content: none; }
+        @bottom-right { content: none; }
+    }
+}

@@ -175,8 +175,14 @@
     border-color: var(--doc-accent);
     box-shadow: 0 0 0 0.15rem rgba(var(--doc-accent-rgb), 0.28);
 }
-.eureka-doc--prv #righeTable .btn-elimina-riga .ti-trash {
-    font-size: 1rem;
+#righeTable .btn-elimina-riga {
+    width: 2.1rem;
+    height: 2.1rem;
+    min-width: 2.1rem;
+}
+#righeTable .btn-elimina-riga .ti-trash {
+    font-size: 1.4rem;
+    line-height: 1;
 }
 .eureka-doc--prv #righeTable .riga-form-row {
     transition: background-color 0.15s ease;
@@ -363,6 +369,16 @@
 }
 #righeTable .eureka-doc-articolo-combo > .form-control {
     padding-right: 2rem;
+}
+/* Descrizione riga: textarea compatta, mantiene i line feed */
+#righeTable textarea[name$="-descrizione"] {
+    min-height: 2.35rem;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    resize: vertical;
+    field-sizing: content;
+    max-height: 9rem;
 }
 .eureka-doc--prv .eureka-doc-righe-search .form-control:focus {
     border-color: rgba(var(--doc-accent-rgb), 0.55);
@@ -647,6 +663,16 @@
     background: var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.05));
     color: inherit;
     cursor: default;
+}
+
+/* Campi calcolati/derivati (es. % sconto da tabella Sconti): non editabili */
+.eureka-field-locked,
+.form-control.eureka-field-locked[readonly] {
+    background: var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.08)) !important;
+    color: var(--tblr-secondary, #667382);
+    cursor: default;
+    pointer-events: none;
+    user-select: none;
 }
 .eureka-doc-party__read {
     padding: 0 0.75rem;

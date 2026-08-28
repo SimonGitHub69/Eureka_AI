@@ -1,147 +1,197 @@
 {% extends "base/layout.html" %}
 
 {% block title %}{{ azienda.ragione_sociale|default:azienda.id }} · Aziende · Eureka AI{% endblock %}
-
 {% block page_title %}Azienda{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ azienda.ragione_sociale|default:azienda.id }}</h2>
-            <div class="text-secondary">ID {{ azienda.id }}</div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'aziende:edit' azienda.id %}" class="btn btn-primary">
-                <i class="ti ti-photo"></i>
-                Logo e dati locali
-            </a>
-            <a href="{% url 'aziende:list' %}" class="btn btn-outline-secondary">
-                <i class="ti ti-arrow-left"></i>
-                Elenco
-            </a>
+<div class="eureka-mask eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-building"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ azienda.ragione_sociale|default:azienda.id }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ azienda.id }}</span>
+                {% if azienda.partita_iva %}<span class="badge bg-azure-lt">P.IVA {{ azienda.partita_iva }}</span>{% endif %}
+                {% if azienda.anno_competenza %}<span class="badge bg-blue-lt">{{ azienda.anno_competenza }}</span>{% endif %}
+                {% if azienda_dati and azienda_dati.azienda_noleggio %}<span class="badge bg-purple-lt">Azienda di noleggio</span>{% endif %}
+            </div>
         </div>
     </div>
-</div>
-
-{% if azienda_dati and azienda_dati.logo %}
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Logo</h3>
-    </div>
-    <div class="card-body">
-        <img
-            src="{{ azienda_dati.logo.url }}"
-            alt="Logo {{ azienda.ragione_sociale|default:azienda.id }}"
-            style="max-width: 280px; max-height: 160px; object-fit: contain;"
-        >
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'aziende:azienda_update' azienda.id %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica anagrafica
+        </a>
+        <a href="{% url 'aziende:edit' azienda.id %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-photo"></i> Logo e dati locali
+        </a>
+        <a href="{% url 'aziende:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
     </div>
 </div>
-{% endif %}
 
-{% if azienda_dati and azienda_dati.note %}
-<div class="card mb-3">
+{% if azienda_dati %}
+{% if azienda_dati.logo or azienda_dati.logo_documenti %}
+<div class="card eureka-mask-card">
     <div class="card-header">
-        <h3 class="card-title mb-0">Note locali</h3>
+        <h3 class="card-title"><i class="ti ti-photo me-1"></i> Loghi</h3>
     </div>
-    <div class="card-body">
-        {{ azienda_dati.note|linebreaksbr }}
-    </div>
-</div>
-{% endif %}
-
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Dati principali</h3>
-    </div>
-    <div class="card-body">
+    <div class="card-body py-3">
         <div class="row g-3">
+            {% if azienda_dati.logo %}
             <div class="col-md-6">
-                <div class="datagrid-title">Ragione sociale</div>
-                <div class="datagrid-content">{{ azienda.ragione_sociale|default:"—" }}</div>
+                <div class="eureka-mask-field__label mb-2">Logo generale</div>
+                <img
+                    src="{{ azienda_dati.logo.url }}"
+                    alt="Logo {{ azienda.ragione_sociale|default:azienda.id }}"
+                    style="max-width: 220px; max-height: 120px; object-fit: contain;"
+                >
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Partita IVA</div>
-                <div class="datagrid-content">{{ azienda.partita_iva|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Codice fiscale</div>
-                <div class="datagrid-content">{{ azienda.codice_fiscale|default:"—" }}</div>
-            </div>
+            {% endif %}
+            {% if azienda_dati.logo_documenti %}
             <div class="col-md-6">
-                <div class="datagrid-title">Indirizzo</div>
-                <div class="datagrid-content">{{ azienda.indirizzo|default:"—" }}</div>
+                <div class="eureka-mask-field__label mb-2">Logo stampe documenti</div>
+                <img
+                    src="{{ azienda_dati.logo_documenti.url }}"
+                    alt="Logo documenti {{ azienda.ragione_sociale|default:azienda.id }}"
+                    style="max-width: 220px; max-height: 120px; object-fit: contain;"
+                >
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">CAP / Località</div>
-                <div class="datagrid-content">
-                    {% if azienda.cap or azienda.localita %}
-                        {{ azienda.cap|default:"" }} {{ azienda.localita|default:"" }}
-                    {% else %}
-                        —
-                    {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-receipt-tax"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Partita IVA</div>
+            <div class="eureka-mask-kpi__value">{{ azienda.partita_iva|default:"—" }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-id"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Codice fiscale</div>
+            <div class="eureka-mask-kpi__value">{{ azienda.codice_fiscale|default:"—" }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-map-pin"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Provincia</div>
+            <div class="eureka-mask-kpi__value">{{ azienda.provincia|default:"—" }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-calendar"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Anno</div>
+            <div class="eureka-mask-kpi__value">{{ azienda.anno_competenza|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ragione sociale</div>
+                <div class="eureka-mask-field__value">{{ azienda.ragione_sociale|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Indirizzo</div>
+                <div class="eureka-mask-field__value">
+                    {% if azienda.indirizzo %}{{ azienda.indirizzo }}{% if azienda.num_civico %} {{ azienda.num_civico }}{% endif %}{% else %}—{% endif %}
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Provincia</div>
-                <div class="datagrid-content">{{ azienda.provincia|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Telefono</div>
-                <div class="datagrid-content">{{ azienda.telefono|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Fax</div>
-                <div class="datagrid-content">{{ azienda.fax|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Email</div>
-                <div class="datagrid-content">{{ azienda.email|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">PEC</div>
-                <div class="datagrid-content">{{ azienda.email_pec|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Anno competenza</div>
-                <div class="datagrid-content">{{ azienda.anno_competenza|default:"—" }}</div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Attività</div>
-                <div class="datagrid-content">
-                    {% if azienda.cod_attivita or azienda.desc_attivita %}
-                        {{ azienda.cod_attivita|default:"" }} {{ azienda.desc_attivita|default:"" }}
-                    {% else %}
-                        —
-                    {% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">CAP / Località</div>
+                <div class="eureka-mask-field__value">
+                    {% if azienda.cap or azienda.localita %}{{ azienda.cap|default:"" }} {{ azienda.localita|default:"" }}{% else %}—{% endif %}
                 </div>
             </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Telefono</div>
+                <div class="eureka-mask-field__value">{{ azienda.telefono|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Fax</div>
+                <div class="eureka-mask-field__value">{{ azienda.fax|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email</div>
+                <div class="eureka-mask-field__value">{{ azienda.email|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">PEC</div>
+                <div class="eureka-mask-field__value">{{ azienda.email_pec|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Attività</div>
+                <div class="eureka-mask-field__value">
+                    {% if azienda.cod_attivita or azienda.desc_attivita %}{{ azienda.cod_attivita|default:"" }} {{ azienda.desc_attivita|default:"" }}{% else %}—{% endif %}
+                </div>
+            </div>
+            {% if azienda_dati and azienda_dati.note %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Note locali</div>
+                <div class="eureka-mask-field__value">{{ azienda_dati.note|linebreaksbr }}</div>
+            </div>
+            {% endif %}
             {% if azienda.synced_at %}
-            <div class="col-12">
-                <div class="text-secondary small">Ultimo sync: {{ azienda.synced_at|date:"d/m/Y H:i" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ azienda.synced_at|date:"d/m/Y H:i" }}</div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-{% if campi %}
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            {% for name, value in campi %}
-            <div class="col-md-4">
-                <div class="datagrid-title">{{ name }}</div>
-                <div class="datagrid-content">{{ value }}</div>
+<div class="eureka-mask-delete" id="eliminaAziendaWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaAzienda">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaAzienda" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ azienda.id }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaAzienda">Annulla</button>
+                        <button type="submit" form="formEliminaAzienda" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
             </div>
-            {% endfor %}
         </div>
     </div>
 </div>
-{% endif %}
 
+<form id="formEliminaAzienda" method="post" action="{% url 'aziende:azienda_delete' azienda.id %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaAzienda");
+  document.getElementById("btnApriEliminaAzienda")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaAzienda")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
 {% endblock %}

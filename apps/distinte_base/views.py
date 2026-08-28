@@ -3,16 +3,38 @@ from urllib.parse import unquote
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.db import connection
-from django.db.models import Q
-from django.shortcuts import render
+from django.db.models import Max, Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
 from django.views.generic import DetailView, ListView
 
-from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
+from apps.core.mirror_crud import mirror_row_to_campi, stamp_modifica
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin, safe_mirror_count
+from apps.core.print_list import MirrorPrintListView
+from apps.core.sorting import SortableListMixin
+from apps.distinte_base.forms import DistintaBaseForm
 from apps.distinte_base.models import DistintaBase
 from apps.distinte_base.sync import sync_distinte_base
 
+
+def _next_distinta_id() -> int:
+    current = DistintaBase.objects.aggregate(m=Max("id"))["m"] or 0
+    return int(current) + 1
+
+
+def _sibling_righe(riga: DistintaBase, limit: int = 50):
+    """Altre righe della stessa distinta (CodiceDB), esclusa la corrente."""
+    if not riga.codice_db:
+        return []
+    try:
+        return list(
+            DistintaBase.objects.filter(codice_db=riga.codice_db)
+            .exclude(pk=riga.pk)
+            .order_by("fase", "codice_art", "id")[:limit]
+        )
+    except Exception:
+        return []
 
 
 def _safe_distinta_list_back_url(request) -> str | None:
@@ -62,10 +84,7 @@ def _distinte_list_context(view, context):
     context["has_filters"] = bool(
         context["q"] or context["codice_db"] or context["codice_art"]
     )
-    try:
-        context["totale"] = DistintaBase.objects.count()
-    except Exception:
-        context["totale"] = 0
+    context["totale"] = safe_mirror_count(DistintaBase.objects)
     return context
 
 
@@ -79,10 +98,14 @@ def fetch_distinta_row(pk: int) -> list[tuple[str, object]] | None:
     return list(zip(columns, row))
 
 
-class DistintaBaseListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
+class DistintaBaseListView(LoginRequiredMixin, SortableListMixin, SafeMirrorListMixin, PerPageListMixin, ListView):
     model = DistintaBase
     template_name = "distinte_base/distinta_list.html"
     context_object_name = "righe"
+    sortable_fields = ("codice_db", "codice_art", "descrizione", "qta", "um", "fase", "id")
+    default_sort = "codice_db"
+    default_dir = "asc"
+    sort_tiebreaker = "id"
     paginate_by = 50
 
     def get_mirror_queryset(self):
@@ -91,6 +114,24 @@ class DistintaBaseListView(LoginRequiredMixin, SafeMirrorListMixin, PerPageListM
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         return _distinte_list_context(self, context)
+
+
+class DistintaBasePrintListView(MirrorPrintListView):
+    print_title = "Distinte base"
+    print_subtitle = "Elenco distinte base"
+    filter_queryset = staticmethod(_filter_distinte_queryset)
+    sortable_fields = ("codice_db", "codice_art", "descrizione", "qta", "um", "fase", "id")
+    default_sort = "codice_db"
+    default_dir = "asc"
+    sort_tiebreaker = "id"
+    print_columns = (
+        {"field": "codice_db", "label": "Distinta"},
+        {"field": "codice_art", "label": "Componente"},
+        {"field": "descrizione", "label": "Descrizione"},
+        {"field": "qta", "label": "Qta", "align": "end"},
+        {"field": "um", "label": "UM"},
+        {"field": "fase", "label": "Fase"},
+    )
 
 
 class DistintaBaseDetailView(LoginRequiredMixin, DetailView):
@@ -102,11 +143,7 @@ class DistintaBaseDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         row = fetch_distinta_row(self.object.pk) or []
-        context["campi"] = [
-            (name, value)
-            for name, value in row
-            if name != "synced_at" and value not in (None, "")
-        ]
+        context["campi"] = mirror_row_to_campi(row)
         context["list_back_url"] = _safe_distinta_list_back_url(self.request)
         context["list_url"] = reverse("distinte_base:list")
         if self.object.codice_db:
@@ -116,7 +153,96 @@ class DistintaBaseDetailView(LoginRequiredMixin, DetailView):
             )
         else:
             context["parent_articolo_url"] = ""
+        context["sibling_righe"] = _sibling_righe(self.object)
         return context
+
+
+class DistintaBaseCreateView(LoginRequiredMixin, View):
+    template_name = "distinte_base/distinta_form.html"
+
+    def get(self, request):
+        initial = {}
+        codice_db = (request.GET.get("codice_db") or "").strip()
+        if codice_db:
+            initial["codice_db"] = codice_db
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": DistintaBaseForm(initial=initial),
+                "is_create": True,
+                "page_heading": "Nuova riga distinta",
+            },
+        )
+
+    def post(self, request):
+        form = DistintaBaseForm(request.POST)
+        if form.is_valid():
+            riga = form.save(commit=False)
+            riga.id = _next_distinta_id()
+            stamp_modifica(riga)
+            riga.save(force_insert=True)
+            messages.success(request, f"Riga distinta {riga.id} creata.")
+            return redirect("distinte_base:detail", pk=riga.id)
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": form,
+                "is_create": True,
+                "page_heading": "Nuova riga distinta",
+            },
+        )
+
+
+class DistintaBaseUpdateView(LoginRequiredMixin, View):
+    template_name = "distinte_base/distinta_form.html"
+
+    def get_object(self, pk):
+        return get_object_or_404(DistintaBase, pk=pk)
+
+    def get(self, request, pk):
+        riga = self.get_object(pk)
+        form = DistintaBaseForm(instance=riga)
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": form,
+                "riga": riga,
+                "is_create": False,
+                "page_heading": "Modifica riga distinta",
+            },
+        )
+
+    def post(self, request, pk):
+        riga = self.get_object(pk)
+        form = DistintaBaseForm(request.POST, instance=riga)
+        if form.is_valid():
+            riga = form.save(commit=False)
+            stamp_modifica(riga)
+            riga.save()
+            messages.success(request, f"Riga distinta {riga.id} aggiornata.")
+            return redirect("distinte_base:detail", pk=riga.id)
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": form,
+                "riga": riga,
+                "is_create": False,
+                "page_heading": "Modifica riga distinta",
+            },
+        )
+
+
+class DistintaBaseDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        riga = get_object_or_404(DistintaBase, pk=pk)
+        label = riga.id
+        riga.delete()
+        messages.success(request, f"Riga distinta {label} eliminata.")
+        return redirect("distinte_base:list")
 
 
 def _pg_table_count(table: str) -> int:

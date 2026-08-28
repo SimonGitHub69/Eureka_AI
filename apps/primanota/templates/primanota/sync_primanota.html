@@ -44,8 +44,9 @@
 <div class="card mb-3">
     <div class="card-body">
         <p class="mb-2">
-            Il sync ricrea le tabelle mirror <code>primanota</code> e <code>primanota_dettaglio</code>
-            con tutte le colonne 4D, poi importa i dati.
+            Il sync importa le tabelle mirror <code>primanota</code> e <code>primanota_dettaglio</code>.
+            Dopo il primo import completo, le sincronizzazioni successive importano solo le righe con
+            <code>ID</code> maggiore dell'ultimo presente in PostgreSQL (molto più veloce).
             Relazione: <code>primanota_dettaglio.id_added_by_converter</code> → <code>primanota.ID</code>.
         </p>
         <p class="text-secondary mb-0">
@@ -53,9 +54,10 @@
             <code>.\.venv\Scripts\python.exe manage.py sync_primanota_4d</code>
         </p>
     </div>
-    <div class="card-footer d-flex justify-content-end">
-        <form method="post">
+    <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <form method="post" class="d-flex flex-wrap align-items-center gap-3">
             {% csrf_token %}
+            {% include "core/partials/sync_mode_options.html" %}
             <button type="submit" class="btn btn-primary"
                     onclick="this.disabled=true; this.innerHTML='<i class=&quot;ti ti-loader-2&quot;></i> Sync in corso...'; this.form.submit();">
                 <i class="ti ti-refresh"></i>

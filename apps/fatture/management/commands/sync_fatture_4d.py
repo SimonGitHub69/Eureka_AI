@@ -1,4 +1,6 @@
 from django.core.management.base import BaseCommand
+
+from apps.core.sync_incremental import add_sync_mode_arguments, sync_full_from_options
 from django.utils import timezone
 
 from apps.fatture.models import SyncFattureLog
@@ -21,14 +23,16 @@ class Command(BaseCommand):
             default="",
             help="Sincronizza solo una tabella (Fatture o Fatture_Dettaglio).",
         )
+        add_sync_mode_arguments(parser)
 
     def handle(self, *args, **options):
+        full = sync_full_from_options(options)
         batch_size = options["batch_size"]
         only = (options.get("only") or "").strip() or None
         log = SyncFattureLog.objects.create(message="Sync in corso...")
         self.stdout.write(self.style.WARNING("Avvio sync 4D -> PostgreSQL..."))
 
-        result = sync_fatture(batch_size=batch_size, only=only)
+        result = sync_fatture(batch_size=batch_size, only=only, full=full)
 
         counts = {t.target: t.rows for t in result.tables}
         log.ok = result.ok

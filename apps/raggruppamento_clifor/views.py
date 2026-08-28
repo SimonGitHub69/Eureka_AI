@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
@@ -8,7 +8,9 @@ from django.views.generic import DetailView, ListView
 
 from apps.anagrafiche.models import Cliente, Fornitore
 from apps.core.mirror_crud import mirror_row_to_campi, save_mirror_form_instance
-from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin
+from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin, safe_mirror_count
+from apps.core.print_list import MirrorPrintListView
+from apps.core.sorting import SortableListMixin
 from apps.raggruppamento_clifor.forms import RaggruppamentoCliforForm
 from apps.raggruppamento_clifor.models import RaggruppamentoClifor
 from apps.raggruppamento_clifor.sync import sync_raggruppamento_clifor
@@ -28,10 +30,7 @@ def _raggruppamento_clifor_list_context(view, context):
     context["filter_query"] = params.urlencode()
     context["q"] = (view.request.GET.get("q") or "").strip()
     context["has_filters"] = bool(context["q"])
-    try:
-        context["totale"] = RaggruppamentoClifor.objects.count()
-    except Exception:
-        context["totale"] = 0
+    context["totale"] = safe_mirror_count(RaggruppamentoClifor.objects)
     return context
 
 
@@ -46,11 +45,15 @@ def fetch_raggruppamento_clifor_row(codice: str) -> list[tuple[str, object]] | N
 
 
 class RaggruppamentoCliforListView(
-    LoginRequiredMixin, SafeMirrorListMixin, PerPageListMixin, ListView
+    LoginRequiredMixin, SortableListMixin, SafeMirrorListMixin, PerPageListMixin, ListView
 ):
     model = RaggruppamentoClifor
     template_name = "raggruppamento_clifor/raggruppamento_list.html"
     context_object_name = "raggruppamenti"
+    sortable_fields = ("codice", "descrizione")
+    default_sort = "codice"
+    default_dir = "asc"
+    sort_tiebreaker = "codice"
     paginate_by = 50
 
     def get_mirror_queryset(self):
@@ -59,6 +62,20 @@ class RaggruppamentoCliforListView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         return _raggruppamento_clifor_list_context(self, context)
+
+
+class RaggruppamentoCliforPrintListView(MirrorPrintListView):
+    print_title = "Raggr. Clienti-Fornitori"
+    print_subtitle = "Elenco raggruppamenti clienti/fornitori"
+    filter_queryset = staticmethod(_filter_raggruppamento_clifor_queryset)
+    sortable_fields = ("codice", "descrizione")
+    default_sort = "codice"
+    default_dir = "asc"
+    sort_tiebreaker = "codice"
+    print_columns = (
+        {"field": "codice", "label": "Codice"},
+        {"field": "descrizione", "label": "Descrizione"},
+    )
 
 
 class RaggruppamentoCliforDetailView(LoginRequiredMixin, DetailView):
@@ -72,20 +89,22 @@ class RaggruppamentoCliforDetailView(LoginRequiredMixin, DetailView):
         row = fetch_raggruppamento_clifor_row(self.object.codice) or []
         context["campi"] = mirror_row_to_campi(row)
         try:
-            clienti_qs = Cliente.objects.filter(gruppo=self.object.codice).order_by(
-                "ragione_sociale1", "codice"
-            )
-            context["clienti_totale"] = clienti_qs.count()
-            context["clienti"] = list(clienti_qs[:20])
+            with transaction.atomic():
+                clienti_qs = Cliente.objects.filter(gruppo=self.object.codice).order_by(
+                    "ragione_sociale1", "codice"
+                )
+                context["clienti_totale"] = clienti_qs.count()
+                context["clienti"] = list(clienti_qs[:20])
         except Exception:
             context["clienti_totale"] = 0
             context["clienti"] = []
         try:
-            fornitori_qs = Fornitore.objects.filter(gruppo=self.object.codice).order_by(
-                "ragione_sociale1", "codice"
-            )
-            context["fornitori_totale"] = fornitori_qs.count()
-            context["fornitori"] = list(fornitori_qs[:20])
+            with transaction.atomic():
+                fornitori_qs = Fornitore.objects.filter(gruppo=self.object.codice).order_by(
+                    "ragione_sociale1", "codice"
+                )
+                context["fornitori_totale"] = fornitori_qs.count()
+                context["fornitori"] = list(fornitori_qs[:20])
         except Exception:
             context["fornitori_totale"] = 0
             context["fornitori"] = []

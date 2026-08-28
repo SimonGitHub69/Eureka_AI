@@ -1,0 +1,167 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Piano dei Conti · Eureka AI{% endblock %}
+{% block page_title %}Piano dei Conti{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist eureka-tlist--pdc">
+
+{% include "pdc/partials/breadcrumb.html" %}
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon eureka-tlist-hero__icon--pdc"><i class="ti ti-report-money"></i></span>
+        <div>
+            <h2 class="page-title mb-0">{{ list_title }}</h2>
+            <div class="text-secondary mt-1">
+                {% if list_livello_label == "Tutti i livelli" %}
+                <span class="eureka-pdc-level-badge eureka-pdc-level-badge--all">{{ list_livello_label }}</span>
+                {% else %}
+                <span class="eureka-pdc-level-badge eureka-pdc-level-badge--{{ list_livello }}">{{ list_livello_label }}</span>
+                {% endif %}
+                <span class="ms-1">· Struttura <code>Mastro.Conto.Sottoconto</code></span>
+                {% include "partials/tlist_count.html" with list_count_total_label="in questo livello" %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-tlist-hero__actions d-flex flex-wrap align-items-center gap-2">
+        {% include "pdc/partials/level_nav.html" %}
+        {% if list_livello == 0 %}
+        <a href="{% url 'pdc:create' %}?livello=mastro" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo mastro
+        </a>
+        {% elif list_livello == 1 and mastro %}
+        <a href="{% url 'pdc:create' %}?livello=conto&mastro={{ mastro }}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo conto
+        </a>
+        {% elif list_livello == 2 and conto %}
+        <a href="{% url 'pdc:create' %}?livello=sottoconto&mastro={{ mastro }}&conto={{ conto }}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo sottoconto
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'pdc:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            {% if mastro %}<input type="hidden" name="mastro" value="{{ mastro }}">{% endif %}
+            {% if conto %}<input type="hidden" name="conto" value="{{ conto }}">{% endif %}
+            {% if vista %}<input type="hidden" name="vista" value="{{ vista }}">{% endif %}
+            {% if gruppo %}<input type="hidden" name="gruppo" value="{{ gruppo }}">{% endif %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, tipo, gruppo..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i> Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'pdc:list' %}?{% if vista %}vista={{ vista }}&{% endif %}{% if mastro %}mastro={{ mastro }}&{% endif %}{% if conto %}conto={{ conto }}{% endif %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                                <tr>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
+                    {% sort_th "tipo_conto" "Tipo conto" default_dir="asc" %}
+                    {% sort_th "gruppo" "Gruppo" default_dir="asc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conto in conti %}
+                <tr>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex flex-column gap-1">
+                        {% if ai_mode %}
+                        <a href="{% url 'pdc:detail' conto.codice %}" class="eureka-tlist-name font-monospace">{{ conto.codice }}</a>
+                        {% elif list_livello == 0 %}
+                        <a href="?mastro={{ conto.codice }}" class="eureka-tlist-name font-monospace">{{ conto.codice }}</a>
+                        {% elif list_livello == 1 %}
+                        <a href="?mastro={{ mastro|default:conto.codice_mastro }}&conto={{ conto.codice }}" class="eureka-tlist-name font-monospace">{{ conto.codice }}</a>
+                        {% else %}
+                        <a href="{% url 'pdc:detail' conto.codice %}" class="eureka-tlist-name font-monospace">{{ conto.codice }}</a>
+                        {% endif %}
+                        <span class="eureka-pdc-level-badge eureka-pdc-level-badge--sm eureka-pdc-level-badge--{{ conto.livello }}">{{ conto.livello_label }}</span>
+                        </div>
+                    </td>
+                    <td>{{ conto.descrizione|default:"—" }}</td>
+                    <td>{% if conto.tipo_conto %}<span class="eureka-tlist-chip">{{ conto.tipo_conto }}</span>{% else %}—{% endif %}</td>
+                    <td>
+                        {% if conto.gruppo %}
+                        <div>
+                            <a href="{% url 'raggruppamento_conti:detail' conto.gruppo %}" class="eureka-tlist-chip text-decoration-none">{{ conto.gruppo }}</a>
+                            {% for code, desc in gruppo_map.items %}
+                            {% if code == conto.gruppo and desc %}
+                            <div class="text-secondary small text-truncate" style="max-width:220px;">{{ desc }}</div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="eureka-tlist-actions">
+                        {% if list_livello < 2 %}
+                        <a href="{% if list_livello == 0 %}?mastro={{ conto.codice }}{% else %}?mastro={{ mastro|default:conto.codice_mastro }}&conto={{ conto.codice }}{% endif %}" class="btn btn-icon" title="Apri livello inferiore">
+                            <i class="ti ti-chevrons-right"></i>
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'pdc:detail' conto.codice %}" class="btn btn-icon" title="Dettaglio">
+                            <i class="ti ti-eye"></i>
+                        </a>
+                        <a href="{% url 'pdc:edit' conto.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-report-money-off"></i></div>
+                            Nessun elemento trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'pdc:list' %}?{% if vista %}vista={{ vista }}&{% endif %}{% if mastro %}mastro={{ mastro }}&{% endif %}{% if conto %}conto={{ conto }}{% endif %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}{{ page_heading }} · Fornitori · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--truck"><i class="ti ti-truck-delivery"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                {% if is_create %}
+                Nuovo fornitore
+                {% else %}
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ fornitore.codice }}</span>
+                {% if fornitore.ragione_sociale1 %}
+                <span class="text-truncate" style="max-width: 28rem;">{{ fornitore.ragione_sociale1 }}</span>
+                {% endif %}
+                {% if fornitore.fl_disattivato %}
+                <span class="badge bg-secondary-lt">Disattivato</span>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'anagrafiche:fornitore_detail' fornitore.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        <a href="{% url 'anagrafiche:fornitori_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" class="eureka-mask-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="eureka-mask-form__body">
+
+    <div class="card eureka-mask-card">
+        <div class="card-header eureka-mask-card__header">
+            <h3 class="card-title">
+                <i class="ti ti-id eureka-mask-card__icon"></i>
+                Anagrafica
+            </h3>
+            <label class="eureka-status-flag" for="{{ form.fl_disattivato.id_for_label }}" title="Stato fornitore">
+                {{ form.fl_disattivato }}
+                <span class="eureka-status-flag__dot" aria-hidden="true"></span>
+                <span class="eureka-status-flag__text">
+                    <span class="eureka-status-flag__on">Attivo</span>
+                    <span class="eureka-status-flag__off">Disattivato</span>
+                </span>
+                <span class="eureka-status-flag__knob" aria-hidden="true"></span>
+            </label>
+            {% if form.fl_disattivato.errors %}
+            <div class="invalid-feedback d-block w-100">{{ form.fl_disattivato.errors|striptags }}</div>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.ragione_sociale1 col="col-8 col-sm-10" %}
+                {% include "partials/mask_field.html" with field=form.ragione_sociale2 col="col-12" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-map-pin eureka-mask-card__icon"></i>
+                Sede
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.indirizzo col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.cap col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.localita col="col-8 col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.provincia col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.cod_nazione col="col-8 col-sm-2" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="ti ti-receipt eureka-mask-card__icon"></i>
+                        Fiscale e banca
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.partita_iva col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.cod_fiscale col="col-sm-6" %}
+                        {% include "partials/mask_field.html" with field=form.banca col="col-12" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="ti ti-briefcase eureka-mask-card__icon"></i>
+                        Condizioni
+                    </h3>
+                </div>
+                <div class="card-body" data-linked-lookups data-lookup-url="{{ lookup_url }}">
+                    <div class="row g-compact">
+                        {% include "partials/mask_linked_code.html" with field=form.agente label=labels.agente tipo="agente" col="col-6" %}
+                        {% include "partials/mask_field.html" with field=form.zona col="col-6" %}
+                        {% include "partials/mask_field.html" with field=form.gruppo col="col-6" %}
+                        {% include "partials/mask_linked_code.html" with field=form.cond_paga label=labels.cond_paga tipo="condizione" col="col-6" %}
+                        {% include "partials/mask_field.html" with field=form.listino col="col-6" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include "anagrafiche/partials/vies_panel.html" with vies_mode="form" form=form subject_label="Fornitore" %}
+    {% include "anagrafiche/partials/cf_panel.html" with cf_mode="form" form=form subject_label="Fornitore" %}
+
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-phone eureka-mask-card__icon"></i>
+                Contatti
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.telefono col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.fax col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.cellulare col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.www col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.email col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.pec col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.email_commerciale col="col-sm-4" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-notes eureka-mask-card__icon"></i>
+                Note
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.note col="col-md-6" %}
+                {% include "partials/mask_field.html" with field=form.annotazioni col="col-md-6" %}
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <div class="eureka-mask-actions">
+        {% if is_create %}
+        <a href="{% url 'anagrafiche:fornitori_list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% else %}
+        <a href="{% url 'anagrafiche:fornitore_detail' fornitore.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ti ti-device-floppy"></i> Salva
+        </button>
+    </div>
+</form>
+
+{% include "destinazioni/partials/anagrafica_card.html" %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=20"></script>
+<script src="{% static 'eureka/js/vies-check.js' %}?v=3"></script>
+<script src="{% static 'eureka/js/cf-check.js' %}?v=1"></script>
+{% endblock %}

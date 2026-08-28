@@ -1,0 +1,144 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}{{ page_heading }} · Causali Contabili · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-file-description"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if is_create %}Nuova causale{% else %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ causale.codice }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'causali_contabili:detail' causale.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        <a href="{% url 'causali_contabili:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" data-linked-lookups data-lookup-url="{{ lookup_url }}">
+    {% csrf_token %}
+    {{ form.desc_reg_iva }}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3">
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">Identificazione</h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-8 col-sm-10" %}
+                {% include "partials/mask_field.html" with field=form.desc_pn col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.tipo_causale col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.registro_iva col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.partite_aperte col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.incrementa_doc col="col-sm-4" %}
+                {% include "partials/mask_linked_code.html" with field=form.cassa_corrispettivi label=labels.cassa_corrispettivi tipo="pdc" col="col-sm-4" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3">
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">Conti dare / avere</h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_1 label=labels.c_dare_1 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_1 label=labels.c_avere_1 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_2 label=labels.c_dare_2 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_2 label=labels.c_avere_2 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_3 label=labels.c_dare_3 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_3 label=labels.c_avere_3 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_4 label=labels.c_dare_4 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_4 label=labels.c_avere_4 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_5 label=labels.c_dare_5 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_5 label=labels.c_avere_5 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_6 label=labels.c_dare_6 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_6 label=labels.c_avere_6 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_7 label=labels.c_dare_7 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_7 label=labels.c_avere_7 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_8 label=labels.c_dare_8 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_8 label=labels.c_avere_8 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_9 label=labels.c_dare_9 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_9 label=labels.c_avere_9 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_dare_10 label=labels.c_dare_10 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.c_avere_10 label=labels.c_avere_10 tipo="pdc_clifor" col="col-6 col-sm-3" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3">
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">Autofattura e documenti</h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.tipo_doc_fel col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.contatore_auto_f col="col-sm-4" %}
+                {% include "partials/mask_linked_code.html" with field=form.causale_colleg_auto_f label=labels.causale_colleg_auto_f tipo="causale_contabile" col="col-sm-4" %}
+                {% include "partials/mask_linked_code.html" with field=form.cliente_auto_f label=labels.cliente_auto_f tipo="cliente" col="col-sm-4" %}
+                {% include "partials/mask_linked_code.html" with field=form.sotto_conto_iva_acq_auto_f label=labels.sotto_conto_iva_acq_auto_f tipo="pdc" col="col-sm-4" %}
+                {% include "partials/mask_linked_code.html" with field=form.sotto_conto_iva_vend_auto_f label=labels.sotto_conto_iva_vend_auto_f tipo="pdc" col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.testo_auto_fattura col="col-12" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card eureka-mask-card--compact mb-3">
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">Opzioni</h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.causale_17_6 col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.tipo_sa col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.flag_red_partitari col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.esterometro col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.autofattura col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.iva_con_autofattura col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.flag_cond_pag col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.cont_analitica_no_control col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.xml_default col="col-sm-4" check=1 %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card">
+        <div class="card-footer d-flex justify-content-end gap-2 py-2">
+            {% if is_create %}
+            <a href="{% url 'causali_contabili:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% else %}
+            <a href="{% url 'causali_contabili:detail' causale.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="ti ti-device-floppy"></i> Salva
+            </button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=26"></script>
+{% endblock %}

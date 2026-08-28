@@ -1,4 +1,34 @@
-from django.db import models
+from django.db import models, transaction
+from django.db.models import TextField
+from django.db.models.functions import Trim, Upper
+from django.db.utils import OperationalError, ProgrammingError
+
+
+def _codice_norm_expr(field="codice"):
+    """Upper(Trim(...)) su TextField: output_field evita mixed types vs CharField."""
+    return Upper(Trim(field), output_field=TextField())
+
+
+def get_by_codice(model, codice: str | None, *, only: tuple[str, ...] | None = None):
+    """Trova record per codice, tollerando spazi residui da campi ALPHA 4D.
+
+    I documenti Eureka normalizzano ``codice_clifor`` con strip; i PK mirror
+    Clienti/Fornitori possono ancora avere padding → ``iexact`` puro fallisce.
+    """
+    code = (codice or "").strip()
+    if not code:
+        return None
+    qs = model.objects.all()
+    exact_qs = qs.only(*only) if only else qs
+    obj = exact_qs.filter(codice__iexact=code).first()
+    if obj is not None:
+        return obj
+    # Fallback padding: evita only()+annotate (Django li gestisce male insieme).
+    return (
+        qs.annotate(_codice_norm=_codice_norm_expr())
+        .filter(_codice_norm=code.upper())
+        .first()
+    )
 
 
 class Cliente(models.Model):
@@ -38,6 +68,8 @@ class Cliente(models.Model):
     cognome = models.TextField(null=True, blank=True, db_column="Cognome")
     nome = models.TextField(null=True, blank=True, db_column="Nome")
     cod_esenz_iva = models.TextField(null=True, blank=True, db_column="CodEsenzIva")
+    data_modifica = models.DateTimeField(null=True, blank=True, db_column="DataModifica")
+    ora_modifica = models.TimeField(null=True, blank=True, db_column="OraModifica")
     synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -55,6 +87,16 @@ class Cliente(models.Model):
     def __str__(self):
         label = self.ragione_sociale or self.codice
         return f"{label} ({self.codice})"
+
+
+def clienti_mirror_available() -> bool:
+    """True se la tabella mirror ``clienti`` esiste ed è interrogabile."""
+    try:
+        with transaction.atomic():
+            Cliente.objects.exists()
+        return True
+    except (ProgrammingError, OperationalError):
+        return False
 
 
 class Fornitore(models.Model):
@@ -86,6 +128,8 @@ class Fornitore(models.Model):
     annotazioni = models.TextField(null=True, blank=True, db_column="Annotazioni")
     note = models.TextField(null=True, blank=True, db_column="Note")
     fl_disattivato = models.BooleanField(null=True, blank=True, db_column="Fl_Disattivato")
+    data_modifica = models.DateTimeField(null=True, blank=True, db_column="DataModifica")
+    ora_modifica = models.TimeField(null=True, blank=True, db_column="OraModifica")
     synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -103,6 +147,16 @@ class Fornitore(models.Model):
     def __str__(self):
         label = self.ragione_sociale or self.codice
         return f"{label} ({self.codice})"
+
+
+def fornitori_mirror_available() -> bool:
+    """True se la tabella mirror ``fornitori`` esiste ed è interrogabile."""
+    try:
+        with transaction.atomic():
+            Fornitore.objects.exists()
+        return True
+    except (ProgrammingError, OperationalError):
+        return False
 
 
 class Agente(models.Model):

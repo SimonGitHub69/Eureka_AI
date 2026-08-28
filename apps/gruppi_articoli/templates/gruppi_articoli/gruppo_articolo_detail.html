@@ -1,83 +1,220 @@
 {% extends "base/layout.html" %}
+{% load format_tags %}
 
 {% block title %}{{ gruppo_articolo.descrizione|default:gruppo_articolo.codice }} · Gruppi articoli · Eureka AI{% endblock %}
-
 {% block page_title %}Gruppo articolo{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ gruppo_articolo.descrizione|default:gruppo_articolo.codice }}</h2>
-            <div class="text-secondary">Codice {{ gruppo_articolo.codice }}</div>
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-folders"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ gruppo_articolo.descrizione|default:gruppo_articolo.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ gruppo_articolo.codice }}</span>
+                {% if gruppo_articolo.f_disattivato %}<span class="badge bg-secondary-lt">Disattivato</span>{% endif %}
+            </div>
         </div>
-        <a href="{% url 'gruppi_articoli:list' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Elenco
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'gruppi_articoli:edit' gruppo_articolo.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'gruppi_articoli:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
         </a>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Dati principali</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="datagrid-title">Descrizione</div>
-                <div class="datagrid-content">{{ gruppo_articolo.descrizione|default:"—" }}</div>
+<div class="card eureka-mask-card mb-3">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Descrizione</div>
+                <div class="eureka-mask-field__value">{{ gruppo_articolo.descrizione|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Disattivato</div>
-                <div class="datagrid-content">
-                    {% if gruppo_articolo.f_disattivato %}Sì{% elif gruppo_articolo.f_disattivato is False %}No{% else %}—{% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Disattivato</div>
+                <div class="eureka-mask-field__value">{% if gruppo_articolo.f_disattivato %}Sì{% elif gruppo_articolo.f_disattivato is False %}No{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultima modifica</div>
+                <div class="eureka-mask-field__value">
+                    {% if gruppo_articolo.data_modifica %}{{ gruppo_articolo.data_modifica|date:"d/m/Y" }}{% else %}—{% endif %}
+                    {% if gruppo_articolo.ora_modifica %} {{ gruppo_articolo.ora_modifica|time:"H:i" }}{% endif %}
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Data modifica</div>
-                <div class="datagrid-content">
-                    {% if gruppo_articolo.data_modifica %}{{ gruppo_articolo.data_modifica|date:"d/m/Y H:i" }}{% else %}—{% endif %}
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Stile font</div>
-                <div class="datagrid-content">{{ gruppo_articolo.font_style|default:"—" }}</div>
-            </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Stile font GZ</div>
-                <div class="datagrid-content">{{ gruppo_articolo.font_style_gz|default:"—" }}</div>
-            </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Stile font MZ</div>
-                <div class="datagrid-content">{{ gruppo_articolo.font_style_mz|default:"—" }}</div>
             </div>
             {% if gruppo_articolo.synced_at %}
-            <div class="col-12">
-                <div class="text-secondary small">Ultimo sync: {{ gruppo_articolo.synced_at|date:"d/m/Y H:i" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ gruppo_articolo.synced_at|date:"d/m/Y H:i" }}</div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-{% if campi %}
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Tutti i campi 4D</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            {% for name, value in campi %}
-            <div class="col-md-4">
-                <div class="datagrid-title">{{ name }}</div>
-                <div class="datagrid-content">{{ value }}</div>
+{% for title, fs, fore, back in style_previews %}
+<div class="eureka-style-section{% if forloop.first %} is-open{% endif %} mb-2">
+    <button type="button" class="eureka-style-section__toggle" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+        <span class="eureka-style-section__title">
+            <i class="ti ti-chevron-right eureka-style-section__chevron"></i>
+            {{ title }}
+        </span>
+        <span class="eureka-style-section__summary">
+            <span class="eureka-rgb-swatch eureka-rgb-swatch--sm" style="background:{{ fore|packed_rgb_hex|default:'#e9ecef' }};" title="Testo"></span>
+            <span class="eureka-rgb-swatch eureka-rgb-swatch--sm" style="background:{{ back|packed_rgb_hex|default:'#e9ecef' }};" title="Sfondo"></span>
+        </span>
+    </button>
+    <div class="eureka-style-section__body">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Font-style</div>
+                <div class="eureka-mask-field__value">
+                    {% with label=fs|font_style_label %}
+                    {% if label != "—" %}
+                    <span style="
+                        {% if fs.1 == '1' %}font-weight:700;{% endif %}
+                        {% if fs.2 == '1' %}font-style:italic;{% endif %}
+                        {% if fs.3 == '1' %}text-decoration:underline;{% endif %}
+                    ">{{ label }}</span>
+                    {% else %}—{% endif %}
+                    {% endwith %}
+                </div>
             </div>
-            {% endfor %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Colore testo</div>
+                <div class="eureka-mask-field__value d-flex align-items-center gap-2">
+                    <span class="eureka-rgb-swatch" style="background:{{ fore|packed_rgb_hex|default:'#e9ecef' }};"></span>
+                    {{ fore|packed_rgb_hex|default:"—"|upper }}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Colore sfondo</div>
+                <div class="eureka-mask-field__value d-flex align-items-center gap-2">
+                    <span class="eureka-rgb-swatch" style="background:{{ back|packed_rgb_hex|default:'#e9ecef' }};"></span>
+                    {{ back|packed_rgb_hex|default:"—"|upper }}
+                </div>
+            </div>
+            <div class="eureka-mask-field" style="grid-column: 1 / -1;">
+                <div class="eureka-mask-field__label">Anteprima</div>
+                <div class="eureka-mask-field__value">
+                    <span class="d-inline-block px-3 py-2 rounded"
+                          style="
+                            color: {{ fore|packed_rgb_hex|default:'#000000' }};
+                            background: {{ back|packed_rgb_hex|default:'#ffffff' }};
+                            border: 1px solid rgba(0,0,0,.08);
+                            {% if fs.1 == '1' %}font-weight:700;{% else %}font-weight:600;{% endif %}
+                            {% if fs.2 == '1' %}font-style:italic;{% endif %}
+                            {% if fs.3 == '1' %}text-decoration:underline;{% endif %}
+                          ">
+                        {{ gruppo_articolo.descrizione|default:gruppo_articolo.codice }}
+                    </span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-{% endif %}
+{% endfor %}
 
+<style>
+.eureka-style-section {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.55rem;
+    background: #fff;
+    overflow: hidden;
+}
+.eureka-style-section__toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border: 0;
+    background: #f8fafc;
+    cursor: pointer;
+    text-align: left;
+}
+.eureka-style-section__toggle:hover { background: #f1f5f9; }
+.eureka-style-section__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    color: var(--tblr-secondary, #667382);
+    text-transform: uppercase;
+}
+.eureka-style-section__chevron { transition: transform .15s ease; font-size: 1rem; }
+.eureka-style-section.is-open .eureka-style-section__chevron { transform: rotate(90deg); }
+.eureka-style-section__summary { display: inline-flex; align-items: center; gap: 0.35rem; }
+.eureka-style-section__body {
+    display: none;
+    padding: 0.75rem 0.85rem 0.85rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.eureka-style-section.is-open .eureka-style-section__body { display: block; }
+.eureka-rgb-swatch {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 0.35rem;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    flex-shrink: 0;
+    display: inline-block;
+}
+.eureka-rgb-swatch--sm { width: 1.1rem; height: 1.1rem; border-radius: 0.3rem; }
+</style>
+
+<div class="eureka-mask-delete" id="eliminaGruppoArticoloWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaGruppoArticolo">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaGruppoArticolo" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ gruppo_articolo.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaGruppoArticolo">Annulla</button>
+                        <button type="submit" form="formEliminaGruppoArticolo" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaGruppoArticolo" method="post" action="{% url 'gruppi_articoli:delete' gruppo_articolo.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaGruppoArticolo");
+  document.getElementById("btnApriEliminaGruppoArticolo")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaGruppoArticolo")?.addEventListener("click", () => panel?.classList.add("d-none"));
+
+  document.querySelectorAll(".eureka-style-section").forEach((section) => {
+    const toggle = section.querySelector(".eureka-style-section__toggle");
+    toggle?.addEventListener("click", () => {
+      const open = section.classList.toggle("is-open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  });
+})();
+</script>
 {% endblock %}

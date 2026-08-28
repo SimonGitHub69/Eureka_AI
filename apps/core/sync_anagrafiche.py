@@ -21,10 +21,13 @@ TABLES = (
 )
 
 
-def sync_clienti_fornitori(batch_size: int = 2000, only: str | None = None) -> SyncResult:
+def sync_clienti_fornitori(
+    batch_size: int = 2000, only: str | None = None, full: bool = False
+) -> SyncResult:
     return sync_tables(
         TABLES,
         batch_size=batch_size,
         only=only,
+        full=full,
         success_message="Sincronizzazione Clienti / Fornitori / Agenti completata.",
     )

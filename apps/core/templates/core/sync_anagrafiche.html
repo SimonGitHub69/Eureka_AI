@@ -67,6 +67,7 @@
     <div class="card-footer d-flex justify-content-end">
         <form method="post">
             {% csrf_token %}
+            {% include "core/partials/sync_mode_options.html" %}
             <button type="submit" class="btn btn-primary"
                     onclick="this.disabled=true; this.innerHTML='<i class=&quot;ti ti-loader-2&quot;></i> Sync in corso...'; this.form.submit();">
                 <i class="ti ti-refresh"></i>

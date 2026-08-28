@@ -1,0 +1,160 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Piano dei Conti · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--wide eureka-mask--pdc eureka-mask--pdc-l{{ livello }}">
+
+{% include "pdc/partials/breadcrumb.html" %}
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--pdc" aria-hidden="true">
+            {% if livello == 0 %}<i class="ti ti-folder"></i>
+            {% elif livello == 1 %}<i class="ti ti-folder-open"></i>
+            {% else %}<i class="ti ti-file-invoice"></i>{% endif %}
+        </span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-pdc-level-badge eureka-pdc-level-badge--{{ livello }}">{{ livello_label }}</span>
+                {% if not is_create and conto %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ conto.codice }}</span>{% endif %}
+                <span class="text-secondary small">Struttura <code>Mastro.Conto.Sottoconto</code></span>
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'pdc:detail' conto.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        <a href="{% url 'pdc:list' %}{% if livello == 1 %}?mastro={{ conto.codice_mastro|default:mastro_codice }}{% elif livello == 2 %}?mastro={{ conto.codice_mastro|default:mastro_codice }}&conto={{ conto.codice_conto|default:conto_codice }}{% endif %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<ol class="eureka-pdc-stepper" aria-label="Livello in modifica">
+    <li class="eureka-pdc-stepper__item{% if livello == 0 %} is-active{% elif livello > 0 %} is-done{% endif %}">
+        <span class="eureka-pdc-stepper__num">1</span>
+        <span class="eureka-pdc-stepper__label">Mastro</span>
+    </li>
+    <li class="eureka-pdc-stepper__item{% if livello == 1 %} is-active{% elif livello > 1 %} is-done{% endif %}{% if livello < 1 %} is-muted{% endif %}">
+        <span class="eureka-pdc-stepper__num">2</span>
+        <span class="eureka-pdc-stepper__label">Conto</span>
+    </li>
+    <li class="eureka-pdc-stepper__item{% if livello == 2 %} is-active{% endif %}{% if livello < 2 %} is-muted{% endif %}">
+        <span class="eureka-pdc-stepper__num">3</span>
+        <span class="eureka-pdc-stepper__label">Sottoconto</span>
+    </li>
+</ol>
+
+{% if descrizione_mastro or descrizione_conto %}
+<div class="eureka-pdc-parent-strip">
+    {% if descrizione_mastro %}
+    <div class="eureka-pdc-parent-chip">
+        <span class="eureka-pdc-parent-chip__icon"><i class="ti ti-folder"></i></span>
+        <div>
+            <div class="eureka-pdc-parent-chip__label">Mastro {{ mastro_codice }}</div>
+            <div class="eureka-pdc-parent-chip__value">{{ descrizione_mastro }}</div>
+        </div>
+    </div>
+    {% endif %}
+    {% if descrizione_conto %}
+    <div class="eureka-pdc-parent-chip">
+        <span class="eureka-pdc-parent-chip__icon eureka-pdc-parent-chip__icon--conto"><i class="ti ti-folder-open"></i></span>
+        <div>
+            <div class="eureka-pdc-parent-chip__label">Conto {{ conto_codice }}</div>
+            <div class="eureka-pdc-parent-chip__value">{{ descrizione_conto }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<form method="post" autocomplete="off" class="eureka-mask-form">
+    {% csrf_token %}
+    {% if is_create %}
+    <input type="hidden" name="livello" value="{% if livello == 0 %}mastro{% elif livello == 1 %}conto{% else %}sottoconto{% endif %}">
+    {% if mastro_codice %}<input type="hidden" name="mastro" value="{{ mastro_codice }}">{% endif %}
+    {% if conto_codice %}<input type="hidden" name="conto" value="{{ conto_codice }}">{% endif %}
+    {% endif %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2" data-eureka-error-sound>{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--pdc mb-3">
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-edit"></i></span>
+                {{ livello_label }}
+            </h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% if form.codice_suffix %}
+                {{ form.codice }}
+                <div class="col-sm-4">
+                    <label class="form-label" for="{{ form.codice_suffix.id_for_label }}">{{ form.codice_suffix.label }}</label>
+                    <div class="input-group eureka-pdc-code-group{% if form.codice_suffix.errors or form.codice.errors %} has-validation{% endif %}">
+                        <span class="input-group-text font-monospace user-select-all">{{ codice_prefix }}</span>
+                        <input type="text"
+                               name="{{ form.codice_suffix.html_name }}"
+                               id="{{ form.codice_suffix.id_for_label }}"
+                               value="{{ form.codice_suffix.value|default_if_none:'' }}"
+                               class="form-control{% if form.codice_suffix.errors or form.codice.errors %} is-invalid{% endif %}"
+                               autocomplete="off"
+                               {% if form.codice_suffix.field.required %}required{% endif %}>
+                        {% if form.codice_suffix.errors or form.codice.errors %}
+                        <div class="invalid-feedback">
+                            {% for err in form.codice_suffix.errors %}{{ err }}{% endfor %}
+                            {% for err in form.codice.errors %}{{ err }}{% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if form.codice_suffix.help_text %}<div class="form-hint">{{ form.codice_suffix.help_text }}</div>{% endif %}
+                </div>
+                {% else %}
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-3" %}
+                {% endif %}
+                {% include "partials/mask_field.html" with field=form.descrizione col="col-12" %}
+
+                {% if livello == 0 or livello == 1 %}
+                {% include "partials/mask_field.html" with field=form.tipo_conto col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.gruppo col="col-sm-4" %}
+                {% endif %}
+
+                {% if livello == 2 %}
+                {% include "partials/mask_field.html" with field=form.gruppo_cee col="col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.modifica_cespiti col="col-sm-4" check=1 %}
+                {% include "partials/mask_field.html" with field=form.cod_voce_analitica col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.cod_centro_analisi col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.f_non_integrare col="col-sm-4" check=1 %}
+                {% if eureka_azienda_noleggio %}
+                {% include "partials/mask_field.html" with field=form.nomenclatura col="col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.bene_servizio col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.tipo_noleggio col="col-sm-3" %}
+                {% endif %}
+                {% include "partials/mask_field.html" with field=form.disabilitato col="col-sm-4" check=1 %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2 py-2">
+            {% if is_create %}
+            <a href="{% url 'pdc:list' %}{% if livello == 1 %}?mastro={{ mastro_codice }}{% elif livello == 2 %}?mastro={{ mastro_codice }}&conto={{ conto_codice }}{% endif %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% else %}
+            <a href="{% url 'pdc:detail' conto.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="ti ti-device-floppy"></i> Salva
+            </button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}

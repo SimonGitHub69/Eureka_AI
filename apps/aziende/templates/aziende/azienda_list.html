@@ -1,43 +1,48 @@
 {% extends "base/layout.html" %}
 
 {% block title %}Aziende · Eureka AI{% endblock %}
-
 {% block page_title %}Aziende{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-building"></i></span>
         <div>
-            <h2 class="page-title">Aziende</h2>
-            <div class="text-secondary">
+            <h2 class="page-title mb-0">Aziende</h2>
+            <div class="text-secondary mt-1">
                 Anagrafica azienda importata da 4D (<code>Azienda</code>);
-                logo e note locali gestiti in Eureka
-                {% if totale %}· {{ totale }} totali{% endif %}
+                logo e note locali gestiti in Eureka (incluso logo stampe documenti)
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
     </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="aziende:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="aziende:export_list" %}
+        <a href="{% url 'aziende:azienda_create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuova azienda
+        </a>
+    </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'aziende:list' %}">
-            <div class="row g-2 align-items-end">
-                <div class="col-lg-8">
-                    <label class="form-label" for="aziendeSearch">Ricerca</label>
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
                     <div class="input-icon">
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
-                        <input
-                            type="text"
-                            id="aziendeSearch"
-                            name="q"
-                            value="{{ q }}"
-                            class="form-control"
-                            placeholder="Ragione sociale, P.IVA, CF, località, email...">
+                        <input type="text" id="aziendeSearch" name="q" value="{{ q }}" class="form-control" placeholder="Cerca per ragione sociale, P.IVA, CF, località, email...">
                     </div>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
                         <i class="ti ti-filter"></i>
                         Filtra
                     </button>
@@ -54,15 +59,13 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th class="w-1">Logo</th>
-                    <th>Ragione sociale</th>
-                    <th>Località</th>
-                    <th>P. IVA</th>
-                    <th>Telefono</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "ragione_sociale" "Azienda" default_dir="asc" %}
+                    {% sort_th "partita_iva" "P. IVA" default_dir="asc" %}
+                    {% sort_th "localita" "Località" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -70,60 +73,75 @@
                 {% for azienda in aziende %}
                 <tr>
                     <td>
-                        <a href="{% url 'aziende:detail' azienda.id %}" class="fw-semibold text-decoration-none">
-                            {{ azienda.id }}
-                        </a>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if azienda.dati_locali and azienda.dati_locali.logo %}
+                            <span class="eureka-tlist-avatar bg-blue-lt p-1 overflow-hidden">
+                                <img src="{{ azienda.dati_locali.logo.url }}" alt="" style="width:100%;height:100%;object-fit:contain;">
+                            </span>
+                            {% else %}
+                            <span class="eureka-tlist-avatar bg-blue-lt">
+                                <i class="ti ti-building"></i>
+                            </span>
+                            {% endif %}
+                            <div class="overflow-hidden">
+                                <a href="{% url 'aziende:detail' azienda.id %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 380px;" title="{{ azienda.ragione_sociale }}">
+                                    {{ azienda.ragione_sociale|default:azienda.id }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ azienda.id }}
+                                </span>
+                            </div>
+                        </div>
                     </td>
                     <td>
-                        {% if azienda.dati_locali and azienda.dati_locali.logo %}
-                            <img
-                                src="{{ azienda.dati_locali.logo.url }}"
-                                alt=""
-                                style="width: 36px; height: 36px; object-fit: contain;"
-                            >
-                        {% else %}
-                            <span class="text-secondary">—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 320px;" title="{{ azienda.ragione_sociale }}">
-                            {{ azienda.ragione_sociale|default:"—" }}
+                        {% if azienda.partita_iva %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-receipt-tax text-azure"></i>
+                            {{ azienda.partita_iva }}
                         </span>
+                        {% else %}
+                        <span class="text-secondary">—</span>
+                        {% endif %}
                     </td>
                     <td>
                         {% if azienda.localita or azienda.provincia %}
+                        <span class="eureka-tlist-chip">
+                            <i class="ti ti-map-pin text-green"></i>
                             {{ azienda.localita|default:"" }}{% if azienda.provincia %} ({{ azienda.provincia }}){% endif %}
+                        </span>
                         {% else %}
-                            —
+                        <span class="text-secondary">—</span>
                         {% endif %}
                     </td>
-                    <td>{{ azienda.partita_iva|default:"—" }}</td>
-                    <td>{{ azienda.telefono|default:"—" }}</td>
-                    <td>
-                        <div class="btn-list flex-nowrap">
-                            <a href="{% url 'aziende:edit' azienda.id %}" class="btn btn-ghost-primary btn-icon" title="Logo e dati locali">
-                                <i class="ti ti-photo"></i>
-                            </a>
-                            <a href="{% url 'aziende:detail' azienda.id %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                                <i class="ti ti-chevron-right"></i>
-                            </a>
-                        </div>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'aziende:azienda_update' azienda.id %}" class="btn btn-icon" title="Modifica anagrafica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                        <a href="{% url 'aziende:edit' azienda.id %}" class="btn btn-icon" title="Logo e dati locali">
+                            <i class="ti ti-photo"></i>
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-secondary py-5">
-                        <i class="ti ti-building-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
-                        Nessuna azienda trovata
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'aziende:list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="4">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-building"></i></div>
+                            Nessuna azienda trovata
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'aziende:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
     {% include "partials/pagination.html" %}
+</div>
+
 </div>
 
 {% endblock %}

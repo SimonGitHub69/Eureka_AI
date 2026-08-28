@@ -1,0 +1,184 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}Movimento {{ movimento.num_registraz|default:movimento.id_testa }} · Eureka AI{% endblock %}
+{% block page_title %}Movimento{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-transfer"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">Movimento {{ movimento.num_registraz|default:"—" }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ movimento.id_testa }}</span>
+                {% if movimento.data_registraz %}<span class="badge bg-azure-lt">{{ movimento.data_registraz|date:"d/m/Y" }}</span>{% endif %}
+                {% if movimento.causale %}
+                <a href="{% url 'causali_magazzino:detail' movimento.causale %}?next={{ request.get_full_path|urlencode }}" class="badge bg-orange-lt text-decoration-none">{% if movimento.causale_descrizione %}{{ movimento.causale }} — {{ movimento.causale_descrizione }}{% else %}{{ movimento.causale }}{% endif %}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-arrow-left"></i> {{ back_label }}
+        </a>
+        {% endif %}
+        <a href="{% url 'movimenti:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+{% if dettaglio_mancante %}
+<div class="alert alert-warning">
+    Tabella <code>movimentit_dettaglio</code> non ancora importata.
+    Completa lo step <strong>Movimenti magazzino</strong> in
+    <a href="{% url 'core:parametri_4d' %}">Parametri 4D</a>.
+</div>
+{% endif %}
+
+<div class="card eureka-mask-card mb-3">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">N. registrazione</div>
+                <div class="eureka-mask-field__value">{{ movimento.num_registraz|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Data registrazione</div>
+                <div class="eureka-mask-field__value">{% if movimento.data_registraz %}{{ movimento.data_registraz|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Causale</div>
+                <div class="eureka-mask-field__value">
+                    {% if movimento.causale %}
+                    <a href="{% url 'causali_magazzino:detail' movimento.causale %}?next={{ request.get_full_path|urlencode }}">{{ movimento.causale }}</a>{% if movimento.causale_descrizione %}<span class="text-secondary"> — {{ movimento.causale_descrizione }}</span>{% endif %}
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Documento</div>
+                <div class="eureka-mask-field__value">{{ movimento.num_doc|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Data documento</div>
+                <div class="eureka-mask-field__value">{% if movimento.data_doc %}{{ movimento.data_doc|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo</div>
+                <div class="eureka-mask-field__value">{{ movimento.tipo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cliente</div>
+                <div class="eureka-mask-field__value">
+                    {% if movimento.cliente %}
+                    <a href="{% url 'anagrafiche:cliente_detail' movimento.cliente %}?next={{ request.get_full_path|urlencode }}">{{ movimento.cliente }}</a>{% if movimento.cliente_ragione_sociale %}<span class="text-secondary"> — {{ movimento.cliente_ragione_sociale }}</span>{% endif %}
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Fornitore</div>
+                <div class="eureka-mask-field__value">
+                    {% if movimento.fornitore %}
+                    <a href="{% url 'anagrafiche:fornitore_detail' movimento.fornitore %}?next={{ request.get_full_path|urlencode }}">{{ movimento.fornitore }}</a>{% if movimento.fornitore_ragione_sociale %}<span class="text-secondary"> — {{ movimento.fornitore_ragione_sociale }}</span>{% endif %}
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Dep. entrata</div>
+                <div class="eureka-mask-field__value">
+                    {% if movimento.dep_entrata %}
+                        {% if dep_entrata_deposito %}
+                    <a href="{% url 'depositi:detail' dep_entrata_deposito %}?next={{ request.get_full_path|urlencode }}">{{ movimento.dep_entrata }}</a>
+                        {% else %}
+                    {{ movimento.dep_entrata }}
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Dep. uscita</div>
+                <div class="eureka-mask-field__value">
+                    {% if movimento.dep_uscita %}
+                        {% if dep_uscita_deposito %}
+                    <a href="{% url 'depositi:detail' dep_uscita_deposito %}?next={{ request.get_full_path|urlencode }}">{{ movimento.dep_uscita }}</a>
+                        {% else %}
+                    {{ movimento.dep_uscita }}
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Righe</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+            <thead>
+                <tr>
+                    <th class="w-1">Pos.</th>
+                    <th>Articolo</th>
+                    <th>Descrizione</th>
+                    <th class="text-end">Quantità</th>
+                    <th class="text-end">P. lordo</th>
+                    <th class="text-end">Sconto</th>
+                    <th class="text-end">P. netto</th>
+                    <th class="text-end">Valore tot.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in righe %}
+                <tr>
+                    <td class="text-secondary">{{ r.pos|default:forloop.counter }}</td>
+                    <td>
+                        {% if r.codice_art %}
+                        <a href="{% url 'articoli:detail' r.codice_art %}?next={{ request.get_full_path|urlencode }}">{{ r.codice_art }}</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ r.descrizione|default:"" }}</td>
+                    <td class="text-end">{% if r.quantita is not None %}{{ r.quantita|euro }}{% else %}—{% endif %}</td>
+                    <td class="text-end text-nowrap">{% if r.prezzo_lordo %}{{ r.prezzo_lordo|prezzo }}{% else %}—{% endif %}</td>
+                    <td class="text-end text-nowrap text-secondary">{% if r.sconto %}{{ r.sconto }}{% else %}—{% endif %}</td>
+                    <td class="text-end text-nowrap">{% if r.prezzo_netto %}{{ r.prezzo_netto|prezzo }}{% else %}—{% endif %}</td>
+                    <td class="text-end">{% if r.valore_totale is not None %}€ {{ r.valore_totale|euro }}{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-secondary py-4">Nessuna riga di dettaglio</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if campi %}
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Altri campi 4D</h3>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            {% for name, value in campi %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+</div>
+
+{% endblock %}

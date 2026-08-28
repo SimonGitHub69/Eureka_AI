@@ -1,0 +1,37 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="text-secondary">{{ page_subtitle }}</div>
+        </div>
+        <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary">
+            <i class="ti ti-list"></i>
+            Elenco fatture
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-warning" role="alert">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h3 class="alert-title mb-1">Tabelle fatture non presenti</h3>
+            <div class="text-secondary">
+                La tabella mirror <code>fatture</code> non esiste ancora nel database locale.
+                Va creata sincronizzando i dati da 4D (Parametri → Sync fatture).
+            </div>
+        </div>
+        <a href="{% url 'fatture:sync' %}" class="btn btn-primary">
+            <i class="ti ti-refresh"></i>
+            Vai a Sync fatture
+        </a>
+    </div>
+</div>
+
+{% endblock %}

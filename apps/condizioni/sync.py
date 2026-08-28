@@ -11,10 +11,11 @@ TABLES = (
 )
 
 
-def sync_condizioni(batch_size: int = 2000, only: str | None = None) -> SyncResult:
+def sync_condizioni(batch_size: int = 2000, only: str | None = None, full: bool = False) -> SyncResult:
     return sync_tables(
         TABLES,
         batch_size=batch_size,
         only=only,
-        success_message="Sincronizzazione Condizioni (CondizioniPag) completata.",
+        full=full,
+        success_message="Sincronizzazione Condizioni di Pagamento (CondizioniPag) completata.",
     )

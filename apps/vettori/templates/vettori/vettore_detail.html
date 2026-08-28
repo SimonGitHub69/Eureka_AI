@@ -1,0 +1,143 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ vettore.denominazione|default:vettore.codice }} · Spedizionieri · Eureka AI{% endblock %}
+{% block page_title %}Spedizioniere{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-truck"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ vettore.denominazione|default:vettore.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ vettore.codice }}</span>
+                {% if vettore.sigla_abbreviata %}<span class="badge bg-azure-lt">{{ vettore.sigla_abbreviata }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'vettori:edit' vettore.codice %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'vettori:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice</div>
+                <div class="eureka-mask-field__value">{{ vettore.codice }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Denominazione</div>
+                <div class="eureka-mask-field__value">{{ vettore.denominazione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Indirizzo</div>
+                <div class="eureka-mask-field__value">{{ vettore.indirizzo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Città</div>
+                <div class="eureka-mask-field__value">{{ vettore.citta|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Telefono</div>
+                <div class="eureka-mask-field__value">{{ vettore.telefono|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Partita IVA</div>
+                <div class="eureka-mask-field__value">{{ vettore.partita_iva|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice fiscale</div>
+                <div class="eureka-mask-field__value">{{ vettore.codice_fiscale|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Iscrizione albo</div>
+                <div class="eureka-mask-field__value">{{ vettore.iscrizione_albo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email</div>
+                <div class="eureka-mask-field__value">{{ vettore.email|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">ID Paese</div>
+                <div class="eureka-mask-field__value">{{ vettore.id_paese|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Nazione</div>
+                <div class="eureka-mask-field__value">{{ vettore.nazione|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice EORI</div>
+                <div class="eureka-mask-field__value">{{ vettore.cod_eori|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Sigla</div>
+                <div class="eureka-mask-field__value">{{ vettore.sigla_abbreviata|default:"—" }}</div>
+            </div>
+            {% if vettore.synced_at %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ vettore.synced_at|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% endif %}
+            {% for name, value in campi %}
+            {% if name != "CodiceVet" and name != "Denominazione" and name != "Indirizzo" and name != "Citta" and name != "Telefono" and name != "PartitaIva" and name != "IscrizioneAlbo" and name != "Email" and name != "IDPaese" and name != "Nazione" and name != "CodEORI" and name != "CodFiscale" and name != "Sigla_Abbreviata" %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">{{ name }}</div>
+                <div class="eureka-mask-field__value">{{ value }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaVettoreWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaVettore">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaVettore" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ vettore.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaVettore">Annulla</button>
+                        <button type="submit" form="formEliminaVettore" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaVettore" method="post" action="{% url 'vettori:delete' vettore.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaVettore");
+  document.getElementById("btnApriEliminaVettore")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaVettore")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

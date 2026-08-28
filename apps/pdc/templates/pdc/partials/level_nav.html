@@ -1,0 +1,13 @@
+{% if level_nav %}
+<div class="btn-group eureka-pdc-level-nav" role="group" aria-label="Livello piano dei conti">
+    {% for item in level_nav %}
+    <a href="{{ item.url }}"
+       class="btn btn-sm eureka-pdc-level-nav__btn {% if item.active %}is-active{% endif %}">
+        {% if forloop.counter0 == 0 %}<i class="ti ti-folder me-1" aria-hidden="true"></i>
+        {% elif forloop.counter0 == 1 %}<i class="ti ti-folder-open me-1" aria-hidden="true"></i>
+        {% else %}<i class="ti ti-file-invoice me-1" aria-hidden="true"></i>{% endif %}
+        {{ item.label }}
+    </a>
+    {% endfor %}
+</div>
+{% endif %}

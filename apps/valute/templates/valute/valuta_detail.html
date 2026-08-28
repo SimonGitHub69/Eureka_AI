@@ -1,0 +1,285 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+
+{% block title %}{{ valuta.descrizione|default:valuta.codice }} · Valute · Eureka AI{% endblock %}
+
+{% block page_title %}Valuta{% endblock %}
+
+
+
+{% block content %}
+
+
+
+<div class="eureka-mask eureka-mask--valute">
+
+
+
+<div class="eureka-mask-hero">
+
+    <div class="eureka-mask-hero__title">
+
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--valute">{{ currency_symbol }}</span>
+
+        <div class="overflow-hidden">
+
+            <h2 class="page-title text-truncate">{{ valuta.descrizione|default:valuta.codice }}</h2>
+
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ valuta.codice }}</span>
+
+                {% if valuta.abbrev %}<span class="badge bg-azure-lt">{{ valuta.abbrev }}</span>{% endif %}
+
+                {% if valuta.dummy %}<span class="badge bg-secondary-lt">Dummy</span>{% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="eureka-mask-hero__actions">
+
+        <a href="{% url 'valute:edit' valuta.codice %}" class="btn btn-primary btn-sm">
+
+            <i class="ti ti-pencil"></i> Modifica
+
+        </a>
+
+        <a href="{% url 'valute:list' %}" class="btn btn-outline-secondary btn-sm">
+
+            <i class="ti ti-arrow-left"></i> Elenco
+
+        </a>
+
+    </div>
+
+</div>
+
+
+
+<div class="eureka-mask-kpis">
+
+    <div class="eureka-mask-kpi{% if not valuta.abbrev %} is-empty{% endif %}">
+
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-letter-case"></i></span>
+
+        <div>
+
+            <div class="eureka-mask-kpi__label">Abbreviazione</div>
+
+            <div class="eureka-mask-kpi__value">{% if valuta.abbrev %}{{ valuta.abbrev }}{% else %}Non impostata{% endif %}</div>
+
+        </div>
+
+    </div>
+
+    <div class="eureka-mask-kpi{% if cambio_corrente is None %} is-empty{% endif %}">
+
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-currency-euro"></i></span>
+
+        <div>
+
+            <div class="eureka-mask-kpi__label">Cambio (€)</div>
+
+            <div class="eureka-mask-kpi__value">{% if cambio_corrente is not None %}{{ cambio_corrente }}{% else %}Non impostato{% endif %}</div>
+
+        </div>
+
+    </div>
+
+    <div class="eureka-mask-kpi">
+
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-list-details"></i></span>
+
+        <div>
+
+            <div class="eureka-mask-kpi__label">Storico cambi</div>
+
+            <div class="eureka-mask-kpi__value">{{ cambi|length }}</div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="row g-3">
+
+    <div class="col-lg-5">
+
+        <div class="eureka-mask-panel h-100">
+
+            <div class="eureka-mask-panel__head">
+
+                <span class="eureka-mask-panel__icon eureka-mask-panel__icon--blue"><i class="ti ti-id"></i></span>
+
+                <h3 class="eureka-mask-panel__title">Anagrafica</h3>
+
+            </div>
+
+            <div class="eureka-mask-panel__body">
+
+                <div class="eureka-mask-grid">
+
+                    {% include "partials/mask_detail_field.html" with label="Codice valuta" value=valuta.codice mono=True %}
+
+                    {% include "partials/mask_detail_field.html" with label="Descrizione" value=valuta.descrizione %}
+
+                    {% include "partials/mask_detail_field.html" with label="Abbreviazione" value=valuta.abbrev %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="col-lg-7">
+
+        <div class="eureka-mask-panel h-100">
+
+            <div class="eureka-mask-panel__head">
+
+                <span class="eureka-mask-panel__icon eureka-mask-panel__icon--green"><i class="ti ti-chart-line"></i></span>
+
+                <h3 class="eureka-mask-panel__title">Storico cambi</h3>
+
+                {% if cambi %}<span class="badge bg-green-lt ms-auto">{{ cambi|length }}</span>{% endif %}
+
+            </div>
+
+            {% if cambi %}
+
+            <div class="table-responsive">
+
+                <table class="table table-vcenter card-table mb-0 eureka-cambi-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Data</th>
+
+                            <th class="text-end">Cambio (€)</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for riga in cambi %}
+
+                        <tr{% if forloop.first %} class="is-latest"{% endif %}>
+
+                            <td>
+
+                                {% if riga.data_locale %}{{ riga.data_locale|date:"d/m/Y" }}{% else %}—{% endif %}
+
+                                {% if forloop.first %}<span class="badge bg-green-lt ms-1">Più recente</span>{% endif %}
+
+                            </td>
+
+                            <td class="text-end font-monospace fw-semibold">{% if riga.cambio is not None %}{{ riga.cambio }}{% else %}—{% endif %}</td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <div class="eureka-mask-panel__body">
+
+                <div class="eureka-mask-panel__empty">
+
+                    <i class="ti ti-chart-line"></i>
+
+                    <span>Nessun cambio storico registrato.</span>
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+{% if valuta.synced_at %}
+
+<div class="eureka-mask-audit mt-3">
+
+    <span class="eureka-mask-audit__item">
+
+        <i class="ti ti-cloud-download"></i>
+
+        Ultimo sync: <strong>{{ valuta.synced_at|date:"d/m/Y H:i" }}</strong>
+
+    </span>
+
+</div>
+
+{% endif %}
+
+
+
+<div class="eureka-mask-delete" id="eliminaValutaWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaValuta">
+        <i class="ti ti-trash"></i> Elimina valuta
+    </button>
+    <div id="confermaEliminaValuta" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ valuta.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile. Verranno eliminati anche i cambi storici.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaValuta">Annulla</button>
+                        <button type="submit" form="formEliminaValuta" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaValuta" method="post" action="{% url 'valute:delete' valuta.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaValuta");
+  document.getElementById("btnApriEliminaValuta")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaValuta")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

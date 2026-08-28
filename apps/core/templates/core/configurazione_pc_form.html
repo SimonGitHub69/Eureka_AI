@@ -1,4 +1,5 @@
 {% extends "base/layout.html" %}
+{% load static %}
 
 {% block title %}{% if object %}Modifica postazione PC{% else %}Nuova postazione PC{% endif %} · Eureka AI{% endblock %}
 
@@ -6,44 +7,59 @@
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">
-                {% if object %}Modifica postazione PC{% else %}Nuova postazione PC{% endif %}
-            </h2>
-            <div class="text-secondary">
-                Nome postazione e parametri programma per questo dispositivo
-            </div>
-        </div>
-        <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Elenco
-        </a>
-    </div>
-</div>
+<div class="eureka-mask eureka-mask--wide">
 
-<div class="card">
-    {% if awaiting_device_id %}
+{% if awaiting_device_id %}
+<div class="card eureka-mask-card">
     <div class="card-body">
         <div class="alert alert-info mb-0">
             Identificazione dispositivo in corso…
             Tra un attimo la postazione verrà creata in automatico.
         </div>
     </div>
-    {% else %}
-    {# data-autocomplete=on: su iPad il guard readonly rompeva digitazione/salvataggio #}
-    <form method="post" autocomplete="off" data-autocomplete="on" id="eurekaPcForm">
-        {% csrf_token %}
+</div>
+{% else %}
 
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-device-desktop"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">
+                {% if object %}Modifica postazione PC{% else %}Nuova postazione PC{% endif %}
+            </h2>
+            <div class="eureka-mask-hero__meta">
+                Nome postazione e parametri programma per questo dispositivo
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+{# data-autocomplete=on: su iPad il guard readonly rompeva digitazione/salvataggio #}
+<form method="post" autocomplete="off" data-autocomplete="on" id="eurekaPcForm" class="eureka-mask-form">
+    {% csrf_token %}
+
+    <div class="eureka-mask-form__body">
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-id eureka-mask-card__icon"></i>
+                Postazione
+            </h3>
+        </div>
         <div class="card-body">
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-            {% endif %}
-
-            <div class="row">
+            <div class="row g-compact">
                 <div class="col-md-6">
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <label class="form-label" for="{{ form.nome_pc.id_for_label }}">
                             Nome postazione<span class="text-danger"> *</span>
                         </label>
@@ -69,7 +85,7 @@
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <label class="form-label" for="{{ form.descrizione.id_for_label }}">
                             {{ form.descrizione.label }}
                         </label>
@@ -82,82 +98,486 @@
                         {% endif %}
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="col-12">
-                    <div class="mb-3">
-                        <label class="form-check form-switch">
-                            {{ form.assistente_vocale_attivo }}
-                            <span class="form-check-label">
-                                <span class="fw-semibold">{{ form.assistente_vocale_attivo.label }}</span>
-                                <span class="d-block text-secondary small">
-                                    {{ form.assistente_vocale_attivo.help_text }}
-                                </span>
-                            </span>
-                        </label>
-                        {% if form.assistente_vocale_attivo.errors %}
-                            <div class="invalid-feedback d-block">{{ form.assistente_vocale_attivo.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <div class="mb-3">
-                        <label class="form-check form-switch">
-                            {{ form.navbar_fissa }}
-                            <span class="form-check-label">
-                                <span class="fw-semibold">{{ form.navbar_fissa.label }}</span>
-                                <span class="d-block text-secondary small">
-                                    {{ form.navbar_fissa.help_text }}
-                                </span>
-                            </span>
-                        </label>
-                        {% if form.navbar_fissa.errors %}
-                            <div class="invalid-feedback d-block">{{ form.navbar_fissa.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-adjustments eureka-mask-card__icon"></i>
+                Opzioni interfaccia
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="eureka-option-chips eureka-option-chips--stack">
+                {% include "partials/mask_option_chip.html" with field=form.assistente_vocale_attivo icon="ti-microphone" hint=form.assistente_vocale_attivo.help_text %}
+                {% include "partials/mask_option_chip.html" with field=form.navbar_fissa icon="ti-layout-navbar" hint=form.navbar_fissa.help_text %}
+                {% include "partials/mask_option_chip.html" with field=form.liste_fisse icon="ti-list" hint=form.liste_fisse.help_text %}
                 {% if bind_this_device %}
-                <div class="col-12">
-                    <div class="mb-3">
-                        <label class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="bind_this_device" value="1" checked>
-                            <span class="form-check-label">
-                                <span class="fw-semibold">Usa su questo dispositivo</span>
-                                <span class="d-block text-secondary small">
-                                    Collega iPad/PC corrente a questa postazione (cookie).
-                                </span>
-                            </span>
-                        </label>
-                    </div>
-                </div>
+                <label class="eureka-option-chip">
+                    <input type="checkbox" name="bind_this_device" value="1" checked>
+                    <span class="eureka-option-chip__icon" aria-hidden="true"><i class="ti ti-link"></i></span>
+                    <span class="eureka-option-chip__body">
+                        <span class="eureka-option-chip__title">Usa su questo dispositivo</span>
+                        <span class="eureka-option-chip__hint">Collega iPad/PC corrente a questa postazione (cookie).</span>
+                    </span>
+                    <span class="eureka-option-chip__mark" aria-hidden="true"><i class="ti ti-check"></i></span>
+                </label>
                 {% endif %}
+            </div>
+        </div>
+    </div>
 
-                <div class="col-12">
-                    <div class="mb-0">
-                        <label class="form-label" for="{{ form.note.id_for_label }}">
-                            {{ form.note.label }}
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-layout-navbar eureka-mask-card__icon"></i>
+                Scorciatoie Dashboard / barra alta
+            </h3>
+        </div>
+        <div class="card-body py-2">
+                    <p class="text-secondary small mb-2">
+                        Stesse sezioni e voci del <strong>menu laterale</strong>.
+                        Scegli dove mostrarle; per la barra alta puoi personalizzare
+                        l’<strong>etichetta</strong> (default = voce di menu),
+                        il <strong>Gruppo</strong> e la <strong>Posizione</strong>.
+                        Comprimi le sezioni con la freccia.
+                    </p>
+            <div class="eureka-shortcut-legend" aria-label="Legenda modalità">
+                <span class="eureka-shortcut-legend__item">
+                    <span class="eureka-shortcut-legend__swatch eureka-shortcut-legend__swatch--off"></span> Off
+                </span>
+                <span class="eureka-shortcut-legend__item">
+                    <span class="eureka-shortcut-legend__swatch eureka-shortcut-legend__swatch--dash"></span> Dashboard
+                </span>
+                <span class="eureka-shortcut-legend__item">
+                    <span class="eureka-shortcut-legend__swatch eureka-shortcut-legend__swatch--bar"></span> Barra
+                </span>
+                <span class="eureka-shortcut-legend__item">
+                    <span class="eureka-shortcut-legend__swatch eureka-shortcut-legend__swatch--both"></span> Entrambi
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {% for section_label, section_items in form.dashboard_shortcut_sections %}
+    <div class="card eureka-mask-card eureka-mask-collapse"
+         data-eureka-mask-collapse
+         data-mask-section="pc-shortcut-{{ forloop.counter }}"
+         data-mask-view="pc-form"
+         data-mask-default="open">
+        <div class="card-header d-flex align-items-center">
+            <button type="button"
+                    class="eureka-mask-collapse__toggle"
+                    data-mask-toggle
+                    aria-expanded="true"
+                    aria-controls="pcShortcutBody{{ forloop.counter }}"
+                    title="Comprimi {{ section_label }}">
+                <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                <h3 class="card-title mb-0">
+                    {% if section_label == "Principale" %}<i class="ti ti-home eureka-mask-card__icon"></i>
+                    {% elif section_label == "Archivi" %}<i class="ti ti-archive eureka-mask-card__icon"></i>
+                    {% elif section_label == "Primanota · Gestione" %}<i class="ti ti-notebook eureka-mask-card__icon"></i>
+                    {% elif section_label == "Primanota · Stampe" %}<i class="ti ti-printer eureka-mask-card__icon"></i>
+                    {% elif section_label == "Primanota · Tabelle" %}<i class="ti ti-receipt-tax eureka-mask-card__icon"></i>
+                    {% elif section_label == "Fatturazione Magazzino · Magazzino" %}<i class="ti ti-building-warehouse eureka-mask-card__icon"></i>
+                    {% elif section_label == "Fatturazione Magazzino · Documenti" %}<i class="ti ti-files eureka-mask-card__icon"></i>
+                    {% elif section_label == "Fatturazione Magazzino · Stampe" %}<i class="ti ti-printer eureka-mask-card__icon"></i>
+                    {% elif section_label == "Elaborazioni" %}<i class="ti ti-chart-bar eureka-mask-card__icon"></i>
+                    {% elif section_label == "CARBON" %}<i class="ti ti-layout-grid eureka-mask-card__icon"></i>
+                    {% elif "Tabelle" in section_label %}<i class="ti ti-table eureka-mask-card__icon"></i>
+                    {% elif section_label == "Parametri" %}<i class="ti ti-settings eureka-mask-card__icon"></i>
+                    {% elif section_label == "Sistema" %}<i class="ti ti-server eureka-mask-card__icon"></i>
+                    {% else %}<i class="ti ti-click eureka-mask-card__icon"></i>{% endif %}
+                    {{ section_label }}
+                </h3>
+                <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                    <span class="eureka-mask-collapse__chip">{{ section_items|length }} voci</span>
+                </span>
+            </button>
+        </div>
+        <div class="eureka-mask-collapse__body" id="pcShortcutBody{{ forloop.counter }}">
+            <div class="card-body py-2">
+                <div class="eureka-shortcut-config-list">
+                    {% for item in section_items %}
+                    <div class="eureka-shortcut-config">
+                        <div class="eureka-shortcut-config__meta">
+                            <span class="eureka-shortcut-config__icon" aria-hidden="true">
+                                <i class="ti {{ item.icon }}"></i>
+                            </span>
+                            <span class="eureka-shortcut-config__label">{{ item.menu_label }}</span>
+                        </div>
+                        <label class="eureka-shortcut-bar" title="Etichetta in barra alta (default: voce di menu)">
+                            <span class="eureka-shortcut-bar__affix" aria-hidden="true">
+                                <i class="ti ti-layout-navbar"></i>
+                            </span>
+                            {{ item.etichetta }}
                         </label>
-                        {{ form.note }}
-                        {% if form.note.errors %}
-                            <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+                        <div class="eureka-shortcut-config__controls">
+                            <div class="eureka-shortcut-mode" role="group" aria-label="{{ item.menu_label }}">
+                                {% for value, choice_label in item.field.field.choices %}
+                                <input
+                                    type="radio"
+                                    class="btn-check"
+                                    name="{{ item.field.html_name }}"
+                                    id="id_{{ item.field.html_name }}_{{ value }}"
+                                    value="{{ value }}"
+                                    autocomplete="off"
+                                    {% if item.field.value == value %}checked{% endif %}>
+                                <label
+                                    class="eureka-shortcut-mode__btn eureka-shortcut-mode__btn--{{ value }}"
+                                    for="id_{{ item.field.html_name }}_{{ value }}"
+                                    title="{{ choice_label }}">
+                                    {% if value == "off" %}Off
+                                    {% elif value == "dash" %}Dash
+                                    {% elif value == "bar" %}Barra
+                                    {% else %}Entrambi{% endif %}
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <label class="eureka-shortcut-config__pair">
+                                <span class="eureka-shortcut-config__pair-label">Gruppo</span>
+                                {{ item.gruppo }}
+                            </label>
+                            <label class="eureka-shortcut-config__pair">
+                                <span class="eureka-shortcut-config__pair-label">Pos.</span>
+                                {{ item.posizione }}
+                            </label>
+                        </div>
+                        {% if item.field.errors or item.etichetta.errors or item.gruppo.errors or item.posizione.errors %}
+                        <div class="eureka-shortcut-config__errors invalid-feedback d-block">
+                            {{ item.field.errors|join:", " }}
+                            {{ item.etichetta.errors|join:", " }}
+                            {{ item.gruppo.errors|join:", " }}
+                            {{ item.posizione.errors|join:", " }}
+                        </div>
                         {% endif %}
                     </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
+    </div>
+    {% endfor %}
 
-        <div class="card-footer d-flex flex-wrap gap-2 justify-content-end">
-            <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-secondary">
-                Annulla
-            </a>
-            <button type="submit" class="btn btn-primary">
-                <i class="ti ti-device-floppy"></i>
-                Salva
-            </button>
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-notes eureka-mask-card__icon"></i>
+                Note
+            </h3>
         </div>
-    </form>
-    {% endif %}
+        <div class="card-body">
+            <label class="form-label visually-hidden" for="{{ form.note.id_for_label }}">
+                {{ form.note.label }}
+            </label>
+            {{ form.note }}
+            {% if form.note.errors %}
+                <div class="invalid-feedback d-block">{{ form.note.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    </div>
+
+    <div class="eureka-mask-actions">
+        <a href="{% url 'core:configurazione_pc_list' %}" class="btn btn-outline-secondary">
+            Annulla
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="ti ti-device-floppy"></i>
+            Salva
+        </button>
+    </div>
+</form>
+{% endif %}
+
 </div>
 
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Legenda modalità */
+.eureka-shortcut-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--tblr-secondary, #667382);
+}
+.eureka-shortcut-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.eureka-shortcut-legend__swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 0.22rem;
+    flex-shrink: 0;
+}
+.eureka-shortcut-legend__swatch--off {
+    background: rgba(98, 105, 118, 0.45);
+}
+.eureka-shortcut-legend__swatch--dash {
+    background: var(--tblr-primary, #206bc4);
+}
+.eureka-shortcut-legend__swatch--bar {
+    background: #0ca678;
+}
+.eureka-shortcut-legend__swatch--both {
+    background: linear-gradient(135deg, var(--tblr-primary, #206bc4) 50%, #0ca678 50%);
+}
+
+/* Righe scorciatoia — griglia allineata */
+.eureka-shortcut-config-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.eureka-shortcut-config {
+    display: grid;
+    grid-template-columns: minmax(10.5rem, 1.15fr) minmax(8.5rem, 0.95fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.4rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid rgba(98, 105, 118, 0.12);
+    border-radius: 0.65rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 70%),
+        var(--tblr-bg-surface, #fff);
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+    transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.eureka-shortcut-config:hover {
+    border-color: rgba(32, 107, 196, 0.28);
+    box-shadow: 0 6px 16px -14px rgba(32, 107, 196, 0.45);
+}
+[data-bs-theme="dark"] .eureka-shortcut-config {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: none;
+}
+[data-bs-theme="dark"] .eureka-shortcut-config:hover {
+    border-color: rgba(59, 130, 246, 0.35);
+}
+.eureka-shortcut-config__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.eureka-shortcut-config__icon {
+    display: inline-flex;
+    width: 1.55rem;
+    height: 1.55rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.42rem;
+    background: rgba(32, 107, 196, 0.1);
+    color: var(--tblr-primary, #206bc4);
+    flex-shrink: 0;
+}
+.eureka-shortcut-config__icon .ti {
+    font-size: 0.86rem;
+    line-height: 1;
+}
+.eureka-shortcut-config__label {
+    font-weight: 650;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    color: var(--tblr-body-color, #1e293b);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Etichetta barra — chip con icona navbar */
+.eureka-shortcut-bar {
+    display: inline-flex;
+    align-items: stretch;
+    width: 100%;
+    max-width: 14rem;
+    margin: 0;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(12, 166, 120, 0.28);
+    background:
+        linear-gradient(90deg, rgba(12, 166, 120, 0.1), rgba(12, 166, 120, 0.03) 42%),
+        var(--tblr-bg-surface, #fff);
+    overflow: hidden;
+    transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.eureka-shortcut-bar:focus-within {
+    border-color: rgba(12, 166, 120, 0.55);
+    box-shadow: 0 0 0 3px rgba(12, 166, 120, 0.14);
+}
+[data-bs-theme="dark"] .eureka-shortcut-bar {
+    border-color: rgba(45, 212, 191, 0.28);
+    background:
+        linear-gradient(90deg, rgba(45, 212, 191, 0.12), transparent 48%),
+        rgba(15, 23, 42, 0.35);
+}
+.eureka-shortcut-bar__affix {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.7rem;
+    color: #0ca678;
+    background: rgba(12, 166, 120, 0.1);
+    border-right: 1px solid rgba(12, 166, 120, 0.18);
+}
+.eureka-shortcut-bar__affix .ti {
+    font-size: 0.85rem;
+}
+.eureka-shortcut-config__text {
+    flex: 1 1 auto;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 1.7rem !important;
+    margin: 0 !important;
+    padding: 0.2rem 0.45rem !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 0.78rem !important;
+    font-weight: 650;
+    color: var(--tblr-body-color, #1e293b);
+}
+.eureka-shortcut-config__text:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+.eureka-shortcut-config__controls {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem 0.5rem;
+}
+.eureka-shortcut-config__errors {
+    grid-column: 1 / -1;
+}
+
+/* Segmented control modalità */
+.eureka-shortcut-mode {
+    display: inline-flex;
+    align-items: stretch;
+    padding: 0.12rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(98, 105, 118, 0.16);
+    background: var(--tblr-bg-surface-secondary, rgba(98, 105, 118, 0.06));
+    gap: 0.1rem;
+}
+.eureka-shortcut-mode__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    min-width: 3.35rem;
+    min-height: 1.7rem;
+    padding: 0.15rem 0.4rem;
+    border: 0;
+    border-radius: 0.38rem;
+    font-size: 0.7rem;
+    font-weight: 650;
+    line-height: 1.1;
+    color: var(--tblr-secondary, #667382);
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.eureka-shortcut-mode__btn:hover {
+    color: var(--tblr-body-color, #1e293b);
+    background: rgba(255, 255, 255, 0.55);
+}
+[data-bs-theme="dark"] .eureka-shortcut-mode__btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+.btn-check:checked + .eureka-shortcut-mode__btn--off {
+    background: #667382;
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+}
+.btn-check:checked + .eureka-shortcut-mode__btn--dash {
+    background: var(--tblr-primary, #206bc4);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(32, 107, 196, 0.28);
+}
+.btn-check:checked + .eureka-shortcut-mode__btn--bar {
+    background: #0ca678;
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(12, 166, 120, 0.28);
+}
+.btn-check:checked + .eureka-shortcut-mode__btn--both {
+    background: linear-gradient(90deg, var(--tblr-primary, #206bc4), #0ca678);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(32, 107, 196, 0.22);
+}
+
+/* Gruppo / Pos. */
+.eureka-shortcut-config__pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    margin: 0;
+}
+.eureka-shortcut-config__pair-label {
+    font-size: 0.66rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--tblr-secondary, #667382);
+    white-space: nowrap;
+}
+.eureka-shortcut-config__num {
+    width: 3.6rem;
+    min-width: 3.6rem;
+    min-height: 1.7rem !important;
+    padding: 0.15rem 0.4rem !important;
+    font-size: 0.8rem !important;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 0.4rem !important;
+    -moz-appearance: textfield;
+}
+.eureka-shortcut-config__num::-webkit-outer-spin-button,
+.eureka-shortcut-config__num::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+@media (max-width: 991.98px) {
+    .eureka-shortcut-config {
+        grid-template-columns: 1fr;
+    }
+    .eureka-shortcut-bar {
+        max-width: none;
+    }
+    .eureka-shortcut-config__controls {
+        justify-content: flex-start;
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .eureka-shortcut-mode {
+        width: 100%;
+    }
+    .eureka-shortcut-mode__btn {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/mask-collapse.js' %}?v=5"></script>
 {% endblock %}

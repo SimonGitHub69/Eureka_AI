@@ -1,0 +1,144 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ contatore.label }} · Contatori · Eureka AI{% endblock %}
+{% block page_title %}Contatore documento{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-hash"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ contatore.label }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ contatore.codice }}</span>
+                <span class="badge bg-azure-lt">{{ contatore.tipo_contatore_label }}</span>
+                <span class="badge bg-secondary-lt">Esercizio {{ contatore.esercizio }}</span>
+                <span class="badge bg-primary-lt">Prossimo: {{ contatore.prossimo_numero }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'documenti:contatori_edit' contatore.pk %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{% url 'documenti:contatori_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Tipo contatore</div>
+                <div class="eureka-mask-field__value">{{ contatore.tipo_contatore_label }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Esercizio</div>
+                <div class="eureka-mask-field__value">{{ contatore.esercizio }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo numero</div>
+                <div class="eureka-mask-field__value">{{ contatore.ultimo_numero }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Prossimo numero</div>
+                <div class="eureka-mask-field__value">{{ contatore.prossimo_numero }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Serie predefinita</div>
+                <div class="eureka-mask-field__value">{{ contatore.serie_default|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if contatore.tipo_contatore == "DOCUMENTI" %}
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+            <i class="ti ti-file-settings eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title mb-0">Tipi documento collegati</h3>
+        </div>
+        <a href="{% url 'documenti:parametri_list' %}" class="btn btn-outline-secondary btn-sm">
+            Parametri documento
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Famiglia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tipi_collegati %}
+                <tr>
+                    <td>
+                        <a href="{% url 'documenti:parametri_detail' t.codice %}" class="eureka-tlist-code">
+                            {{ t.codice }}
+                        </a>
+                    </td>
+                    <td>{{ t.label }}</td>
+                    <td><span class="eureka-tlist-chip">{{ t.categoria_label }}</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-secondary text-center py-3">
+                        Nessun tipo documento usa ancora questo contatore.
+                        Associare dalla maschera Parametri documento.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="eureka-mask-delete mt-4" id="eliminaContatoreWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaContatore">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaContatore" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ contatore.codice }}?</div>
+                    <div class="text-secondary small mb-2">Non è possibile se è associato a tipi documento.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaContatore">Annulla</button>
+                        <button type="submit" form="formEliminaContatore" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaContatore" method="post" action="{% url 'documenti:contatori_delete' contatore.pk %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaContatore");
+  document.getElementById("btnApriEliminaContatore")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaContatore")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

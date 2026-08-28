@@ -1,0 +1,43 @@
+{% comment %}
+Campo codice con descrizione collegata e selezione da lista.
+Usage:
+  {% include "partials/mask_linked_code.html" with field=form.cod_magazzino label=labels.magazzino tipo="magazzino" col="col-6 col-sm-4" %}
+{% endcomment %}
+<div class="{{ col|default:'col-12' }}">
+    <div class="eureka-linked-field{% if label %} is-resolved{% endif %}" data-linked-field data-lookup-tipo="{{ tipo }}">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <div class="eureka-linked-field__control">
+            <div class="eureka-combo">
+                {{ field }}
+                <button type="button"
+                        class="eureka-combo__toggle"
+                        data-combo-toggle
+                        tabindex="-1"
+                        title="Seleziona dalla lista"
+                        aria-label="Seleziona dalla lista">
+                    <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div class="eureka-combo__menu" data-combo-menu hidden role="listbox"></div>
+            </div>
+            <div class="eureka-linked-label"
+                 data-linked-label
+                 data-lookup-tipo="{{ tipo }}"
+                 data-for-input="{{ field.id_for_label }}"
+                 {% if not label %}hidden{% endif %}>
+                 <i class="ti {% if tipo == 'magazzino' or tipo == 'deposito' %}ti-building-warehouse{% elif tipo == 'categoria' %}ti-folders{% elif tipo == 'gruppo' %}ti-layers-intersect{% elif tipo == 'cliente' or tipo == 'clifor' %}ti-user{% elif tipo == 'fornitore' %}ti-truck{% elif tipo == 'iva' %}ti-receipt-tax{% elif tipo == 'condizione' %}ti-cash{% elif tipo == 'destinazione' %}ti-map-pin{% elif tipo == 'pdc' or tipo == 'pdc_clifor' %}ti-book{% elif tipo == 'agente' %}ti-user-star{% elif tipo == 'porto' %}ti-package{% elif tipo == 'causale_contabile' %}ti-file-invoice{% else %}ti-link{% endif %} eureka-linked-label__icon" aria-hidden="true"></i>
+                <span class="eureka-linked-label__text">{{ label|default:"" }}</span>
+                {% if tipo == 'clifor' or tipo == 'fornitore' %}
+                <a class="eureka-linked-label__open"
+                   data-linked-open
+                   {% if open_url %}href="{{ open_url }}"{% else %}href="#" hidden{% endif %}
+                   title="Apri anagrafica"
+                   aria-label="Apri anagrafica">
+                    <i class="ti ti-external-link" aria-hidden="true"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% if field.help_text %}<div class="form-hint">{{ field.help_text }}</div>{% endif %}
+        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+    </div>
+</div>

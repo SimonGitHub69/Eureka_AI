@@ -11,6 +11,8 @@ Label «Tipo Aliquota Iva»: ``Aliquota.descrizione`` (es. codice ``VA22``);
 se vuota, il codice stesso. Le righe SPESE aggiungono il suffisso « SPESE».
 
 Per ogni riga documento:
+  quantità 0 resta 0 (merce/sconto/IVA/qtà/peso esclusi); quantità vuota
+  con prezzo conta ancora come 1 (righe «solo importo»).
   merce (imponibile lordo) = quantità × prezzo_unitario
   sconto importo           = merce × (1 − Π(1 − pᵢ/100))
     (campo riga ``sconto``: % singola o composta a cascata, es. ``10+5``
@@ -90,6 +92,21 @@ def _qty(value: Any) -> Decimal:
         return Decimal(raw)
     except Exception:
         return Decimal("0")
+
+
+def _qty_missing(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str) and not str(value).strip():
+        return True
+    return False
+
+
+def _effective_qty(quantita: Any, prezzo: Decimal) -> Decimal:
+    """Qtà usata nel calcolo: 0 resta 0; vuota con prezzo conta come 1."""
+    if _qty_missing(quantita):
+        return Decimal("1") if prezzo != 0 else Decimal("0")
+    return _qty(quantita)
 
 
 def parse_sconto_parts(raw: Any) -> list[Decimal]:
@@ -309,12 +326,10 @@ def _line_amounts(
     """Ritorna (merce, sconto_importo, netto) per una riga documento."""
     from apps.documenti.sconto import resolve_sconto_percentuale
 
-    qty = _qty(quantita)
     prezzo = _prezzo_unitario(prezzo_unitario)
-    if qty == 0 and prezzo == 0:
-        return Decimal("0.00"), Decimal("0.00"), Decimal("0.00")
+    qty = _effective_qty(quantita, prezzo)
     if qty == 0:
-        qty = Decimal("1")
+        return Decimal("0.00"), Decimal("0.00"), Decimal("0.00")
     merce = (qty * prezzo).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
     # Codice tabella Sconti (es. 50A) → formula % (50+10); non modifica la riga.
     parts = parse_sconto_parts(resolve_sconto_percentuale(sconto))
@@ -404,7 +419,14 @@ def calcola_castelletto(
             # Riga vuota
             continue
 
-        quantita_totale += _qty(_get(riga, "quantita"))
+        qty_eff = _effective_qty(
+            _get(riga, "quantita"), _prezzo_unitario(_get(riga, "prezzo_unitario"))
+        )
+        if qty_eff == 0:
+            # Quantità zero: visibile in elenco, esclusa da merce / IVA / qtà / peso
+            continue
+
+        quantita_totale += qty_eff
 
         aliq = resolve_aliquota(codice_iva, cache)
         key = (aliq.codice.upper(), False)
@@ -424,9 +446,12 @@ def calcola_castelletto(
             if codice_art:
                 w = peso_by_codice.get(codice_art) or peso_by_codice.get(codice_art.upper())
                 if w is not None:
-                    qty = _qty(_get(riga, "quantita"))
+                    qty = _effective_qty(
+                        _get(riga, "quantita"),
+                        _prezzo_unitario(_get(riga, "prezzo_unitario")),
+                    )
                     if qty == 0:
-                        qty = Decimal("1")
+                        continue
                     peso_totale += qty * Decimal(str(w))
                     peso_any = True
 
@@ -538,24 +563,27 @@ def apply_castelletto_to_testa(documento: Any, result: CastellettoResult | None 
 
 
 def _peso_map_for_codici(codici: Sequence[str]) -> dict[str, float]:
+    """Mappa codice articolo → PesoLordo_Manodopera (kg) da anagrafica Articoli."""
     codes = [c for c in {_txt(c) for c in codici} if c]
     if not codes:
         return {}
     try:
         from apps.articoli.models import Articolo
 
-        qs = Articolo.objects.filter(codice__in=codes).only("codice", "peso_netto")
+        qs = Articolo.objects.filter(codice__in=codes).only(
+            "codice", "peso_lordo_manodopera"
+        )
         out: dict[str, float] = {}
         for art in qs:
-            if art.peso_netto is not None:
-                out[_txt(art.codice)] = float(art.peso_netto)
+            if art.peso_lordo_manodopera is not None:
+                out[_txt(art.codice)] = float(art.peso_lordo_manodopera)
         return out
     except Exception:
         return {}
 
 
 def calcola_totale_peso(righe: Iterable[Any]) -> Decimal:
-    """Σ (qta × peso_netto articolo) per codice riga."""
+    """Σ (qta × PesoLordo_Manodopera articolo) per codice riga."""
     rows = list(righe)
     codes = []
     for r in rows:

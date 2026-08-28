@@ -32,13 +32,19 @@
     </div>
     <div class="eureka-mask-hero__actions">
         {% if not is_create %}
-        <a href="{% url 'primanota:detail' registrazione.id %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'primanota:detail' registrazione.id %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-outline-secondary btn-sm">
             <i class="ti ti-arrow-left"></i> Dettaglio
         </a>
         {% endif %}
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-report-money"></i> {{ back_label }}
+        </a>
+        {% else %}
         <a href="{% url 'primanota:list' %}" class="btn btn-outline-secondary btn-sm">
             <i class="ti ti-list"></i> Elenco
         </a>
+        {% endif %}
     </div>
 </div>
 
@@ -68,11 +74,27 @@
         <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-list-details"></i></span>
         <div>
             <div class="eureka-mask-kpi__label">Righe</div>
-            <div class="eureka-mask-kpi__value">{{ righe_count }}</div>
+            <div class="eureka-mask-kpi__value" data-righe-count>{{ righe_count }}</div>
         </div>
     </div>
 </div>
-<div class="eureka-mask-kpis mb-3{% if is_iva %} d-none{% endif %}" data-gen-kpis>
+<div class="eureka-mask-kpis mb-3{% if not is_corrispettivi %} d-none{% endif %}" data-corr-kpis>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-currency-euro"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale documento</div>
+            <div class="eureka-mask-kpi__value" data-totale-imponibile>€ {{ totale_imponibile|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value" data-righe-count>{{ righe_count }}</div>
+        </div>
+    </div>
+</div>
+<div class="eureka-mask-kpis mb-3{% if is_iva or is_corrispettivi %} d-none{% endif %}" data-gen-kpis>
     <div class="eureka-mask-kpi">
         <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-arrow-down-left"></i></span>
         <div>
@@ -98,114 +120,154 @@
         <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-list-details"></i></span>
         <div>
             <div class="eureka-mask-kpi__label">Righe</div>
-            <div class="eureka-mask-kpi__value">{{ righe_count }}</div>
+            <div class="eureka-mask-kpi__value" data-righe-count>{{ righe_count }}</div>
         </div>
     </div>
 </div>
 
 <form method="post" autocomplete="off" id="primanotaForm" class="eureka-mask-form" data-linked-lookups data-lookup-url="{{ lookup_url }}" data-da-causale-url="{% url 'primanota:da_causale' %}" data-calc-scadenze-url="{{ calc_scadenze_url }}"{% if is_create %} data-prossimo-numero-url="{% url 'primanota:prossimo_numero' %}" data-protocollo-from-registro data-sync-competenza{% endif %}>
     {% csrf_token %}
+    {% if back_url %}<input type="hidden" name="next" value="{{ back_url }}">{% endif %}
     {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
     {% if formset.non_form_errors %}<div class="alert alert-danger py-2">{{ formset.non_form_errors }}</div>{% endif %}
     <div class="alert alert-danger py-2" data-sbilancio-banner hidden>
         Impossibile salvare: Dare e Avere non coincidono (<span data-sbilancio-banner-amt></span>).
     </div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-lg-6">
-            <div class="card eureka-mask-card eureka-mask-card--compact h-100">
-                <div class="card-header py-2">
-                    <h3 class="card-title mb-0">
+    <div class="row g-3 mb-3 align-items-start">
+        <div class="col-lg-6{% if is_corrispettivi %} col-lg-12{% endif %}" data-reg-col>
+            <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="registrazione" data-mask-view="form" data-mask-default="open">
+                <div class="card-header py-2 d-flex align-items-center">
+                    <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="primanotaRegBody" title="Comprimi registrazione">
+                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
                         <span class="eureka-mask-card__icon"><i class="ti ti-file-invoice"></i></span>
-                        Registrazione
-                    </h3>
+                        <h3 class="card-title mb-0">Registrazione</h3>
+                        <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong" data-summary-from="id_tipo"></span>
+                            <span class="eureka-mask-collapse__chip" data-summary-from="id_numero_reg"></span>
+                            <span class="eureka-mask-collapse__chip" data-summary-from="id_data_reg" data-summary-kind="date"></span>
+                            <span class="eureka-mask-collapse__chip" data-summary-from="id_causale" data-summary-kind="value"></span>
+                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--name" data-summary-from="id_causale" data-summary-kind="select-extra"></span>
+                        </span>
+                    </button>
                 </div>
-                <div class="card-body py-3">
+                <div class="eureka-mask-collapse__body" id="primanotaRegBody">
+                    <div class="card-body">
                     <div class="row g-compact">
                         {% include "partials/mask_field.html" with field=form.tipo col="col-sm-6" %}
                         {% include "partials/mask_field.html" with field=form.numero_reg col="col-sm-6" %}
                         {% include "partials/mask_field.html" with field=form.data_reg col="col-sm-6" %}
                         {% include "partials/mask_field.html" with field=form.causale col="col-sm-6" %}
-                        <div class="col-sm-6" data-registro-col>
+                        <div class="col-sm-6{% if is_generico %} d-none{% endif %}" data-registro-col>
                             {% include "partials/mask_field.html" with field=form.registro col="col-12" %}
                         </div>
-                        {% include "partials/mask_field.html" with field=form.data_valuta col="col-sm-6" %}
+                        <div class="col-sm-6{% if is_generico %} d-none{% endif %}" data-registro-col>
+                            {% include "partials/mask_field.html" with field=form.numero_prot col="col-12" %}
+                        </div>
+                        <div class="col-sm-6{% if is_corrispettivi %} d-none{% endif %}" data-competenza-col>
+                            {% include "partials/mask_field.html" with field=form.data_valuta col="col-12" %}
+                        </div>
+                        <div class="d-none" data-serie-prot-col>{% include "partials/mask_field.html" with field=form.alfa_prot col="col-12" %}</div>
+                        <div class="col-sm-6{% if not is_corrispettivi %} d-none{% endif %}" data-corr-extra>
+                            {% include "partials/mask_linked_code.html" with field=form.causale_incasso label=incasso_label tipo="causale_contabile" col="col-12" %}
+                        </div>
+                        <div class="col-sm-6{% if not is_corrispettivi %} d-none{% endif %}" data-corr-extra>
+                            <div class="form-label">Cassa</div>
+                            <div class="form-control" data-corr-cassa-code>{{ cassa_code|default:"—" }}</div>
+                            <div class="eureka-linked-label mt-1" data-corr-cassa-label{% if not cassa_label %} hidden{% endif %}>
+                                <span class="eureka-linked-label__text">{{ cassa_label }}</span>
+                            </div>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-6">
-            <div class="card eureka-mask-card eureka-mask-card--compact h-100">
-                <div class="card-header py-2">
-                    <h3 class="card-title mb-0">
+        <div class="col-lg-6{% if is_corrispettivi %} d-none{% endif %}" data-doc-block>
+            <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-collapse" data-eureka-mask-collapse data-mask-section="documento" data-mask-view="form" data-mask-default="open" data-mask-empty="collapsed" data-mask-empty-from="id_numero_doc id_data_doc id_codice_partita id_codice_paga id_fornitore_cee id_valuta">
+                <div class="card-header py-2 d-flex align-items-center">
+                    <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="primanotaDocBody" title="Comprimi documento">
+                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
                         <span class="eureka-mask-card__icon"><i class="ti ti-file-description"></i></span>
-                        Documento<span data-partita-col> e partita</span>
-                    </h3>
+                        <h3 class="card-title mb-0">
+                            Documento<span data-partita-col{% if is_generico %} class="d-none"{% endif %}> e partita</span>
+                        </h3>
+                        <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong" data-summary-from="id_numero_doc"></span>
+                            <span class="eureka-mask-collapse__chip" data-summary-from="id_data_doc" data-summary-kind="date"></span>
+                            <span class="eureka-mask-collapse__chip{% if is_generico %} d-none{% endif %}" data-summary-from="id_codice_partita" data-partita-col></span>
+                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--name{% if is_generico %} d-none{% endif %}" data-summary-from="id_codice_partita" data-summary-kind="linked-label" data-partita-col></span>
+                            <span class="eureka-mask-collapse__chip{% if not show_fornitore_cee %} d-none{% endif %}" data-summary-from="id_fornitore_cee" data-autofattura-col></span>
+                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--name{% if not show_fornitore_cee %} d-none{% endif %}" data-summary-from="id_fornitore_cee" data-summary-kind="linked-label" data-autofattura-col></span>
+                            <span class="eureka-mask-collapse__chip{% if is_generico %} d-none{% endif %}" data-summary-from="id_valuta" data-valuta-col></span>
+                        </span>
+                    </button>
                 </div>
-                <div class="card-body py-3">
+                <div class="eureka-mask-collapse__body" id="primanotaDocBody">
+                    <div class="card-body">
                     <div class="row g-compact">
                         {% include "partials/mask_field.html" with field=form.numero_doc col="col-sm-6" %}
                         {% include "partials/mask_field.html" with field=form.data_doc col="col-sm-6" %}
-                        <div class="col-12" data-partita-col>
+                        <div class="col-12{% if is_generico %} d-none{% endif %}" data-partita-col>
                             {% include "partials/mask_linked_code.html" with field=form.codice_partita label=partita_label tipo="clifor" col="col-12" open_url=partita_url %}
                         </div>
-                        <div class="col-sm-6" data-paga-col>
+                        <div class="col-12{% if not show_fornitore_cee %} d-none{% endif %}" data-autofattura-col>
+                            {% include "partials/mask_linked_code.html" with field=form.fornitore_cee label=fornitore_label tipo="fornitore" col="col-12" open_url=fornitore_url %}
+                        </div>
+                        <div class="col-sm-6{% if is_generico %} d-none{% endif %}" data-paga-col>
                             {% include "partials/mask_linked_code.html" with field=form.codice_paga label=pagamento_label tipo="condizione" col="col-12" %}
                         </div>
-                        <div class="col-sm-6" data-valuta-col>
+                        <div class="col-sm-4{% if is_generico %} d-none{% endif %}" data-valuta-col>
                             {% include "partials/mask_field.html" with field=form.valuta col="col-12" %}
                         </div>
-                        <div class="col-sm-6" data-acconto-col>
+                        <div class="col-sm-4{% if is_generico or not show_cambio %} d-none{% endif %}" data-cambio-col>
+                            {% include "partials/mask_field.html" with field=form.data_cambio col="col-12" %}
+                        </div>
+                        <div class="col-sm-4{% if is_generico or not show_cambio %} d-none{% endif %}" data-cambio-col>
+                            {% include "partials/mask_field.html" with field=form.cambio col="col-12" %}
+                        </div>
+                        <div class="col-sm-6{% if is_generico or is_iva or is_corrispettivi %} d-none{% endif %}" data-acconto-col>
                             {% include "partials/mask_field.html" with field=form.acconto col="col-12" %}
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card eureka-mask-card eureka-mask-card--compact mb-3" data-registro-col>
-        <div class="card-header py-2">
-            <h3 class="card-title mb-0">
-                <span class="eureka-mask-card__icon"><i class="ti ti-hash"></i></span>
-                Protocollo e altro
-            </h3>
-        </div>
-        <div class="card-body py-3">
-            <div class="row g-compact">
-                <div class="col-sm-3" data-registro-col>{% include "partials/mask_field.html" with field=form.numero_prot col="col-12" %}</div>
-                <div class="col-sm-3" data-registro-col>{% include "partials/mask_field.html" with field=form.alfa_prot col="col-12" %}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--primanota-movimenti mb-3">
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--primanota-movimenti eureka-mask-collapse mb-3" data-eureka-mask-collapse data-mask-section="dettaglio" data-mask-view="form" data-mask-default="open">
         <div class="card-header eureka-mask-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h3 class="card-title mb-0">
+            <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="primanotaDettaglioBody" title="Comprimi dettaglio">
+                <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
                 <span class="eureka-mask-card__icon"><i class="ti ti-list-details"></i></span>
-                <span data-movimenti-title>{% if is_iva %}Movimenti IVA{% else %}Dettaglio{% endif %}</span>
-                {% if righe_count %}<span class="badge bg-white text-purple ms-1">{{ righe_count }}</span>{% endif %}
-            </h3>
+                <h3 class="card-title mb-0">
+                    Dettaglio
+                    <span class="badge bg-white text-purple ms-1" data-righe-count>{{ righe_count }}</span>
+                </h3>
+            </button>
             <button type="button" class="btn btn-outline-light btn-sm" data-add-riga>
                 <i class="ti ti-plus"></i> Aggiungi riga
             </button>
         </div>
+        <div class="eureka-mask-collapse__body" id="primanotaDettaglioBody">
         <div class="table-responsive">
             {{ formset.management_form }}
             <table class="table table-vcenter table-sm card-table mb-0 eureka-primanota-righe-table" id="righeTable">
                 <thead>
                     <tr>
                         <th class="w-1">Pos.</th>
-                        <th data-iva-col>C/Partita</th>
-                        <th class="text-end" data-iva-col>Imponibile</th>
-                        <th data-gen-col data-gen-sezione="dare" data-gen-sezione-start>Conto dare</th>
-                        <th class="text-end" data-gen-col data-gen-sezione="dare" data-gen-importo="dare">Dare</th>
-                        <th data-gen-col data-gen-sezione="avere" data-gen-sezione-start>Conto avere</th>
-                        <th class="text-end" data-gen-col data-gen-sezione="avere" data-gen-importo="avere">Avere</th>
-                        <th data-iva-col>C. IVA</th>
-                        <th class="text-end" data-iva-col>Importo IVA</th>
-                        <th>Descrizione</th>
-                        <th>Anno</th>
+                        <th data-iva-col{% if not is_iva_layout %} class="d-none"{% endif %}>C/Partita</th>
+                        <th class="text-end{% if not is_iva_layout or not show_cambio %} d-none{% endif %}" data-iva-col data-imp-val-col>Imponibile Valuta</th>
+                        <th class="text-end{% if not is_iva_layout %} d-none{% endif %}" data-iva-col>Imponibile</th>
+                        <th data-gen-col data-gen-sezione="dare" data-gen-sezione-start{% if is_iva_layout %} class="d-none"{% endif %}>Conto dare</th>
+                        <th class="text-end{% if is_iva_layout %} d-none{% endif %}" data-gen-col data-gen-sezione="dare" data-gen-importo="dare">Dare</th>
+                        <th data-gen-col data-gen-sezione="avere" data-gen-sezione-start{% if is_iva_layout %} class="d-none"{% endif %}>Conto avere</th>
+                        <th class="text-end{% if is_iva_layout %} d-none{% endif %}" data-gen-col data-gen-sezione="avere" data-gen-importo="avere">Avere</th>
+                        <th data-iva-col{% if not is_iva_layout %} class="d-none"{% endif %}>C. IVA</th>
+                        <th class="text-end{% if not is_iva %} d-none{% endif %}" data-iva-importo-col>Importo IVA</th>
+                        <th>Descrizione aggiuntiva</th>
+                        <th data-anno-col{% if is_corrispettivi %} class="d-none"{% endif %}>Anno</th>
                         <th class="w-1"></th>
                     </tr>
                 </thead>
@@ -214,23 +276,24 @@
                     {% include "primanota/partials/riga_form_row.html" with f=f %}
                     {% empty %}
                     <tr data-riga-empty-hint>
-                        <td colspan="12" class="text-center text-secondary py-3">Nessuna riga. Usa «Aggiungi riga».</td>
+                        <td colspan="13" class="text-center text-secondary py-3">Nessuna riga. Usa «Aggiungi riga».</td>
                     </tr>
                     {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr class="fw-semibold">
                         <td></td>
-                        <td class="text-end" data-iva-col>Totale imponibile</td>
-                        <td class="text-end" data-iva-col data-totale-imponibile>€ {{ totale_imponibile|euro }}</td>
-                        <td data-gen-col data-gen-sezione="dare" data-gen-sezione-start></td>
-                        <td class="text-end" data-gen-col data-gen-sezione="dare" data-gen-importo="dare" data-totale-dare>€ {{ totale_dare|euro }}</td>
-                        <td data-gen-col data-gen-sezione="avere" data-gen-sezione-start></td>
-                        <td class="text-end" data-gen-col data-gen-sezione="avere" data-gen-importo="avere" data-totale-avere>€ {{ totale_avere|euro }}</td>
-                        <td class="text-end" data-iva-col>Totale IVA</td>
-                        <td class="text-end" data-iva-col data-totale-iva>€ {{ totale_iva|euro }}</td>
-                        <td colspan="3" class="text-end" data-iva-col>Totale documento <span data-totale-documento>€ {{ totale_documento|euro }}</span></td>
-                        <td colspan="3" class="text-end" data-gen-col>Sbilancio <span class="{% if sbilancio %}text-danger{% endif %}" data-sbilancio>€ {{ sbilancio|euro }}</span></td>
+                        <td class="text-end{% if not is_iva_layout %} d-none{% endif %}" data-iva-col>Totale imponibile</td>
+                        <td class="text-end{% if not is_iva_layout or not show_cambio %} d-none{% endif %}" data-iva-col data-imp-val-col data-totale-impon-valuta>{{ totale_imponibile_valuta|euro }}</td>
+                        <td class="text-end{% if not is_iva_layout %} d-none{% endif %}" data-iva-col data-totale-imponibile>€ {{ totale_imponibile|euro }}</td>
+                        <td data-gen-col data-gen-sezione="dare" data-gen-sezione-start{% if is_iva_layout %} class="d-none"{% endif %}></td>
+                        <td class="text-end{% if is_iva_layout %} d-none{% endif %}" data-gen-col data-gen-sezione="dare" data-gen-importo="dare" data-totale-dare>€ {{ totale_dare|euro }}</td>
+                        <td data-gen-col data-gen-sezione="avere" data-gen-sezione-start{% if is_iva_layout %} class="d-none"{% endif %}></td>
+                        <td class="text-end{% if is_iva_layout %} d-none{% endif %}" data-gen-col data-gen-sezione="avere" data-gen-importo="avere" data-totale-avere>€ {{ totale_avere|euro }}</td>
+                        <td class="text-end{% if not is_iva %} d-none{% endif %}" data-iva-importo-col>Totale IVA</td>
+                        <td class="text-end{% if not is_iva %} d-none{% endif %}" data-iva-importo-col data-totale-iva>€ {{ totale_iva|euro }}</td>
+                        <td colspan="3" class="text-end{% if not is_iva %} d-none{% endif %}" data-iva-doc-totale>Totale documento <span data-totale-documento>€ {{ totale_documento|euro }}</span></td>
+                        <td colspan="3" class="text-end{% if is_iva_layout %} d-none{% endif %}" data-gen-col>Sbilancio <span class="{% if sbilancio %}text-danger{% endif %}" data-sbilancio>€ {{ sbilancio|euro }}</span></td>
                     </tr>
                 </tfoot>
             </table>
@@ -246,16 +309,19 @@
                 I conti si selezionano dalla lista.
             </div>
         </div>
+        </div>
     </div>
 
-    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--primanota-scadenze mb-3{% if is_generico %} d-none{% endif %}" data-scadenze-block>
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--primanota-scadenze eureka-mask-collapse mb-3{% if is_generico or is_corrispettivi %} d-none{% endif %}" data-scadenze-block data-eureka-mask-collapse data-mask-section="scadenze" data-mask-view="form" data-mask-default="open">
         <div class="card-header eureka-mask-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h3 class="card-title mb-0">
+            <button type="button" class="eureka-mask-collapse__toggle" data-mask-toggle aria-expanded="true" aria-controls="primanotaScadenzeBody" title="Comprimi scadenze">
+                <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
                 <span class="eureka-mask-card__icon"><i class="ti ti-calendar-due"></i></span>
-                Scadenze
-            </h3>
+                <h3 class="card-title mb-0">Scadenze</h3>
+            </button>
             {% include "partials/mask_field.html" with field=form.scadenze_ins col="col-auto" check=1 hide_label=0 %}
         </div>
+        <div class="eureka-mask-collapse__body" id="primanotaScadenzeBody">
         <div class="card-body py-3{% if not scadenze_editable %} is-locked{% endif %}" data-scadenze-body>
             <div class="eureka-scadenze-riepilogo mb-3{% if scadenze_editable %} d-none{% endif %}" data-scadenze-locked-hint>
                 <i class="ti ti-lock me-1"></i>
@@ -308,6 +374,7 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 
     <div class="eureka-mask-actions">
@@ -316,11 +383,29 @@
         {% else %}
         <a href="{% url 'primanota:detail' registrazione.id %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
         {% endif %}
-        <button type="submit" class="btn btn-primary btn-sm">
+        <button type="submit" class="btn btn-primary btn-sm" data-save-primanota>
             <i class="ti ti-device-floppy"></i> Salva registrazione
         </button>
     </div>
 </form>
+
+<div id="confermaEliminaRigaModal" class="eureka-confirm" hidden>
+    <button type="button" class="eureka-confirm__backdrop" data-elimina-riga-cancel aria-label="Annulla"></button>
+    <div class="eureka-confirm__panel" role="dialog" aria-modal="true" aria-labelledby="confermaEliminaRigaTitle">
+        <div class="eureka-confirm__icon" aria-hidden="true"><i class="ti ti-alert-triangle"></i></div>
+        <div class="eureka-confirm__body">
+            <div class="eureka-confirm__title" id="confermaEliminaRigaTitle">Elimina riga</div>
+            <div class="eureka-confirm__msg" data-elimina-riga-msg>Eliminare questo movimento?</div>
+            <div class="eureka-confirm__hint">La riga viene tolta al salvataggio della registrazione.</div>
+            <div class="eureka-confirm__actions">
+                <button type="button" class="btn btn-outline-secondary" data-elimina-riga-cancel>Annulla</button>
+                <button type="button" class="btn btn-danger" data-elimina-riga-ok>
+                    <i class="ti ti-trash"></i> Elimina
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <template id="rigaEmptyFormTemplate">
 {% include "primanota/partials/riga_form_row.html" with f=formset.empty_form is_empty_tpl=1 %}
@@ -334,8 +419,10 @@
 {% load static %}
 <script>window.EUREKA_ALIQUOTE_MAP = {{ aliquote_map_json|default:"{}"|safe }};</script>
 <script>window.EUREKA_CAUSALI = {{ causali_catalog_json|default:"[]"|safe }};</script>
+<script>window.EUREKA_VALUTE_CAMBI = {{ valute_cambi_json|default:"{}"|safe }};</script>
+<script src="{% static 'eureka/js/mask-collapse.js' %}?v=5"></script>
 <script src="{% static 'eureka/js/linked-lookups.js' %}?v=26"></script>
-<script src="{% static 'eureka/js/primanota-righe.js' %}?v=10"></script>
+<script src="{% static 'eureka/js/primanota-righe.js' %}?v=20"></script>
 <script src="{% static 'eureka/js/primanota-scadenze.js' %}?v=2"></script>
 <script>
 (() => {
@@ -347,13 +434,16 @@
   const registroEl = document.getElementById("id_registro");
   const numeroProt = document.getElementById("id_numero_prot");
 
-  const fillCausaleOptions = (generico, iva) => {
+  const fillCausaleOptions = (generico, iva, corr, autoF) => {
     const causaleSelect = document.getElementById("id_causale");
     const catalog = window.EUREKA_CAUSALI;
     if (!causaleSelect || !Array.isArray(catalog)) return;
     const current = causaleSelect.value;
+    const isCorrReg = (c) => String(c.tipo_registro || "").toLowerCase().startsWith("corrispett");
     const items = catalog.filter((c) => {
       if (generico) return !c.has_registro;
+      if (corr) return Boolean(c.has_registro) && isCorrReg(c);
+      if (autoF) return Boolean(c.has_registro) && Boolean(c.is_autofattura);
       if (iva) return c.has_registro;
       return true;
     });
@@ -364,40 +454,151 @@
       causaleSelect.add(new Option(c.label, c.code));
       if (c.code === current) keep = true;
     });
+    if (current && !keep) {
+      const extra = catalog.find((c) => c.code === current);
+      causaleSelect.add(new Option(extra ? extra.label : current, current));
+      keep = true;
+    }
     causaleSelect.value = keep ? current : "";
   };
 
-  const syncTipo = () => {
-    const iva = tipo && (tipo.value === "2" || tipo.value === "4");
+  const clearGenericoExclusiveFields = () => {
+    if (registroEl) registroEl.value = "";
+    if (numeroProt) numeroProt.value = "";
+    const alfaProt = document.getElementById("id_alfa_prot");
+    if (alfaProt) alfaProt.value = "";
+    const partitaEl = document.getElementById("id_codice_partita");
+    if (partitaEl) partitaEl.value = "";
+    const fornitoreEl = document.getElementById("id_fornitore_cee");
+    if (fornitoreEl) fornitoreEl.value = "";
+    const pagaEl = document.getElementById("id_codice_paga");
+    if (pagaEl) pagaEl.value = "";
+    const valutaEl = document.getElementById("id_valuta");
+    if (valutaEl) valutaEl.value = "";
+    const cambioEl = document.getElementById("id_cambio");
+    if (cambioEl) cambioEl.value = "";
+    const dataCambioEl = document.getElementById("id_data_cambio");
+    if (dataCambioEl) dataCambioEl.value = "";
+    const accontoEl = document.getElementById("id_acconto");
+    if (accontoEl) accontoEl.value = "";
+  };
+
+  const causaleIsAutofatturaAutomatica = () => {
+    const catalog = window.EUREKA_CAUSALI;
+    const code = document.getElementById("id_causale")?.value;
+    if (!code || !Array.isArray(catalog)) return false;
+    const item = catalog.find((c) => c.code === code);
+    return Boolean(item && item.is_autofattura_automatica);
+  };
+
+  const syncFornitoreCee = (opts) => {
+    const autoF = tipo && tipo.value === "4";
+    const show = Boolean(autoF) && causaleIsAutofatturaAutomatica();
+    document.querySelectorAll("[data-autofattura-col]").forEach((el) => {
+      el.classList.toggle("d-none", !show);
+    });
+    if (!show && opts && opts.resetExclusive) {
+      const fornitoreEl = document.getElementById("id_fornitore_cee");
+      if (fornitoreEl) fornitoreEl.value = "";
+    }
+  };
+
+  const catalogEntryForValuta = (code) => {
+    const catalog = window.EUREKA_VALUTE_CAMBI || {};
+    const key = Object.keys(catalog).find(
+      (k) => k.toLowerCase() === (code || "").toLowerCase()
+    );
+    return key ? catalog[key] : null;
+  };
+  const pickCambioFromCatalog = (code) => {
+    const info = catalogEntryForValuta(code);
+    if (!info) return null;
+    const asOf = document.getElementById("id_data_reg")?.value || "";
+    const hist = Array.isArray(info.history) ? info.history : [];
+    if (asOf && hist.length) {
+      return hist.find((h) => h.data && h.data <= asOf) || { cambio: null, data: "" };
+    }
+    return info;
+  };
+  const valutaAbbrevIsEur = (code) => {
+    const info = catalogEntryForValuta(code);
+    return String((info && info.abbrev) || "").trim().toUpperCase() === "EUR";
+  };
+  const syncCambioCols = () => {
     const generico = tipo && tipo.value === "1";
-    fillCausaleOptions(generico, iva);
-    document.querySelectorAll("[data-iva-col], [data-iva-block], [data-iva-kpis]").forEach((el) => {
+    const ivaLayout = tipo && (tipo.value === "2" || tipo.value === "3" || tipo.value === "4");
+    const code = document.getElementById("id_valuta")?.value || "";
+    const showCambio = !generico && Boolean(code) && !valutaAbbrevIsEur(code);
+    document.querySelectorAll("[data-cambio-col]").forEach((el) => {
+      el.classList.toggle("d-none", !showCambio);
+    });
+    document.querySelectorAll("[data-imp-val-col]").forEach((el) => {
+      el.classList.toggle("d-none", !showCambio || !ivaLayout);
+    });
+  };
+  window.EurekaPrimanotaCambio = { syncCols: syncCambioCols };
+  const fillCambioFromValuta = () => {
+    const valutaEl = document.getElementById("id_valuta");
+    const cambioEl = document.getElementById("id_cambio");
+    const dataEl = document.getElementById("id_data_cambio");
+    const code = (valutaEl && valutaEl.value) || "";
+    const info = pickCambioFromCatalog(code);
+    if (cambioEl) {
+      cambioEl.value = info && info.cambio != null ? String(info.cambio) : "";
+    }
+    if (dataEl) {
+      dataEl.value = info && info.data ? info.data : "";
+    }
+    if (window.EurekaPrimanotaRighe && typeof window.EurekaPrimanotaRighe.syncFromCambio === "function") {
+      window.EurekaPrimanotaRighe.syncFromCambio();
+    }
+    syncCambioCols();
+  };
+
+  const syncTipo = (opts) => {
+    const resetExclusive = Boolean(opts && opts.resetExclusive);
+    const iva = tipo && (tipo.value === "2" || tipo.value === "4");
+    const corr = tipo && tipo.value === "3";
+    const autoF = tipo && tipo.value === "4";
+    const ivaLayout = iva || corr;
+    const generico = tipo && tipo.value === "1";
+    document.querySelectorAll("[data-iva-col]").forEach((el) => {
+      el.classList.toggle("d-none", !ivaLayout);
+    });
+    document.querySelectorAll("[data-iva-block], [data-iva-kpis], [data-iva-importo-col], [data-iva-doc-totale]").forEach((el) => {
       el.classList.toggle("d-none", !iva);
     });
-    document.querySelectorAll("[data-gen-col], [data-gen-kpis], [data-gen-block]").forEach((el) => {
-      el.classList.toggle("d-none", iva);
+    document.querySelectorAll("[data-corr-kpis], [data-corr-extra]").forEach((el) => {
+      el.classList.toggle("d-none", !corr);
     });
-    document.querySelectorAll("[data-registro-col], [data-partita-col], [data-paga-col], [data-valuta-col], [data-acconto-col], [data-scadenze-block]").forEach((el) => {
+    syncFornitoreCee(opts);
+    document.querySelectorAll("[data-gen-col], [data-gen-kpis], [data-gen-block]").forEach((el) => {
+      el.classList.toggle("d-none", ivaLayout);
+    });
+    document.querySelectorAll("[data-registro-col], [data-partita-col], [data-paga-col], [data-valuta-col]").forEach((el) => {
       el.classList.toggle("d-none", generico);
     });
-    const movimentiTitle = document.querySelector("[data-movimenti-title]");
-    if (movimentiTitle) {
-      movimentiTitle.textContent = iva ? "Movimenti IVA" : "Dettaglio";
+    document.querySelectorAll("[data-scadenze-block]").forEach((el) => {
+      el.classList.toggle("d-none", generico || corr);
+    });
+    document.querySelectorAll("[data-doc-block], [data-competenza-col], [data-anno-col]").forEach((el) => {
+      el.classList.toggle("d-none", corr);
+    });
+    document.querySelectorAll("[data-reg-col]").forEach((el) => {
+      el.classList.toggle("col-lg-12", corr);
+      el.classList.toggle("col-lg-6", !corr);
+    });
+    document.querySelectorAll("[data-acconto-col]").forEach((el) => {
+      el.classList.toggle("d-none", generico || iva || corr);
+    });
+    fillCausaleOptions(generico, iva && !autoF, corr, autoF);
+    if (generico && resetExclusive) {
+      clearGenericoExclusiveFields();
+    } else if (!autoF && resetExclusive) {
+      const fornitoreEl = document.getElementById("id_fornitore_cee");
+      if (fornitoreEl) fornitoreEl.value = "";
     }
-    if (generico) {
-      if (registroEl) registroEl.value = "";
-      if (numeroProt) numeroProt.value = "";
-      const alfaProt = document.getElementById("id_alfa_prot");
-      if (alfaProt) alfaProt.value = "";
-      const partitaEl = document.getElementById("id_codice_partita");
-      if (partitaEl) partitaEl.value = "";
-      const pagaEl = document.getElementById("id_codice_paga");
-      if (pagaEl) pagaEl.value = "";
-      const valutaEl = document.getElementById("id_valuta");
-      if (valutaEl) valutaEl.value = "";
-      const accontoEl = document.getElementById("id_acconto");
-      if (accontoEl) accontoEl.value = "";
-    }
+    syncCambioCols();
   };
 
   const scadenzeInputs = () =>
@@ -414,7 +615,7 @@
     });
   };
 
-  tipo?.addEventListener("change", syncTipo);
+  tipo?.addEventListener("change", () => syncTipo({ resetExclusive: true }));
   scadenzeIns?.addEventListener("change", syncScadenze);
   form?.addEventListener("submit", () => {
     scadenzeInputs().forEach((el) => {
@@ -424,6 +625,8 @@
 
   syncTipo();
   syncScadenze();
+
+  document.getElementById("id_valuta")?.addEventListener("change", fillCambioFromValuta);
 
   const prossimoUrl = form?.getAttribute("data-prossimo-numero-url");
   const dataReg = document.getElementById("id_data_reg");
@@ -447,6 +650,7 @@
   dataReg?.addEventListener("change", () => {
     syncNumeroReg();
     syncDataValuta();
+    fillCambioFromValuta();
   });
 
   const daCausaleUrl = form?.getAttribute("data-da-causale-url");
@@ -457,12 +661,37 @@
     const exists = Array.from(select.options).some((o) => o.value === value);
     if (!exists) select.add(new Option(label || value, value, true, true));
   };
+  const setCorrExtra = (codeSel, labelSel, code, label) => {
+    const codeEl = document.querySelector(codeSel);
+    const labelEl = document.querySelector(labelSel);
+    const text = (code || "").trim();
+    if (codeEl) codeEl.textContent = text || "—";
+    if (labelEl) {
+      const span = labelEl.querySelector(".eureka-linked-label__text");
+      if (span) span.textContent = label || "";
+      labelEl.hidden = !label;
+    }
+  };
+  const fillCorrIncasso = (code, label) => {
+    const input = document.getElementById("id_causale_incasso");
+    if (!input) return;
+    input.value = (code || "").trim();
+    const field = input.closest("[data-linked-field]");
+    const labelEl = field && field.querySelector("[data-linked-label]");
+    if (!labelEl) return;
+    const span = labelEl.querySelector(".eureka-linked-label__text");
+    if (span) span.textContent = label || "";
+    labelEl.hidden = !label;
+    field.classList.toggle("is-resolved", Boolean(label));
+  };
   const syncDaCausale = () => {
     if (!daCausaleUrl || !causaleEl || tipo?.value === "1") return;
     const code = causaleEl.value;
     if (!code) {
       if (registroEl) registroEl.value = "";
       if (applyProtocol && numeroProt) numeroProt.value = "";
+      fillCorrIncasso("", "");
+      setCorrExtra("[data-corr-cassa-code]", "[data-corr-cassa-label]", "", "");
       return;
     }
     fetch(`${daCausaleUrl}?causale=${encodeURIComponent(code)}`, {
@@ -482,10 +711,20 @@
         if (applyProtocol && numeroProt) {
           numeroProt.value = data.numero_prot != null ? data.numero_prot : "";
         }
+        fillCorrIncasso(data.incasso_code, data.incasso_label);
+        setCorrExtra(
+          "[data-corr-cassa-code]",
+          "[data-corr-cassa-label]",
+          data.cassa_code,
+          data.cassa_label
+        );
       })
       .catch(() => {});
   };
-  causaleEl?.addEventListener("change", syncDaCausale);
+  causaleEl?.addEventListener("change", () => {
+    syncDaCausale();
+    syncFornitoreCee({ resetExclusive: true });
+  });
 })();
 </script>
 {% endblock %}

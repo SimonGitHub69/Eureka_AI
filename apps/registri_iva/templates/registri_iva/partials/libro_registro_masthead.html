@@ -1,0 +1,38 @@
+<div class="eureka-print-libro-masthead">
+    <div class="eureka-print-libro-masthead__brand">
+        {% if print_azienda_logo_url %}
+        <img
+            src="{{ print_azienda_logo_url }}"
+            alt="Logo {{ print_azienda_ragione_sociale }}"
+            class="eureka-print-libro-masthead__logo"
+        >
+        {% elif print_azienda_initials %}
+        <span class="eureka-print-libro-masthead__initials" aria-hidden="true">{{ print_azienda_initials }}</span>
+        {% endif %}
+    </div>
+    <div class="eureka-print-libro-masthead__body">
+        <div class="eureka-print-libro-masthead__company">
+            {{ azienda_header.ragione_sociale|default:print_azienda_ragione_sociale }}
+        </div>
+        <div class="eureka-print-libro-masthead__registro">
+            {% if libro.registro_label %}
+            <span class="eureka-print-libro-masthead__badge">{{ libro.registro_label }}</span>
+            {% endif %}
+            {% if libro.anno %}<span class="eureka-print-libro-masthead__chip">Anno {{ libro.anno }}</span>{% endif %}
+            {% if libro.periodo_label %}<span class="eureka-print-libro-masthead__chip">{{ libro.periodo_label }}</span>{% endif %}
+        </div>
+        {% if azienda_header.indirizzo %}
+        <div class="eureka-print-libro-masthead__addr">{{ azienda_header.indirizzo }}</div>
+        {% endif %}
+        {% if azienda_header.codice_fiscale or azienda_header.partita_iva %}
+        <div class="eureka-print-libro-masthead__fiscal">
+            {% if azienda_header.codice_fiscale %}<span>C.F. {{ azienda_header.codice_fiscale }}</span>{% endif %}
+            {% if azienda_header.partita_iva %}<span>P.IVA {{ azienda_header.partita_iva }}</span>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="eureka-print-libro-masthead__meta">
+        <div class="eureka-print-libro-masthead__doctype">Registro IVA</div>
+        <div class="eureka-print-libro-masthead__date">{{ print_date|date:"d/m/Y" }}</div>
+    </div>
+</div>

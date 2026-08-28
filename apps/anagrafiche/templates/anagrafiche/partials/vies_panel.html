@@ -1,0 +1,75 @@
+{% comment %}
+Pannello verifica VIES per scheda o form cliente/fornitore.
+Variabili: subject (scheda), form (form), vies_mode (detail|form), subject_label
+{% endcomment %}
+<div class="card eureka-mask-card eureka-vies-card mb-3" id="viesPanel"
+     data-vies-url="{% url 'anagrafiche:vies_check' %}"
+     data-vies-mode="{{ vies_mode|default:'detail' }}"
+     {% if vies_mode == 'form' %}
+     data-vies-partita-iva-field="#{{ form.partita_iva.id_for_label }}"
+     data-vies-nazione-field="#{{ form.cod_nazione.id_for_label }}"
+     data-vies-ragione1-field="#{{ form.ragione_sociale1.id_for_label }}"
+     data-vies-ragione2-field="#{{ form.ragione_sociale2.id_for_label }}"
+     data-vies-indirizzo-field="#{{ form.indirizzo.id_for_label }}"
+     data-vies-cap-field="#{{ form.cap.id_for_label }}"
+     data-vies-localita-field="#{{ form.localita.id_for_label }}"
+     data-vies-provincia-field="#{{ form.provincia.id_for_label }}"
+     data-vies-autofill="1"
+     {% else %}
+     data-vies-partita-iva="{{ subject.partita_iva|default:'' }}"
+     data-vies-cod-nazione="{{ subject.cod_nazione|default:'' }}"
+     data-vies-eligible="{% if vies_eligible %}1{% else %}0{% endif %}"
+     {% endif %}>
+    <div class="card-header py-2 d-flex align-items-center justify-content-between gap-2">
+        <h3 class="card-title mb-0 d-flex align-items-center gap-2">
+            <span class="eureka-mask-card__icon"><i class="ti ti-shield-check"></i></span>
+            Verifica VIES
+        </h3>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnViesCheck"{% if vies_mode != 'form' and not vies_eligible %} disabled{% endif %}{% if vies_mode == 'form' %} disabled{% endif %}>
+            <i class="ti ti-world-search"></i> Verifica
+        </button>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-vies-meta text-secondary small mb-3" id="viesMeta">
+            {% if vies_mode == 'form' %}
+            Inserire partita IVA e nazione per abilitare la verifica VIES.
+            {% elif vies_input %}
+            Controllo UE su <strong>{{ vies_input.display_country }} {{ vies_input.display_vat }}</strong>
+            {% elif subject.partita_iva %}
+            Verifica non disponibile: paese non UE VIES o partita IVA non valida.
+            {% else %}
+            Inserire una partita IVA per abilitare la verifica VIES.
+            {% endif %}
+        </div>
+
+        <div id="viesStatus" class="d-none" aria-live="polite"></div>
+
+        <div id="viesResult" class="d-none">
+            <div class="eureka-mask-grid eureka-mask-grid--2">
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Esito</div>
+                    <div class="eureka-mask-field__value" id="viesResultValid">—</div>
+                </div>
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Data richiesta</div>
+                    <div class="eureka-mask-field__value" id="viesResultDate">—</div>
+                </div>
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Ragione sociale VIES</div>
+                    <div class="eureka-mask-field__value" id="viesResultName">—</div>
+                </div>
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Indirizzo VIES</div>
+                    <div class="eureka-mask-field__value" id="viesResultAddress">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-hint mt-2 mb-0">
+            Servizio UE VIES: valida la partita IVA intracomunitaria del {{ subject_label|lower }}.
+            {% if vies_mode == 'form' %}
+            Se valida, i campi anagrafici vuoti vengono compilati automaticamente.
+            {% endif %}
+        </div>
+    </div>
+</div>

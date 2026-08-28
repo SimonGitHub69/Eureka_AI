@@ -44,34 +44,116 @@ def resolve_causale_contabile(codice: str | None) -> CausaleContabile | None:
     return mapping.get(_norm_code(codice))
 
 
+def corrispettivi_extra_from_causale(causale) -> dict:
+    """Campi sola lettura della maschera Corrispettivi: incasso + cassa.
+
+    In 4D la causale di incasso è CausaleCollegAutoF (es. 23), non CDare1.
+    CDare1 è la contropartita cliente (es. C4425 CLIENTE CORRISPETTIVI).
+    """
+    from apps.articoli.lookups import resolve_descrizione
+
+    extra = {
+        "incasso_code": "",
+        "incasso_label": "",
+        "cassa_code": "",
+        "cassa_label": "",
+    }
+    if causale is None:
+        return extra
+    incasso_raw = getattr(causale, "causale_colleg_auto_f", None)
+    incasso = incasso_raw.strip() if isinstance(incasso_raw, str) else ""
+    if incasso:
+        linked = resolve_causale_contabile(incasso)
+        extra["incasso_code"] = incasso
+        extra["incasso_label"] = (linked.label if linked else "") or ""
+    cassa_raw = getattr(causale, "cassa_corrispettivi", None)
+    cassa = cassa_raw.strip() if isinstance(cassa_raw, str) else ""
+    if cassa:
+        extra["cassa_code"] = cassa
+        extra["cassa_label"] = resolve_descrizione("pdc", cassa) or ""
+    return extra
+
+
 def attach_causali_contabili(registrazioni) -> None:
     mapping = causali_contabili_by_codes(r.causale for r in registrazioni)
     for row in registrazioni:
         row.causale_contabile = mapping.get(_norm_code(row.causale))
 
 
-def _causale_has_registro_iva(causale) -> bool:
-    return bool((getattr(causale, "registro_iva", None) or "").strip())
+def tipo_registro_is_corrispettivi(tipo) -> bool:
+    text = tipo.strip().lower() if isinstance(tipo, str) else ""
+    return text.startswith("corrispett")
+
+
+def causale_is_registro_corrispettivi(causale) -> bool:
+    if causale is None:
+        return False
+    raw = getattr(causale, "registro_iva", None)
+    code = raw.strip() if isinstance(raw, str) else ""
+    if not code:
+        return False
+    registro = resolve_registro_iva(code)
+    tipo = getattr(registro, "tipo_registro", None) if registro is not None else None
+    return tipo_registro_is_corrispettivi(tipo)
+
+
+def _flag_on(value) -> bool:
+    return value is True or value == 1
+
+
+def causale_is_autofattura_automatica(causale) -> bool:
+    """Causale con flag Autofattura (generazione automatica, con campo Fornitore)."""
+    if causale is None:
+        return False
+    return _flag_on(getattr(causale, "autofattura", False))
+
+
+def causale_is_iva_autofattura(causale) -> bool:
+    """Causale usabile in Primanota tipo Iva con Autofattura."""
+    if causale is None:
+        return False
+    raw = getattr(causale, "registro_iva", None)
+    if not (raw.strip() if isinstance(raw, str) else ""):
+        return False
+    return _flag_on(getattr(causale, "iva_con_autofattura", False)) or causale_is_autofattura_automatica(
+        causale
+    )
 
 
 def causali_contabili_catalog() -> list[dict]:
-    """Elenco causali per select/JS: code, label, has_registro."""
+    """Elenco causali per select/JS: code, label, has_registro, tipo_registro."""
     items: list[dict] = []
     seen: set[str] = set()
     try:
         with transaction.atomic():
-            qs = CausaleContabile.objects.order_by("codice")
-            for causale in qs:
+            causali = list(CausaleContabile.objects.order_by("codice"))
+            registri = registri_iva_by_codes(
+                getattr(causale, "registro_iva", None) for causale in causali
+            )
+            for causale in causali:
                 code = (causale.codice or "").strip()
                 if not code or code in seen:
                     continue
                 seen.add(code)
                 label = causale.label
+                reg_code = (getattr(causale, "registro_iva", None) or "").strip()
+                registro = registri.get(_norm_code(reg_code)) if reg_code else None
+                tipo_reg = ""
+                if registro is not None:
+                    tipo_reg = (getattr(registro, "tipo_registro", None) or "").strip()
                 items.append(
                     {
                         "code": code,
                         "label": f"{code} — {label}" if label else code,
-                        "has_registro": _causale_has_registro_iva(causale),
+                        "has_registro": bool(reg_code),
+                        "tipo_registro": tipo_reg,
+                        "is_autofattura_automatica": _flag_on(
+                            getattr(causale, "autofattura", False)
+                        ),
+                        "is_autofattura": _flag_on(
+                            getattr(causale, "iva_con_autofattura", False)
+                        )
+                        or _flag_on(getattr(causale, "autofattura", False)),
                     }
                 )
     except (ProgrammingError, OperationalError):
@@ -84,6 +166,8 @@ def causali_contabili_choices(
     *,
     senza_registro_iva: bool = False,
     con_registro_iva: bool = False,
+    registro_corrispettivi: bool = False,
+    iva_autofattura: bool = False,
     catalog: list[dict] | None = None,
 ) -> list[tuple[str, str]]:
     """Opzioni select: codice + descrizione, con eventuale valore corrente assente."""
@@ -95,7 +179,13 @@ def causali_contabili_choices(
             continue
         if senza_registro_iva and item.get("has_registro"):
             continue
-        if con_registro_iva and not item.get("has_registro"):
+        if registro_corrispettivi:
+            if not tipo_registro_is_corrispettivi(item.get("tipo_registro")):
+                continue
+        elif iva_autofattura:
+            if not item.get("has_registro") or not item.get("is_autofattura"):
+                continue
+        elif con_registro_iva and not item.get("has_registro"):
             continue
         seen.add(code)
         choices.append((code, item["label"]))
@@ -163,7 +253,7 @@ def resolve_pagamento(codice: str | None) -> dict:
 
 
 def attach_line_lookups(righe, *, iva: bool = False) -> None:
-    """Decodifica conti PDC (e aliquote IVA sulle righe tipo 2)."""
+    """Decodifica conti PDC o cliente/fornitore (e aliquote IVA sulle righe tipo 2)."""
     from apps.pdc.models import PianoConti
 
     codes: list[str] = []
@@ -179,11 +269,12 @@ def attach_line_lookups(righe, *, iva: bool = False) -> None:
         pdc = pdc_map.get(_norm_code(riga.conto_partita))
         pdc_dare = pdc_map.get(_norm_code(riga.conto_dare))
         pdc_avere = pdc_map.get(_norm_code(riga.conto_avere))
-        aliquota = iva_map.get(_norm_code(riga.codice_iva))
+        aliquota = iva_map.get(_norm_code(riga.codice_iva)) if iva else None
         riga.pdc = pdc
         riga.pdc_dare = pdc_dare
         riga.pdc_avere = pdc_avere
         riga.aliquota = aliquota
+        riga.iva_label = (aliquota.label if aliquota else "") or ""
         riga.pdc_url = (
             reverse("pdc:detail", kwargs={"codice": pdc.codice}) if pdc else ""
         )
@@ -195,6 +286,11 @@ def attach_line_lookups(righe, *, iva: bool = False) -> None:
             if pdc_avere
             else ""
         )
+        if not pdc:
+            partita_info = resolve_partita_clifor(riga.conto_partita)
+            if partita_info.get("label"):
+                riga.pdc = type("Lookup", (), {"label": partita_info["label"]})()
+                riga.pdc_url = partita_info.get("url") or ""
         if not pdc_dare:
             dare_info = resolve_partita_clifor(riga.conto_dare)
             if dare_info.get("label"):
@@ -211,6 +307,65 @@ def attach_line_lookups(righe, *, iva: bool = False) -> None:
             else ""
         )
 
-
 def attach_iva_line_links(righe) -> None:
     attach_line_lookups(righe, iva=True)
+
+
+def annotate_totale_documento(qs):
+    """Totale in elenco Primanota: documento IVA (imponibile+IVA) o TotaleDare se Generico."""
+    from django.db.models import (
+        Case,
+        F,
+        FloatField,
+        OuterRef,
+        Q,
+        Subquery,
+        Sum,
+        Value,
+        When,
+    )
+    from django.db.models.functions import Coalesce
+
+    from apps.primanota.models import Primanota, PrimanotaDettaglio
+
+    line_imp = Case(
+        When(
+            Q(conto_avere__isnull=False) & ~Q(conto_avere=""),
+            then=Coalesce(F("avere"), Value(0.0)),
+        ),
+        default=Coalesce(F("dare"), Value(0.0)),
+        output_field=FloatField(),
+    )
+    righe = PrimanotaDettaglio.objects.filter(id_testa=OuterRef("pk")).exclude(
+        dummy=True
+    )
+    tot_imp = Subquery(
+        righe.annotate(_imp=line_imp)
+        .values("id_testa")
+        .annotate(_s=Sum("_imp"))
+        .values("_s")[:1],
+        output_field=FloatField(),
+    )
+    tot_iva = Subquery(
+        righe.values("id_testa").annotate(_s=Sum("importo_iva")).values("_s")[:1],
+        output_field=FloatField(),
+    )
+    tot_dare = Subquery(
+        righe.values("id_testa").annotate(_s=Sum("dare")).values("_s")[:1],
+        output_field=FloatField(),
+    )
+    return qs.annotate(
+        _tot_imp=Coalesce(tot_imp, Value(0.0)),
+        _tot_iva=Coalesce(tot_iva, Value(0.0)),
+        _tot_dare=Coalesce(tot_dare, Value(0.0)),
+    ).annotate(
+        totale_documento_list=Case(
+            When(
+                tipo__in=(Primanota.TIPO_IVA, Primanota.TIPO_IVA_AUTOFATTURA),
+                then=F("_tot_imp") + F("_tot_iva"),
+            ),
+            When(tipo=Primanota.TIPO_GENERICO, then=F("_tot_dare")),
+            default=Value(None),
+            output_field=FloatField(),
+        )
+    )

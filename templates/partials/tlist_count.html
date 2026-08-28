@@ -1,0 +1,7 @@
+{% if ai_filter_count %}
+· <span class="eureka-tlist-count eureka-tlist-count--filtered"><strong>{{ ai_filter_count }}</strong> risultati AI</span>
+{% elif has_filters and filter_count is not None %}
+· <span class="eureka-tlist-count eureka-tlist-count--filtered"><strong>{{ filter_count }}</strong> {{ list_count_filter_noun|default:"risultati" }}</span>{% if totale %} <span class="eureka-tlist-count__total text-secondary">su {{ totale }} {{ list_count_total_label|default:"totali" }}</span>{% endif %}
+{% elif totale %}
+· <strong>{{ totale }}</strong> {{ list_count_total_label|default:"totali" }}
+{% endif %}

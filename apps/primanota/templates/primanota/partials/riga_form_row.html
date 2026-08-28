@@ -1,38 +1,34 @@
 {% comment %}
-Riga formset primanota (tabella Dettaglio / Movimenti IVA).
+Riga formset primanota (tabella Dettaglio).
 is_empty_tpl: template Django empty_form per «Aggiungi riga».
 {% endcomment %}
 {% with labels=f.linked_labels %}
 <tr class="riga-form-row" data-riga-row>
-    <td class="text-secondary text-center align-middle">
+    <td class="text-secondary text-center">
         {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
         <span class="fw-semibold" data-riga-pos>{% firstof f.pos.value f.instance.pos %}</span>
         {% if f.pos.errors %}<div class="invalid-feedback d-block">{{ f.pos.errors|striptags }}</div>{% endif %}
     </td>
-    <td data-iva-col>{% include "primanota/partials/riga_linked_cell.html" with field=f.conto_partita label=labels.conto_partita tipo="pdc" %}</td>
-    <td class="text-end" data-iva-col>{{ f.imponibile }}</td>
-    <td data-gen-col data-gen-sezione="dare" data-gen-sezione-start>{% include "primanota/partials/riga_linked_cell.html" with field=f.conto_dare label=labels.conto_dare tipo="pdc_clifor" %}</td>
-    <td class="text-end" data-gen-col data-gen-sezione="dare" data-gen-importo="dare">{{ f.dare }}</td>
-    <td data-gen-col data-gen-sezione="avere" data-gen-sezione-start>{% include "primanota/partials/riga_linked_cell.html" with field=f.conto_avere label=labels.conto_avere tipo="pdc_clifor" %}</td>
-    <td class="text-end" data-gen-col data-gen-sezione="avere" data-gen-importo="avere">{{ f.avere }}</td>
-    <td data-iva-col>{% include "primanota/partials/riga_linked_cell.html" with field=f.codice_iva label=labels.codice_iva tipo="iva" %}</td>
-    <td class="text-end" data-iva-col>{{ f.importo_iva }}</td>
+    <td data-iva-col{% if not is_iva_layout %} class="d-none"{% endif %}>{% include "primanota/partials/riga_linked_cell.html" with field=f.conto_partita label=labels.conto_partita tipo="pdc_clifor" %}</td>
+    <td class="text-end{% if not is_iva_layout or not show_cambio %} d-none{% endif %}" data-iva-col data-imp-val-col data-iva-importo="imp_val">{{ f.imp_val }}</td>
+    <td class="text-end{% if not is_iva_layout %} d-none{% endif %}" data-iva-col data-iva-importo="imponibile">{{ f.imponibile }}</td>
+    <td data-gen-col data-gen-sezione="dare" data-gen-sezione-start{% if is_iva_layout %} class="d-none"{% endif %}>{% include "primanota/partials/riga_linked_cell.html" with field=f.conto_dare label=labels.conto_dare tipo="pdc_clifor" %}</td>
+    <td class="text-end{% if is_iva_layout %} d-none{% endif %}" data-gen-col data-gen-sezione="dare" data-gen-importo="dare">{{ f.dare }}</td>
+    <td data-gen-col data-gen-sezione="avere" data-gen-sezione-start{% if is_iva_layout %} class="d-none"{% endif %}>{% include "primanota/partials/riga_linked_cell.html" with field=f.conto_avere label=labels.conto_avere tipo="pdc_clifor" %}</td>
+    <td class="text-end{% if is_iva_layout %} d-none{% endif %}" data-gen-col data-gen-sezione="avere" data-gen-importo="avere">{{ f.avere }}</td>
+    <td data-iva-col{% if not is_iva_layout %} class="d-none"{% endif %}>{% include "primanota/partials/riga_linked_cell.html" with field=f.codice_iva label=labels.codice_iva tipo="iva" %}</td>
+    <td class="text-end{% if not is_iva %} d-none{% endif %}" data-iva-importo-col data-iva-importo="iva">{{ f.importo_iva }}</td>
     <td>{{ f.descrizione }}</td>
-    <td>{{ f.anno_doc }}</td>
+    <td data-anno-col{% if is_corrispettivi %} class="d-none"{% endif %}>{{ f.anno_doc }}</td>
     <td class="eureka-tlist-actions text-nowrap">
         {% if not is_empty_tpl and not is_create and f.instance.pk %}
         <a href="{% url 'primanota:riga_edit' registrazione.id f.instance.pk %}" class="btn btn-icon btn-sm" title="Modifica riga">
             <i class="ti ti-pencil"></i>
         </a>
-        <form method="post" action="{% url 'primanota:riga_delete' registrazione.id f.instance.pk %}" class="d-inline" onsubmit="return confirm('Eliminare il movimento pos. {{ f.instance.pos }}?');">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-icon btn-sm text-danger" title="Elimina riga">
-                <i class="ti ti-trash"></i>
-            </button>
-        </form>
-        {% elif f.DELETE %}
+        {% endif %}
+        {% if f.DELETE %}
         <div class="visually-hidden">{{ f.DELETE }}</div>
-        <button type="button" class="btn btn-icon btn-sm text-danger btn-elimina-riga" title="Elimina riga" aria-label="Elimina riga">
+        <button type="button" class="btn btn-icon btn-sm text-danger btn-elimina-riga" title="Elimina riga" aria-label="Elimina riga"{% if f.instance.pk %} data-confirm-elimina="Eliminare il movimento pos. {% firstof f.pos.value f.instance.pos %}?"{% endif %}>
             <i class="ti ti-trash"></i>
         </button>
         {% endif %}

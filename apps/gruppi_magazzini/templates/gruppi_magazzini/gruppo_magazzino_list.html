@@ -1,105 +1,281 @@
 {% extends "base/layout.html" %}
 
-{% block title %}Raggruppamenti magazzini · Eureka AI{% endblock %}
 
-{% block page_title %}Raggruppamenti magazzini{% endblock %}
+
+{% block title %}Gruppi Magazzini · Eureka AI{% endblock %}
+
+{% block page_title %}Gruppi Magazzini{% endblock %}
+
+
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+
+
+<div class="eureka-tlist">
+
+
+
+<div class="eureka-tlist-hero">
+
+    <div class="eureka-tlist-hero__title">
+
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-building-warehouse"></i></span>
+
         <div>
-            <h2 class="page-title">Raggruppamenti magazzini</h2>
-            <div class="text-secondary">
-                Raggruppamenti magazzini importati da 4D (<code>RaggMagazzini</code>)
-                {% if totale %}· {{ totale }} totali{% endif %}
+
+            <h2 class="page-title mb-0">Gruppi Magazzini</h2>
+
+            <div class="text-secondary mt-1">
+
+                Gruppi Magazzini importati da 4D (<code>RaggMagazzini</code>)
+
+                {% include "partials/tlist_count.html" %}
+
             </div>
+
         </div>
+
     </div>
+
+    <div class="d-flex flex-wrap gap-2">
+
+        {% include "partials/stampa_lista_button.html" with print_url="gruppi_magazzini:print_list" %}
+
+        {% include "partials/export_lista_button.html" with export_url="gruppi_magazzini:export_list" %}
+
+        <a href="{% url 'gruppi_magazzini:create' %}" class="btn btn-primary">
+
+            <i class="ti ti-plus"></i>
+
+            Nuovo Gruppo Magazzini
+
+        </a>
+
+    </div>
+
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+
+
+<div class="card mb-3 eureka-tlist-search">
+
+    <div class="card-body py-3">
+
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'gruppi_magazzini:list' %}">
-            <div class="row g-2 align-items-end">
-                <div class="col-lg-8">
-                    <label class="form-label" for="gruppiMagazziniSearch">Ricerca</label>
+
+            {% include "partials/sort_hidden.html" %}
+
+            <div class="row g-2 align-items-center">
+
+                <div class="col">
+
                     <div class="input-icon">
+
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
-                        <input
-                            type="text"
-                            id="gruppiMagazziniSearch"
-                            name="q"
-                            value="{{ q }}"
-                            class="form-control"
-                            placeholder="Codice, descrizione, tipo documento...">
+
+                        <input type="text" id="gruppiMagazziniSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, tipo documento...">
+
                     </div>
+
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
+
+                <div class="col-auto d-flex gap-2">
+
+                    <button type="submit" class="btn btn-primary">
+
                         <i class="ti ti-filter"></i>
+
                         Filtra
+
                     </button>
+
                     {% if has_filters %}
+
                     <a href="{% url 'gruppi_magazzini:list' %}" class="btn btn-outline-secondary" title="Reset">
+
                         <i class="ti ti-x"></i>
+
                     </a>
+
                     {% endif %}
+
                 </div>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
+
+
 
 <div class="card">
+
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+
             <thead>
-                <tr>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
-                    <th>Tipo doc. DDT</th>
-                    <th>Tipo doc. fattura</th>
-                    <th>Tipo doc. ordine</th>
+
+                                <tr>
+
+                    {% load pagination_tags %}
+
+                    {% sort_th "descrizione" "Gruppo" default_dir="asc" %}
+
+                    {% sort_th "tipo_doc_alfa_ddt" "Tipi documento" default_dir="asc" %}
+
                     <th class="w-1"></th>
+
                 </tr>
+
             </thead>
+
             <tbody>
-                {% for gruppo in gruppi_magazzini %}
+
+                {% for g in gruppi_magazzini %}
+
                 <tr>
+
                     <td>
-                        <a href="{% url 'gruppi_magazzini:detail' gruppo.cod %}" class="fw-semibold text-decoration-none">
-                            {{ gruppo.cod }}
+
+                        <div class="d-flex align-items-center gap-3">
+
+                            <span class="eureka-tlist-avatar bg-teal-lt text-teal">
+
+                                <i class="ti ti-building-warehouse"></i>
+
+                            </span>
+
+                            <div class="overflow-hidden">
+
+                                <a href="{% url 'gruppi_magazzini:detail' g.cod %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 420px;" title="{{ g.descrizione }}">
+
+                                    {{ g.descrizione|default:g.cod }}
+
+                                </a>
+
+                                <span class="eureka-tlist-code">
+
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+
+                                    {{ g.cod }}
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+
+                        <div class="d-flex flex-wrap gap-1">
+
+                            {% if g.tipo_doc_alfa_ddt %}
+
+                            <span class="eureka-tlist-chip" title="Tipo doc. DDT">
+
+                                <i class="ti ti-truck-delivery text-azure"></i>
+
+                                DDT {{ g.tipo_doc_alfa_ddt }}
+
+                            </span>
+
+                            {% endif %}
+
+                            {% if g.tipo_doc_alfa_fat %}
+
+                            <span class="eureka-tlist-chip" title="Tipo doc. fattura">
+
+                                <i class="ti ti-file-invoice text-green"></i>
+
+                                Fat. {{ g.tipo_doc_alfa_fat }}
+
+                            </span>
+
+                            {% endif %}
+
+                            {% if g.tipo_doc_alfa_ord %}
+
+                            <span class="eureka-tlist-chip" title="Tipo doc. ordine">
+
+                                <i class="ti ti-clipboard-list text-orange"></i>
+
+                                Ord. {{ g.tipo_doc_alfa_ord }}
+
+                            </span>
+
+                            {% endif %}
+
+                            {% if not g.tipo_doc_alfa_ddt and not g.tipo_doc_alfa_fat and not g.tipo_doc_alfa_ord %}
+
+                            <span class="text-secondary">—</span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </td>
+
+                    <td class="eureka-tlist-actions">
+
+                        <a href="{% url 'gruppi_magazzini:edit' g.cod %}" class="btn btn-icon" title="Modifica">
+
+                            <i class="ti ti-pencil"></i>
+
                         </a>
+
                     </td>
-                    <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 420px;" title="{{ gruppo.descrizione }}">
-                            {{ gruppo.descrizione|default:"—" }}
-                        </span>
-                    </td>
-                    <td>{{ gruppo.tipo_doc_alfa_ddt|default:"—" }}</td>
-                    <td>{{ gruppo.tipo_doc_alfa_fat|default:"—" }}</td>
-                    <td>{{ gruppo.tipo_doc_alfa_ord|default:"—" }}</td>
-                    <td>
-                        <a href="{% url 'gruppi_magazzini:detail' gruppo.cod %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
-                        </a>
-                    </td>
+
                 </tr>
+
                 {% empty %}
+
                 <tr>
-                    <td colspan="6" class="text-center text-secondary py-5">
-                        <i class="ti ti-building-warehouse-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
-                        Nessun raggruppamento magazzini trovato
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'gruppi_magazzini:list' %}">Azzera filtri</a></div>{% endif %}
+
+                    <td colspan="3">
+
+                        <div class="eureka-tlist-empty text-center text-secondary">
+
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-building-warehouse"></i></div>
+
+                            Nessun Gruppo Magazzini trovato
+
+                            {% if has_filters %}
+
+                            <div class="mt-2"><a href="{% url 'gruppi_magazzini:list' %}">Azzera filtri</a></div>
+
+                            {% endif %}
+
+                        </div>
+
                     </td>
+
                 </tr>
+
                 {% endfor %}
+
             </tbody>
+
         </table>
+
     </div>
 
     {% include "partials/pagination.html" %}
+
 </div>
 
+
+
+</div>
+
+
+
 {% endblock %}
+

@@ -1,0 +1,15 @@
+{% if breadcrumb %}
+<nav aria-label="breadcrumb" class="eureka-pdc-breadcrumb mb-3">
+    <ol class="breadcrumb breadcrumb-arrows mb-0">
+        {% for item in breadcrumb %}
+        <li class="breadcrumb-item{% if item.active %} active{% endif %}">
+            {% if item.active %}
+            {{ item.label }}
+            {% else %}
+            <a href="{{ item.url }}">{{ item.label }}</a>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+</nav>
+{% endif %}

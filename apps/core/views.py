@@ -81,7 +81,9 @@ from apps.documenti.sync import (
 from apps.gruppi_articoli.sync import sync_gruppi_articoli
 from apps.gruppi_magazzini.sync import sync_gruppi_magazzini
 from apps.magazzini.sync import sync_magazzini
+from apps.depositi.sync import sync_depositi
 from apps.causali_magazzino.sync import sync_causali_magazzino
+from apps.movimenti.sync import sync_movimenti
 from apps.carbon.sync import sync_carbon
 from apps.lavorazioni_extra.sync import sync_lavorazioni_extra
 from apps.stampi.sync import sync_stampi
@@ -242,11 +244,25 @@ SYNC_4D_STEPS = (
         "tables": ("magazzini",),
     },
     {
+        "key": "depositi",
+        "label": "Depositi",
+        "description": "Depositi",
+        "runner": sync_depositi,
+        "tables": ("depositi",),
+    },
+    {
         "key": "causali_magazzino",
         "label": "Causali magazzino",
         "description": "CausaliMaga",
         "runner": sync_causali_magazzino,
         "tables": ("causali_maga",),
+    },
+    {
+        "key": "movimenti",
+        "label": "Movimenti magazzino",
+        "description": "MovimentiT e MovimentiT_Dettaglio",
+        "runner": sync_movimenti,
+        "tables": ("movimentit", "movimentit_dettaglio"),
     },
     {
         "key": "stampi",
@@ -504,6 +520,7 @@ class Parametri4DView(LoginRequiredMixin, ParametriPermissionMixin, View):
 
     def get_context(self, form=None):
         sync_counts = _sync_4d_counts()
+        doc_counts = _documenti_counts_by_tipo()
         doc_menu_flags = get_documenti_menu_flags()
         tipi_qs = TipoDocumento.objects.filter(attivo=True)
         sync_steps = [
@@ -532,6 +549,8 @@ class Parametri4DView(LoginRequiredMixin, ParametriPermissionMixin, View):
                 {
                     "tipo": tipo,
                     "enabled": doc_menu_flags.get(tipo.codice, True),
+                    "teste_count": doc_counts.get(tipo.codice, {}).get("teste", 0),
+                    "righe_count": doc_counts.get(tipo.codice, {}).get("righe", 0),
                 }
                 for tipo in tipi_qs
             ],
@@ -664,6 +683,7 @@ class Sync4DClearView(LoginRequiredMixin, ParametriPermissionMixin, View):
         cleared, errors = _clear_mirror_4d_tables()
         watermarks_cleared = clear_all_watermarks()
         counts_after = {table: _pg_table_count(table) for table in MIRROR_4D_TABLES}
+        documenti_counts = _documenti_counts_by_tipo()
 
         if errors:
             return JsonResponse(
@@ -674,6 +694,7 @@ class Sync4DClearView(LoginRequiredMixin, ParametriPermissionMixin, View):
                     "errors": errors,
                     "counts_before": counts_before,
                     "counts_after": counts_after,
+                    "documenti_counts_by_tipo": documenti_counts,
                 },
                 status=500,
             )
@@ -686,6 +707,7 @@ class Sync4DClearView(LoginRequiredMixin, ParametriPermissionMixin, View):
                 "cleared": cleared,
                 "counts_before": counts_before,
                 "counts_after": counts_after,
+                "documenti_counts_by_tipo": documenti_counts,
             }
         )
 
@@ -791,6 +813,40 @@ def _pg_table_count(table: str) -> int:
 
 def _sync_4d_counts() -> dict[str, int]:
     return {table: _pg_table_count(table) for table in MIRROR_4D_TABLES}
+
+
+def _documenti_counts_by_tipo() -> dict[str, dict[str, int]]:
+    """Conteggi PostgreSQL teste/righe per codice TipoDocumento."""
+    from django.db.models import Count
+
+    from apps.documenti.models import RigaDocumento, TestaDocumento
+
+    result: dict[str, dict[str, int]] = {}
+    try:
+        for row in TestaDocumento.objects.values("tipo_doc_id").annotate(c=Count("id")):
+            codice = (row["tipo_doc_id"] or "").strip()
+            if not codice:
+                continue
+            result.setdefault(codice, {"teste": 0, "righe": 0})["teste"] = int(
+                row["c"] or 0
+            )
+        for row in RigaDocumento.objects.values("testa__tipo_doc_id").annotate(
+            c=Count("id")
+        ):
+            codice = (row["testa__tipo_doc_id"] or "").strip()
+            if not codice:
+                continue
+            result.setdefault(codice, {"teste": 0, "righe": 0})["righe"] = int(
+                row["c"] or 0
+            )
+    except Exception:
+        return result
+    return result
+
+
+def _set_task_counts(task: dict) -> None:
+    task["counts_after"] = _sync_4d_counts()
+    task["documenti_counts_by_tipo"] = _documenti_counts_by_tipo()
 
 
 def _parse_sync_4d_selection(
@@ -958,6 +1014,7 @@ def _new_sync_4d_task(
         "steps": steps,
         "counts_before": _sync_4d_counts(),
         "counts_after": {},
+        "documenti_counts_by_tipo": _documenti_counts_by_tipo(),
         "errors": [],
     }
 
@@ -972,6 +1029,7 @@ def _sync_4d_task_snapshot(task_id: str) -> dict | None:
             "steps": [dict(step) for step in task["steps"]],
             "counts_before": dict(task["counts_before"]),
             "counts_after": dict(task["counts_after"]),
+            "documenti_counts_by_tipo": dict(task.get("documenti_counts_by_tipo") or {}),
             "errors": list(task["errors"]),
         }
 
@@ -1009,7 +1067,7 @@ def _run_sync_4d_task(task_id: str) -> None:
                     task["current_step"] = ""
                     task["message"] = "Sincronizzazione interrotta dall'utente."
                     task["finished_at"] = timezone.now().isoformat()
-                    task["counts_after"] = _sync_4d_counts()
+                    _set_task_counts(task)
                 return
 
             with _SYNC_4D_LOCK:
@@ -1048,7 +1106,7 @@ def _run_sync_4d_task(task_id: str) -> None:
                     task["current_step"] = ""
                     task["message"] = "Sincronizzazione interrotta dall'utente."
                     task["finished_at"] = timezone.now().isoformat()
-                    task["counts_after"] = _sync_4d_counts()
+                    _set_task_counts(task)
                 return
 
             with _SYNC_4D_LOCK:
@@ -1072,7 +1130,7 @@ def _run_sync_4d_task(task_id: str) -> None:
                     task["status"] = "error"
                     task["message"] = result.message
                     task["finished_at"] = timezone.now().isoformat()
-                    task["counts_after"] = _sync_4d_counts()
+                    _set_task_counts(task)
                 return
 
         with _SYNC_4D_LOCK:
@@ -1082,7 +1140,7 @@ def _run_sync_4d_task(task_id: str) -> None:
             task["message"] = "Sincronizzazione 4D completata."
             task["progress_pct"] = 100
             task["finished_at"] = timezone.now().isoformat()
-            task["counts_after"] = _sync_4d_counts()
+            _set_task_counts(task)
     except Exception as exc:
         logger.exception("Sync 4D task %s fallito", task_id)
         with _SYNC_4D_LOCK:
@@ -1104,7 +1162,7 @@ def _run_sync_4d_task(task_id: str) -> None:
                 task["finished_at"] = timezone.now().isoformat()
                 task["errors"] = list(task.get("errors") or []) + [err]
                 try:
-                    task["counts_after"] = _sync_4d_counts()
+                    _set_task_counts(task)
                 except Exception:
                     pass
                 if step_key:
@@ -1498,6 +1556,34 @@ class HelperOpenApiView(LoginRequiredMixin, View):
             return JsonResponse({"ok": False, "error": friendly_error(str(exc))}, status=500)
 
 
+class AiExportDownloadView(LoginRequiredMixin, View):
+    """Download autenticato dei file generati dall'assistente AI."""
+
+    def get(self, request, token, *args, **kwargs):
+        from apps.core.ai_export import (
+            is_valid_export_token,
+            read_saved_filename,
+            resolve_saved_export_path,
+        )
+        from apps.core.export import CSV_CONTENT_TYPE, XLSX_CONTENT_TYPE
+
+        if not is_valid_export_token(token):
+            raise Http404("Export non trovato.")
+        path = resolve_saved_export_path(token)
+        if path is None:
+            raise Http404("Export non trovato.")
+        filename = read_saved_filename(token)
+        content_type = (
+            CSV_CONTENT_TYPE if path.suffix.lower() == ".csv" else XLSX_CONTENT_TYPE
+        )
+        return FileResponse(
+            path.open("rb"),
+            as_attachment=True,
+            filename=filename,
+            content_type=content_type,
+        )
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class AiAssistantView(View):
     """Endpoint API per l'assistente AI."""
@@ -1531,37 +1617,55 @@ class AiAssistantView(View):
         result = ask_ai(prompt, limit=limit)
         link = result.pop("link", None)
         table = result.pop("table", None)
+        export_token = result.pop("export_token", None)
+        if export_token:
+            try:
+                result["download_url"] = reverse(
+                    "core:ai_export_download", kwargs={"token": export_token}
+                )
+            except Exception:
+                pass
 
-        if link and result.get("risultati"):
-            from django.urls import reverse, NoReverseMatch
-            url_name = link["url_name"]
-            pk_col = link["pk_column"]
-            pk_param = link.get("pk_param", "pk")
-            urls = {}
-            pk_list = []
-            for row in result["risultati"]:
-                pk_val = row.get(pk_col)
-                if pk_val is None:
-                    continue
-                pk_str = str(pk_val).strip()
-                if not pk_str:
-                    continue
-                pk_list.append(pk_str)
-                if pk_str not in urls:
-                    try:
-                        urls[pk_str] = reverse(url_name, kwargs={pk_param: pk_str})
-                    except (NoReverseMatch, ValueError, TypeError):
-                        pass
-            if urls:
-                result["detail_urls"] = urls
-                result["detail_pk_column"] = pk_col
+        risultati = result.get("risultati") or []
+        if risultati:
+            from django.urls import NoReverseMatch
+            from apps.core.ai_assistant import (
+                TABLE_LIST_ROUTES,
+                collect_ai_pk_values,
+                resolve_ai_list_table,
+                resolve_ai_pk_column,
+            )
 
-            from apps.core.ai_assistant import TABLE_LIST_ROUTES
-            if table and table in TABLE_LIST_ROUTES and pk_list:
-                ai_token = store_ai_filter(request, table=table, pks=pk_list)
+            pk_col = link["pk_column"] if link else None
+            pk_param = link.get("pk_param", "pk") if link else "pk"
+            url_name = link["url_name"] if link else None
+            route = None
+            if not pk_col:
+                pk_col, route = resolve_ai_pk_column(risultati, table)
+                if route:
+                    url_name = route["url"]
+                    pk_param = route.get("param", "pk")
+
+            pk_list = collect_ai_pk_values(risultati, pk_col) if pk_col else []
+            if url_name and pk_col and pk_list:
+                urls = {}
+                for pk_str in pk_list:
+                    if pk_str not in urls:
+                        try:
+                            urls[pk_str] = reverse(url_name, kwargs={pk_param: pk_str})
+                        except (NoReverseMatch, ValueError, TypeError):
+                            pass
+                if urls:
+                    result["detail_urls"] = urls
+                    result["detail_pk_column"] = pk_col
+
+            list_table = resolve_ai_list_table(table)
+            if list_table and list_table in TABLE_LIST_ROUTES and pk_list:
+                ai_token = store_ai_filter(request, table=list_table, pks=pk_list)
                 try:
                     result["list_url"] = (
-                        reverse(TABLE_LIST_ROUTES[table]) + f"?ai=1&ai_token={ai_token}"
+                        reverse(TABLE_LIST_ROUTES[list_table])
+                        + f"?ai=1&ai_token={ai_token}"
                     )
                 except (NoReverseMatch, ValueError):
                     pass

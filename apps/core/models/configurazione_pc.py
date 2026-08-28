@@ -28,6 +28,20 @@ class ConfigurazionePC(BaseModel):
         default=True,
         help_text="Se attivo, la barra con menu e utente resta in alto durante lo scorrimento (utile su tablet).",
     )
+    liste_fisse = models.BooleanField(
+        "Intestazione liste fissa",
+        default=True,
+        help_text="Se attivo, titolo e filtri delle liste e la barra delle schede restano in alto durante lo scorrimento.",
+    )
+    dashboard_shortcuts = models.JSONField(
+        "Scorciatoie Dashboard / barra",
+        default=dict,
+        blank=True,
+        help_text=(
+            "Per ogni voce: mode (off|dash|bar|both), gruppo (1,2,… da sinistra), "
+            "posizione (ordine nell’icona del gruppo)."
+        ),
+    )
 
     class Meta:
         verbose_name = "Parametri PC"

@@ -1,0 +1,75 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Destinazioni diverse · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-map-pin"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if is_create %}Nuova destinazione diversa{% else %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ destinazione.codice }} · {{ destinazione.codice_dest|default:destinazione.id }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if return_url %}
+        <a href="{{ return_url }}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Anagrafica</a>
+        {% elif not is_create %}
+        <a href="{% url 'destinazioni:detail' destinazione.pk %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Dettaglio</a>
+        {% endif %}
+        {% if not return_url %}
+        <a href="{% url 'destinazioni:list' %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list"></i> Elenco</a>
+        {% endif %}
+    </div>
+</div>
+
+<form method="post" autocomplete="off" data-autocomplete="on">
+    {% csrf_token %}
+    {% if from_anagrafica %}<input type="hidden" name="from" value="anagrafica">{% endif %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card">
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.codice_dest col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.ragione_sociale col="col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.indirizzo col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.cap col="col-6 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.citta col="col-sm-7" %}
+                {% include "partials/mask_field.html" with field=form.provincia col="col-6 col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.telefono col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.email col="col-sm-5" %}
+                {% include "partials/mask_field.html" with field=form.punto_vendita col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.cod_nazione col="col-6 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.codice_iso col="col-6 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.desc_nazione col="col-sm-8" %}
+                {% include "partials/mask_field.html" with field=form.cod_esenz_iva col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.codice_filconad col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.gruppo_cadla col="col-sm-3" %}
+                {% include "partials/mask_field.html" with field=form.prezzi_bolle col="col-6 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.black_list col="col-6 col-sm-2" %}
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2 py-2">
+            {% if return_url %}
+            <a href="{{ return_url }}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% elif is_create %}
+            <a href="{% url 'destinazioni:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% else %}
+            <a href="{% url 'destinazioni:detail' destinazione.pk %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}

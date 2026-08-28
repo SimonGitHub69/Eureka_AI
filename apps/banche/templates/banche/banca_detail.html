@@ -1,0 +1,329 @@
+{% extends "base/layout.html" %}
+
+{% load format_tags %}
+
+
+
+{% block title %}{{ banca.descrizione|default:banca.codice }} · Banche · Eureka AI{% endblock %}
+
+{% block page_title %}Banca{% endblock %}
+
+
+
+{% block content %}
+
+
+
+<div class="eureka-mask eureka-mask--bank">
+
+
+
+<div class="eureka-mask-hero">
+
+    <div class="eureka-mask-hero__title">
+
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--bank"><i class="ti ti-building-bank"></i></span>
+
+        <div class="overflow-hidden">
+
+            <h2 class="page-title text-truncate">{{ banca.descrizione|default:banca.codice }}</h2>
+
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ banca.codice }}</span>
+
+                {% if banca.codice_abi %}<span class="badge bg-azure-lt">ABI {{ banca.codice_abi }}</span>{% endif %}
+
+                {% if banca.codice_cab %}<span class="badge bg-blue-lt">CAB {{ banca.codice_cab }}</span>{% endif %}
+
+                {% if banca.localita %}<span class="badge bg-secondary-lt">{{ banca.localita }}{% if banca.provincia %} ({{ banca.provincia }}){% endif %}</span>{% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="eureka-mask-hero__actions">
+
+        <a href="{% url 'banche:edit' banca.codice %}" class="btn btn-primary btn-sm">
+
+            <i class="ti ti-pencil"></i> Modifica
+
+        </a>
+
+        <a href="{% url 'banche:list' %}" class="btn btn-outline-secondary btn-sm">
+
+            <i class="ti ti-arrow-left"></i> Elenco
+
+        </a>
+
+    </div>
+
+</div>
+
+
+
+<div class="card eureka-mask-card mb-3">
+
+    <div class="card-header py-2">
+
+        <h3 class="card-title mb-0">
+
+            <span class="eureka-mask-card__icon"><i class="ti ti-building-bank"></i></span>
+
+            Anagrafica banca
+
+        </h3>
+
+    </div>
+
+    <div class="card-body py-3">
+
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+
+            {% include "partials/mask_detail_field.html" with label="Codice banca" value=banca.codice mono=True %}
+
+            {% include "partials/mask_detail_field.html" with label="Descrizione" value=banca.descrizione %}
+
+            {% include "partials/mask_detail_field.html" with label="Indirizzo" value=banca.indirizzo wide=True %}
+
+            {% include "partials/mask_detail_field.html" with label="CAP" value=banca.cap %}
+
+            {% include "partials/mask_detail_field.html" with label="Località" value=banca.localita %}
+
+            {% include "partials/mask_detail_field.html" with label="Prov." value=banca.provincia %}
+
+            {% if banca.telefono %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Telefono</div>
+                <div class="eureka-mask-field__value">
+                    <a href="tel:{{ banca.telefono }}" class="text-decoration-none">{{ banca.telefono }}</a>
+                </div>
+            </div>
+            {% else %}
+            {% include "partials/mask_detail_field.html" with label="Telefono" value="" %}
+            {% endif %}
+
+            {% include "partials/mask_detail_field.html" with label="Fax" value=banca.fax %}
+
+            {% include "partials/mask_detail_field.html" with label="Codice ABI" value=banca.codice_abi mono=True %}
+
+            {% include "partials/mask_detail_field.html" with label="Codice CAB" value=banca.codice_cab mono=True %}
+
+            {% include "partials/mask_detail_field.html" with label="Agenzia numero" value=banca.agenzia %}
+
+            {% include "partials/mask_detail_field.html" with label="Swift Code (BIC)" value=banca.swift_code mono=True %}
+
+            {% if banca.data_modifica %}
+            {% include "partials/mask_detail_field.html" with label="Data ultima modifica" value=banca.data_modifica|date:"d/m/Y" %}
+            {% else %}
+            {% include "partials/mask_detail_field.html" with label="Data ultima modifica" value="" %}
+            {% endif %}
+
+            {% if banca.note %}
+
+            <div class="eureka-mask-field eureka-mask-field--wide">
+
+                <div class="eureka-mask-field__label">Note</div>
+
+                <div class="eureka-mask-field__value" style="white-space: pre-wrap;">{{ banca.note }}</div>
+
+            </div>
+
+            {% else %}
+
+            {% include "partials/mask_detail_field.html" with label="Note" value="" %}
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div class="card eureka-mask-card eureka-mask-card--company-bank mb-3">
+
+    <div class="card-header py-2">
+
+        <h3 class="card-title mb-0">
+
+            <span class="eureka-mask-card__icon"><i class="ti ti-building-store"></i></span>
+
+            Campi riservati alla banca dell'azienda
+
+        </h3>
+
+    </div>
+
+    <div class="card-body py-3">
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Numero C/C</div>
+                    <div class="eureka-mask-field__value eureka-mask-field__value--mono">
+                        {% if banca.numero_cc %}{{ banca.numero_cc }}{% else %}<span class="eureka-mask-field__placeholder">Non impostato</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="eureka-mask-field">
+                    <div class="eureka-mask-field__label">Codice IBAN</div>
+                    <div class="d-flex flex-wrap align-items-start gap-2">
+                        <div class="eureka-mask-field__value eureka-mask-field__value--mono flex-fill" id="bancaIbanValue">
+                            {% if banca.iban %}{{ banca.iban }}{% else %}<span class="eureka-mask-field__placeholder">Non impostato</span>{% endif %}
+                        </div>
+                        {% if banca.iban %}
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btnCopiaIban" title="Copia IBAN">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% if banca.synced_at %}
+
+<div class="eureka-mask-audit">
+
+    <span class="eureka-mask-audit__item">
+
+        <i class="ti ti-cloud-download"></i>
+
+        Ultimo sync: <strong>{{ banca.synced_at|date:"d/m/Y H:i" }}</strong>
+
+    </span>
+
+</div>
+
+{% endif %}
+
+
+
+<div class="eureka-mask-delete" id="eliminaBancaWrap">
+
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaBanca">
+
+        <i class="ti ti-trash"></i> Elimina
+
+    </button>
+
+    <div id="confermaEliminaBanca" class="card eureka-mask-card border-danger mt-2 d-none">
+
+        <div class="card-body py-3">
+
+            <div class="d-flex align-items-start gap-2">
+
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+
+                <div class="flex-fill">
+
+                    <div class="fw-semibold mb-1">Eliminare {{ banca.codice }}?</div>
+
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+
+                    <div class="d-flex gap-2">
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaBanca">Annulla</button>
+
+                        <button type="submit" form="formEliminaBanca" class="btn btn-danger btn-sm">
+
+                            <i class="ti ti-trash"></i> Conferma
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<form id="formEliminaBanca" method="post" action="{% url 'banche:delete' banca.codice %}" class="visually-hidden" aria-hidden="true">
+
+    {% csrf_token %}
+
+</form>
+
+
+
+</div>
+
+
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+(() => {
+
+  const panel = document.getElementById("confermaEliminaBanca");
+
+  document.getElementById("btnApriEliminaBanca")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+
+  document.getElementById("btnAnnullaEliminaBanca")?.addEventListener("click", () => panel?.classList.add("d-none"));
+
+
+
+  const ibanEl = document.getElementById("bancaIbanValue");
+
+  const btnCopia = document.getElementById("btnCopiaIban");
+
+  btnCopia?.addEventListener("click", async () => {
+
+    const text = (ibanEl?.textContent || "").trim().replace(/\s+/g, "");
+
+    if (!text || text === "Nonimpostato") return;
+
+    try {
+
+      await navigator.clipboard.writeText(text);
+
+      const prev = btnCopia.innerHTML;
+
+      btnCopia.innerHTML = '<i class="ti ti-check"></i>';
+
+      btnCopia.classList.replace("btn-outline-primary", "btn-success");
+
+      setTimeout(() => {
+
+        btnCopia.innerHTML = prev;
+
+        btnCopia.classList.replace("btn-success", "btn-outline-primary");
+
+      }, 1600);
+
+    } catch (_) {
+
+      btnCopia.innerHTML = '<i class="ti ti-alert-circle"></i>';
+
+    }
+
+  });
+
+})();
+
+</script>
+
+{% endblock %}
+

@@ -2,102 +2,164 @@
 {% load format_tags %}
 
 {% block title %}Fattura {{ fattura.numero_documento }} · Eureka AI{% endblock %}
-
 {% block page_title %}Fattura{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">
-                Fattura {{ fattura.numero_documento }}
-            </h2>
-            <div class="text-secondary">
-                ID {{ fattura.id_testa }}
-                {% if fattura.data_fattura %}· {{ fattura.data_fattura|date:"d/m/Y" }}{% endif %}
-                {% if fattura.is_nota_credito %}<span class="badge bg-orange-lt ms-1">Nota di credito</span>{% endif %}
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-file-invoice"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">Fattura {{ fattura.numero_documento }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ fattura.id_testa }}</span>
+                {% if fattura.data_fattura %}<span class="badge bg-azure-lt">{{ fattura.data_fattura|date:"d/m/Y" }}</span>{% endif %}
+                {% if fattura.is_nota_credito %}<span class="badge bg-orange-lt">Nota di credito</span>{% endif %}
+                {% if fattura.tipo_doc_fe %}<span class="badge bg-blue-lt">{{ fattura.tipo_doc_fe }}</span>{% endif %}
             </div>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'fatture:xml_sdi' fattura.id_testa %}" class="btn btn-primary">
-                <i class="ti ti-file-type-xml"></i>
-                XML SDI
-            </a>
-            <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary">
-                <i class="ti ti-arrow-left"></i>
-                Elenco
-            </a>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'fatture:xml_sdi' fattura.id_testa %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-file-type-xml"></i> XML SDI
+        </a>
+        <a href="{% url 'fatture:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-primary-lt text-primary"><i class="ti ti-receipt"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Imponibile</div>
+            <div class="eureka-mask-kpi__value">{% if fattura.imponibile != None %}€ {{ fattura.imponibile|euro }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-truck"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Spese</div>
+            <div class="eureka-mask-kpi__value text-orange">€ {{ fattura.totale_spese|euro }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-currency-euro"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Totale</div>
+            <div class="eureka-mask-kpi__value">{% if fattura.totale_fattura != None %}€ {{ fattura.totale_fattura|euro }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value">{{ righe|length }}</div>
         </div>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="datagrid-title">Cliente</div>
-                <div class="datagrid-content">
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cliente</div>
+                <div class="eureka-mask-field__value">
                     {% if fattura.cliente_ragione_sociale %}
                     <div class="fw-semibold">{{ fattura.cliente_ragione_sociale }}</div>
-                    {% if fattura.cliente %}
-                    <div class="text-secondary small mt-1">{{ fattura.cliente }}</div>
-                    {% endif %}
+                    {% if fattura.cliente %}<div class="text-secondary small mt-1">{{ fattura.cliente }}</div>{% endif %}
                     {% elif fattura.cliente %}
-                    <div class="fw-semibold">{{ fattura.cliente }}</div>
+                    {{ fattura.cliente }}
                     {% else %}
                     —
                     {% endif %}
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Destinatario</div>
-                <div class="datagrid-content">{{ fattura.destinatario|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Destinatario</div>
+                <div class="eureka-mask-field__value">{{ fattura.destinatario|default:"—" }}</div>
             </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Imponibile</div>
-                <div class="datagrid-content">
-                    {% if fattura.imponibile != None %}€ {{ fattura.imponibile|euro }}{% else %}—{% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Indirizzo</div>
+                <div class="eureka-mask-field__value">{{ fattura.indirizzo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Località</div>
+                <div class="eureka-mask-field__value">
+                    {% if fattura.cap or fattura.localita or fattura.provincia %}
+                    {{ fattura.cap|default:"" }} {{ fattura.localita|default:"" }}{% if fattura.provincia %} ({{ fattura.provincia|cut:" " }}){% endif %}
+                    {% else %}—{% endif %}
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="datagrid-title text-orange">Totale spese</div>
-                <div class="datagrid-content text-orange fw-semibold">
-                    € {{ fattura.totale_spese|euro }}
-                    {% if fattura.imponibile_netto_spese != None %}
-                    <div class="text-secondary small fw-normal mt-1">
-                        Netto € {{ fattura.imponibile_netto_spese|euro }}
-                    </div>
-                    {% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Nazione / ISO</div>
+                <div class="eureka-mask-field__value">{{ fattura.nazione|default:"—" }}{% if fattura.cod_iso_dest %} · {{ fattura.cod_iso_dest }}{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Causale</div>
+                <div class="eureka-mask-field__value">{{ fattura.desc_causale|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Nota</div>
+                <div class="eureka-mask-field__value">{{ fattura.desc_nota_c|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Pagamento</div>
+                <div class="eureka-mask-field__value">{{ fattura.cod_pagamento|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">IBAN</div>
+                <div class="eureka-mask-field__value"><code>{{ fattura.iban|default:"—" }}</code></div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cod. SDI</div>
+                <div class="eureka-mask-field__value">{{ fattura.cod_sdi|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">PEC</div>
+                <div class="eureka-mask-field__value">{{ fattura.email_pec|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">File XML</div>
+                <div class="eureka-mask-field__value"><span class="small text-break">{{ fattura.file_name|default:"—" }}</span></div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">CIG / CUP</div>
+                <div class="eureka-mask-field__value">{{ fattura.cig|default:"—" }}{% if fattura.cup %} / {{ fattura.cup }}{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ordine acquisto</div>
+                <div class="eureka-mask-field__value">
+                    {{ fattura.num_ordine_acq|default:"—" }}
+                    {% if fattura.data_ordine_acq %}<span class="text-secondary small">· {{ fattura.data_ordine_acq|date:"d/m/Y" }}</span>{% endif %}
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Totale</div>
-                <div class="datagrid-content fw-bold">
-                    {% if fattura.totale_fattura != None %}€ {{ fattura.totale_fattura|euro }}{% else %}—{% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Imponibile netto spese</div>
+                <div class="eureka-mask-field__value">{% if fattura.imponibile_netto_spese != None %}€ {{ fattura.imponibile_netto_spese|euro }}{% else %}—{% endif %}</div>
             </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Tipo doc. FE</div>
-                <div class="datagrid-content">{{ fattura.tipo_doc_fe|default:"—" }}</div>
+            {% if fattura.synced_at %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ fattura.synced_at|date:"d/m/Y H:i" }}</div>
             </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">File XML</div>
-                <div class="datagrid-content small text-break">{{ fattura.file_name|default:"—" }}</div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header py-2">
         <h3 class="card-title mb-0">
             <i class="ti ti-list-details me-1"></i>
             Righe ({{ righe|length }})
         </h3>
     </div>
     <div class="table-responsive">
-        <table class="table table-vcenter card-table">
+        <table class="table table-vcenter card-table mb-0">
             <thead>
                 <tr>
                     <th class="w-1">#</th>
@@ -115,7 +177,7 @@
                     <td class="fw-semibold">{{ riga.codice|default:"—" }}</td>
                     <td>{{ riga.descrizione|default:"" }}</td>
                     <td class="text-end">{% if riga.quantita != None %}{{ riga.quantita|floatformat:2 }}{% else %}—{% endif %}</td>
-                    <td class="text-end">{% if riga.prezzo_unitario != None %}{{ riga.prezzo_unitario|floatformat:4 }}{% else %}—{% endif %}</td>
+                    <td class="text-end">{% if riga.prezzo_unitario != None %}{{ riga.prezzo_unitario|prezzo }}{% else %}—{% endif %}</td>
                     <td>{{ riga.iva|default:"—" }}</td>
                 </tr>
                 {% empty %}
@@ -126,6 +188,8 @@
             </tbody>
         </table>
     </div>
+</div>
+
 </div>
 
 {% endblock %}

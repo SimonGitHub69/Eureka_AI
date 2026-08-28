@@ -10,7 +10,7 @@ from apps.aliquote.forms import AliquotaForm
 from apps.aliquote.models import Aliquota
 from apps.aliquote.sync import sync_aliquote
 from apps.core.mirror_crud import mirror_row_to_campi, stamp_modifica
-from apps.core.navigation import back_to_primanota
+from apps.core.navigation import related_back
 from apps.core.sync_incremental import sync_full_from_request
 from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin, safe_mirror_count
 from apps.core.export_list import ExportListMixin
@@ -19,7 +19,7 @@ from apps.core.sorting import SortableListMixin
 
 
 def _registrazione_back_from_request(request) -> tuple[str | None, str]:
-    return back_to_primanota(request)
+    return related_back(request)
 
 
 def _filter_aliquote_queryset(request):

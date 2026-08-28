@@ -1,0 +1,280 @@
+{% load static format_tags %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ print_title_it }} {{ documento.numero_documento }}</title>
+    {% if pdf_mode %}
+    <style>{{ print_css_inline|safe }}</style>
+    {% else %}
+    <link rel="stylesheet" href="{% static 'eureka/css/documento-print.css' %}?v=25">
+    {% endif %}
+</head>
+<body{% if pdf_mode %} class="doc-print-pdf"{% endif %}>
+    {% if not pdf_mode %}
+    <div class="doc-print-toolbar">
+        <div>
+            <strong>Anteprima stampa</strong>
+            · {{ print_title_it }} {{ documento.numero_documento }}
+            {% if documento.data_documento %}· {{ documento.data_documento|date:"d/m/Y" }}{% endif %}
+        </div>
+        <div class="doc-print-toolbar__actions">
+            <div class="eureka-print-zoom" role="group" aria-label="Zoom anteprima">
+                <button type="button" class="btn" data-print-zoom="out" title="Riduci (Ctrl −)">−</button>
+                <button type="button" class="btn eureka-print-zoom__value" data-print-zoom="reset" data-print-zoom-label title="Ripristina 100% (Ctrl 0)">100%</button>
+                <button type="button" class="btn" data-print-zoom="in" title="Ingrandisci (Ctrl +)">+</button>
+            </div>
+            <a class="btn" href="{% url 'documenti:detail' tipo_doc=tipo.codice pk=documento.pk %}">Torna al documento</a>
+            <button type="button" class="btn btn-primary" id="docPrintBtn">Stampa</button>
+        </div>
+    </div>
+    {% endif %}
+
+    {% comment %}Sorgenti nascoste per la composizione pagine{% endcomment %}
+    <div id="docPrintSource" hidden>
+        <div id="docPrintSrcMasthead">
+            {% include "documenti/partials/documento_print_masthead.html" %}
+        </div>
+        <div id="docPrintSrcFootBlank">
+            {% include "documenti/partials/documento_print_foot.html" with with_values=False %}
+        </div>
+        <div id="docPrintSrcFootFinal">
+            {% include "documenti/partials/documento_print_foot.html" with with_values=True %}
+        </div>
+        <table>
+            <tbody id="docPrintSrcRows">
+                {% for row in righe_print %}
+                <tr class="{% if row.is_note %}is-note{% endif %}">
+                    <td>{{ row.codice }}</td>
+                    <td class="desc">{{ row.descrizione }}</td>
+                    <td class="c">{% if not row.is_note %}{{ row.um }}{% endif %}</td>
+                    <td class="num">{% if not row.is_note and row.quantita != None %}{{ row.quantita|qtyit }}{% endif %}</td>
+                    <td class="num">{% if not row.is_note and row.prezzo_unitario != None %}{{ row.prezzo_unitario|prezzo }}{% endif %}</td>
+                    <td class="num">{% if not row.is_note %}{{ row.sconto }}{% endif %}</td>
+                    <td class="num">{% if row.imponibile_netto != None %}{{ row.imponibile_netto|euro }}{% endif %}</td>
+                    <td class="num">{% if row.iva_pct != None %}{{ row.iva_pct|euro:0 }}{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="desc">&nbsp;</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="doc-print-wrap" id="docPrintPages"></div>
+
+    <template id="docPrintPageTemplate">
+        <article class="doc-print-sheet">
+            <div class="doc-print-sheet__masthead"></div>
+            <table class="doc-print-doc">
+                <colgroup>
+                    <col class="col-cod">
+                    <col class="col-desc">
+                    <col class="col-um">
+                    <col class="col-qty">
+                    <col class="col-prz">
+                    <col class="col-sc">
+                    <col class="col-imp">
+                    <col class="col-iva">
+                </colgroup>
+                <thead>
+                    <tr class="doc-print-cols">
+                        <th>Codice<br><span>Code</span></th>
+                        <th>Descrizione<br><span>Description</span></th>
+                        <th>UM</th>
+                        <th>Quantità<br><span>Quantity</span></th>
+                        <th>Prz. Un.<br><span>Price</span></th>
+                        <th>% Sc.<br><span>Disc.</span></th>
+                        <th>Importo<br><span>Net Amount</span></th>
+                        <th>Iva<br><span>vat</span></th>
+                    </tr>
+                </thead>
+                <tbody class="doc-print-sheet__rows"></tbody>
+            </table>
+            <div class="doc-print-sheet__grow">
+                <table class="doc-print-doc doc-print-doc--cont" aria-hidden="true">
+                    <colgroup>
+                        <col class="col-cod">
+                        <col class="col-desc">
+                        <col class="col-um">
+                        <col class="col-qty">
+                        <col class="col-prz">
+                        <col class="col-sc">
+                        <col class="col-imp">
+                        <col class="col-iva">
+                    </colgroup>
+                    <tbody><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody>
+                </table>
+            </div>
+            <div class="doc-print-sheet__foot"></div>
+        </article>
+    </template>
+
+    <script>
+    (function () {
+        var PAGE_H_MM = 297;
+        var PAD_Y_MM = 6;
+
+        function mmToPx(mm) {
+            var el = document.createElement("div");
+            el.style.cssText = "position:absolute;left:-99999px;height:" + mm + "mm;";
+            document.body.appendChild(el);
+            var px = el.offsetHeight;
+            document.body.removeChild(el);
+            return px || (mm * 96 / 25.4);
+        }
+
+        function buildPages() {
+            var pagesRoot = document.getElementById("docPrintPages");
+            var tpl = document.getElementById("docPrintPageTemplate");
+            var srcMast = document.getElementById("docPrintSrcMasthead");
+            var srcBlank = document.getElementById("docPrintSrcFootBlank");
+            var srcFinal = document.getElementById("docPrintSrcFootFinal");
+            var srcRows = document.getElementById("docPrintSrcRows");
+            if (!pagesRoot || !tpl || !srcMast || !srcBlank || !srcFinal || !srcRows) return;
+
+            var rowNodes = Array.prototype.slice.call(srcRows.children);
+            if (!rowNodes.length) {
+                var empty = document.createElement("tr");
+                empty.innerHTML = '<td colspan="8" class="desc">&nbsp;</td>';
+                rowNodes = [empty];
+            }
+
+            pagesRoot.innerHTML = "";
+
+            var pageH = mmToPx(PAGE_H_MM);
+
+            var probe = tpl.content.firstElementChild.cloneNode(true);
+            probe.classList.add("doc-print-sheet--probe");
+            probe.querySelector(".doc-print-sheet__masthead").innerHTML = srcMast.innerHTML;
+            probe.querySelector(".doc-print-sheet__foot").innerHTML = srcFinal.innerHTML;
+            pagesRoot.appendChild(probe);
+            probe.style.height = pageH + "px";
+
+            var mastH = probe.querySelector(".doc-print-sheet__masthead").offsetHeight;
+            var footH = probe.querySelector(".doc-print-sheet__foot").offsetHeight;
+            var colsEl = probe.querySelector("thead");
+            var colsH = colsEl ? colsEl.offsetHeight : 24;
+            var padY = mmToPx(PAD_Y_MM);
+            var avail = pageH - padY * 2 - mastH - footH - colsH - 2;
+            if (avail < 48) avail = 140;
+            pagesRoot.removeChild(probe);
+
+            var measureSheet = tpl.content.firstElementChild.cloneNode(true);
+            measureSheet.classList.add("doc-print-sheet--probe");
+            measureSheet.querySelector(".doc-print-sheet__masthead").innerHTML = srcMast.innerHTML;
+            measureSheet.querySelector(".doc-print-sheet__foot").innerHTML = srcBlank.innerHTML;
+            var measureBody = measureSheet.querySelector(".doc-print-sheet__rows");
+            pagesRoot.appendChild(measureSheet);
+            measureSheet.style.height = pageH + "px";
+
+            var heights = rowNodes.map(function (row) {
+                measureBody.innerHTML = "";
+                measureBody.appendChild(row.cloneNode(true));
+                return Math.ceil(measureBody.firstElementChild.getBoundingClientRect().height) || 16;
+            });
+            pagesRoot.removeChild(measureSheet);
+
+            var groups = [];
+            var current = [];
+            var used = 0;
+            for (var i = 0; i < rowNodes.length; i++) {
+                var h = heights[i];
+                if (current.length && used + h > avail) {
+                    groups.push(current);
+                    current = [];
+                    used = 0;
+                }
+                current.push(rowNodes[i]);
+                used += h;
+            }
+            if (current.length) groups.push(current);
+            if (!groups.length) groups.push([]);
+
+            var totalPages = groups.length;
+            groups.forEach(function (group, pageIndex) {
+                var sheet = tpl.content.firstElementChild.cloneNode(true);
+                var isLast = pageIndex === totalPages - 1;
+
+                sheet.querySelector(".doc-print-sheet__masthead").innerHTML = srcMast.innerHTML;
+                var pageNum = sheet.querySelector(".doc-print-page-num");
+                if (pageNum) {
+                    pageNum.textContent = (pageIndex + 1) + "/" + totalPages;
+                    pageNum.classList.add("doc-print-page-num--set");
+                }
+
+                var body = sheet.querySelector(".doc-print-sheet__rows");
+                group.forEach(function (row) {
+                    body.appendChild(row.cloneNode(true));
+                });
+
+                sheet.querySelector(".doc-print-sheet__foot").innerHTML = isLast
+                    ? srcFinal.innerHTML
+                    : srcBlank.innerHTML;
+
+                sheet.style.height = pageH + "px";
+                pagesRoot.appendChild(sheet);
+            });
+        }
+
+        function run() {
+            buildPages();
+        }
+
+        var originalTitle = document.title;
+        function printClean() {
+            document.title = "{{ print_title_it|escapejs }} {{ documento.numero_documento|escapejs }}";
+            window.print();
+        }
+        window.addEventListener("afterprint", function () {
+            document.title = originalTitle;
+        });
+
+        var btn = document.getElementById("docPrintBtn");
+        if (btn) btn.addEventListener("click", printClean);
+
+        window.addEventListener("load", function () {
+            var imgs = document.querySelectorAll("#docPrintSrcMasthead img");
+            var pending = 0;
+            imgs.forEach(function (img) {
+                if (!img.complete) {
+                    pending += 1;
+                    img.addEventListener("load", function () {
+                        pending -= 1;
+                        if (pending <= 0) run();
+                    });
+                    img.addEventListener("error", function () {
+                        pending -= 1;
+                        if (pending <= 0) run();
+                    });
+                }
+            });
+            if (pending === 0) run();
+        });
+        window.addEventListener("beforeprint", function () {
+            document.title = "{{ print_title_it|escapejs }} {{ documento.numero_documento|escapejs }}";
+            run();
+        });
+        window.addEventListener("resize", function () {
+            clearTimeout(window.__docPrintResize);
+            window.__docPrintResize = setTimeout(run, 150);
+        });
+    })();
+    </script>
+
+    {% if autoprint %}
+    <script>
+        window.addEventListener("load", function () {
+            setTimeout(function () {
+                document.title = "{{ print_title_it|escapejs }} {{ documento.numero_documento|escapejs }}";
+                window.print();
+            }, 500);
+        });
+    </script>
+    {% endif %}
+    {% if not pdf_mode %}
+    <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=1"></script>
+    {% endif %}
+</body>
+</html>

@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'eureka/css/long-text-editor.css' %}?v=2">
-<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=27">
+<link rel="stylesheet" href="{% static 'eureka/css/documenti.css' %}?v=29">
 {% endblock %}
 
 {% block content %}
@@ -42,7 +42,13 @@
         <a href="{% url 'documenti:edit' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}" class="btn btn-primary btn-sm">
             <i class="ti ti-pencil"></i> Modifica
         </a>
-        {% if documento.tipo_doc.codice == "PRV" %}
+        <a href="{% url 'documenti:print' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}" class="btn btn-outline-primary btn-sm" title="Stampa documento" target="_blank" rel="noopener">
+            <i class="ti ti-printer"></i> Stampa
+        </a>
+        <a href="{% url 'documenti:invia_mail' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline-primary btn-sm" title="Invia documento per mail">
+            <i class="ti ti-mail"></i> Invia mail
+        </a>
+        {% if documento.tipo_doc.categoria == "PREVENTIVI" %}
         <a href="{% url 'documenti:parametri_spese' tipo_doc=documento.tipo_doc.codice %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline-secondary btn-sm" title="Aliquota IVA spese">
             <i class="ti ti-settings"></i> Parametri
         </a>
@@ -143,7 +149,7 @@
                         <div class="eureka-mask-field__value">{% if documento.cambio is not None %}{{ documento.cambio }}{% else %}—{% endif %}</div>
                     </div>
                     <div class="eureka-mask-field">
-                        <div class="eureka-mask-field__label">Codice sconto</div>
+                        <div class="eureka-mask-field__label">Codice Sconto</div>
                         <div class="eureka-mask-field__value">{% if documento.codice_sconto %}{{ documento.codice_sconto }}{% if sconto_label %} — {{ sconto_label }}{% endif %}{% else %}—{% endif %}</div>
                     </div>
                     <div class="eureka-mask-field">
@@ -288,7 +294,9 @@
                                       data-long-text-edit-url="{% url 'documenti:edit' tipo_doc=documento.tipo_doc.codice pk=documento.pk %}">{{ value }}</span>
                                 {% else %}—{% endif %}
                             {% elif col.campo == "prezzo_unitario" %}
-                                {% if value != None %}€ {{ value|euro:3 }}{% else %}—{% endif %}
+                                {% if value != None %}€ {{ value|prezzo }}{% else %}—{% endif %}
+                            {% elif col.campo == "provvigione" %}
+                                {% if value != None %}{{ value|floatformat:2 }}%{% else %}—{% endif %}
                             {% else %}
                                 {% if value != None and value != "" %}{{ value }}{% else %}—{% endif %}
                             {% endif %}

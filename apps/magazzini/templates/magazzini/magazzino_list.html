@@ -1,42 +1,47 @@
 {% extends "base/layout.html" %}
 
 {% block title %}Magazzini · Eureka AI{% endblock %}
-
 {% block page_title %}Magazzini{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-building-warehouse"></i></span>
         <div>
-            <h2 class="page-title">Magazzini</h2>
-            <div class="text-secondary">
+            <h2 class="page-title mb-0">Magazzini</h2>
+            <div class="text-secondary mt-1">
                 Magazzini importati da 4D (<code>Magazzini</code>)
-                {% if totale %}· {{ totale }} totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
     </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="magazzini:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="magazzini:export_list" %}
+        <a href="{% url 'magazzini:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo magazzino
+        </a>
+    </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'magazzini:list' %}">
-            <div class="row g-2 align-items-end">
-                <div class="col-lg-8">
-                    <label class="form-label" for="magazziniSearch">Ricerca</label>
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col">
                     <div class="input-icon">
                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
-                        <input
-                            type="text"
-                            id="magazziniSearch"
-                            name="q"
-                            value="{{ q }}"
-                            class="form-control"
-                            placeholder="Codice, descrizione, raggruppamento...">
+                        <input type="text" id="magazziniSearch" name="q" value="{{ q }}" class="form-control" placeholder="Codice, descrizione, Gruppo Magazzini...">
                     </div>
                 </div>
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
                         <i class="ti ti-filter"></i>
                         Filtra
                     </button>
@@ -53,12 +58,12 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-vcenter card-table table-hover">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
-                <tr>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
-                    <th>Raggruppamento</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "descrizione" "Magazzino" default_dir="asc" %}
+                    {% sort_th "cod_ragg_mag" "Gruppo Magazzini" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -66,50 +71,64 @@
                 {% for magazzino in magazzini %}
                 <tr>
                     <td>
-                        {% if magazzino.codice %}
-                        <a href="{% url 'magazzini:detail' magazzino.codice %}" class="fw-semibold text-decoration-none">
-                            {{ magazzino.codice }}
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-orange-lt text-orange">
+                                <i class="ti ti-building-warehouse"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                {% if magazzino.codice %}
+                                <a href="{% url 'magazzini:detail' magazzino.codice %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 420px;" title="{{ magazzino.descrizione }}">
+                                    {{ magazzino.descrizione|default:magazzino.codice }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ magazzino.codice }}
+                                </span>
+                                {% else %}
+                                <span class="eureka-tlist-name text-truncate d-block" style="max-width: 420px;" title="{{ magazzino.descrizione }}">
+                                    {{ magazzino.descrizione|default:"—" }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if magazzino.cod_ragg_mag %}
+                        <a href="{% url 'gruppi_magazzini:detail' magazzino.cod_ragg_mag %}" class="eureka-tlist-chip text-decoration-none">
+                            <i class="ti ti-folders text-azure"></i>
+                            {{ magazzino.cod_ragg_mag }}
                         </a>
                         {% else %}
                         <span class="text-secondary">—</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 420px;" title="{{ magazzino.descrizione }}">
-                            {{ magazzino.descrizione|default:"—" }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if magazzino.cod_ragg_mag %}
-                        <a href="{% url 'gruppi_magazzini:detail' magazzino.cod_ragg_mag %}" class="text-decoration-none">
-                            {{ magazzino.cod_ragg_mag }}
-                        </a>
-                        {% else %}
-                        —
-                        {% endif %}
-                    </td>
-                    <td>
+                    <td class="eureka-tlist-actions">
                         {% if magazzino.codice %}
-                        <a href="{% url 'magazzini:detail' magazzino.codice %}" class="btn btn-ghost-primary btn-icon" title="Dettaglio">
-                            <i class="ti ti-chevron-right"></i>
+                        <a href="{% url 'magazzini:edit' magazzino.codice %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
                         </a>
                         {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center text-secondary py-5">
-                        <i class="ti ti-building-warehouse-off" style="font-size:2rem;opacity:.45;display:block;margin-bottom:.5rem;"></i>
-                        Nessun magazzino trovato
-                        {% if has_filters %}<div class="mt-2"><a href="{% url 'magazzini:list' %}">Azzera filtri</a></div>{% endif %}
+                    <td colspan="3">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-building-warehouse"></i></div>
+                            Nessun magazzino trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'magazzini:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
     {% include "partials/pagination.html" %}
+</div>
+
 </div>
 
 {% endblock %}

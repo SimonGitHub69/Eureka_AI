@@ -1,0 +1,117 @@
+{% load format_tags %}
+{% if editable %}
+{% with vals=form.scadenze_input_values %}
+<div class="card eureka-mask-card mt-3 eureka-doc-collapse eureka-doc-scadenze-card" id="scadenzeCard"
+     data-eureka-doc-collapse
+     data-doc-section="scadenze"
+     data-doc-view="form"
+     data-doc-tipo="{{ tipo.codice }}"
+     data-doc-default="open"
+     {% if calc_scadenze_url %}data-calc-scadenze-url="{{ calc_scadenze_url }}"{% endif %}>
+    <div class="card-header py-2 d-flex align-items-center gap-2 flex-wrap">
+        <button type="button" class="eureka-doc-collapse__toggle eureka-doc-section-head" data-doc-toggle
+                aria-expanded="true" aria-controls="scadenzeCollapseBody" title="Comprimi scadenze">
+            <i class="ti ti-chevron-right eureka-doc-collapse__chevron" aria-hidden="true"></i>
+            <i class="ti ti-calendar-due eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title eureka-doc-collapse__title mb-0">Scadenze</h3>
+            <span class="eureka-doc-collapse__count" id="scadenzeCountBadge" title="Numero scadenze">{{ vals|length }}</span>
+            {% if tipo.scadenze_obbligatorie %}
+            <span class="badge bg-orange-lt">Obbligatorie</span>
+            {% elif tipo %}
+            <span class="badge bg-azure-lt">Facoltative</span>
+            {% endif %}
+            <span class="eureka-doc-collapse__summary" data-doc-summary hidden aria-hidden="true">
+                {% if pagamento_display %}
+                <span class="eureka-doc-collapse__summary-chip" title="Pagamento" data-doc-summary-pagamento>{{ pagamento_display }}</span>
+                {% endif %}
+                <span class="eureka-doc-collapse__summary-chip eureka-doc-collapse__summary-chip--strong"
+                      data-doc-summary-range hidden aria-hidden="true" title="Prima / ultima scadenza"></span>
+            </span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" id="btnAddScadenza" title="Aggiungi scadenza">
+            <i class="ti ti-plus"></i> Aggiungi
+        </button>
+    </div>
+    <div class="eureka-doc-collapse__body" id="scadenzeCollapseBody">
+        <div class="card-body py-2">
+            <div class="eureka-doc-scadenze" role="list" id="scadenzeList">
+                {% for value in vals %}
+                <div class="eureka-doc-scadenze__slot" role="listitem">
+                    <div class="eureka-doc-scadenze__head">
+                        <label class="eureka-doc-scadenze__num">{{ forloop.counter }}</label>
+                        <button type="button" class="btn btn-ghost-danger btn-icon btn-sm eureka-doc-scadenze__remove" data-remove-scadenza title="Rimuovi scadenza" aria-label="Rimuovi scadenza">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    </div>
+                    <input type="date" name="scadenza" value="{{ value }}" class="form-control" autocomplete="off">
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% else %}
+{% with n=scadenze|length %}
+<div class="card eureka-mask-card mt-3 eureka-doc-collapse eureka-doc-scadenze-card" id="scadenzeCard"
+     data-eureka-doc-collapse
+     data-doc-section="scadenze"
+     data-doc-view="detail"
+     data-doc-tipo="{{ tipo.codice }}"
+     data-doc-default="open">
+    <div class="card-header py-2 d-flex align-items-center gap-2 flex-wrap">
+        <button type="button" class="eureka-doc-collapse__toggle eureka-doc-section-head" data-doc-toggle
+                aria-expanded="true" aria-controls="scadenzeCollapseBody" title="Comprimi scadenze">
+            <i class="ti ti-chevron-right eureka-doc-collapse__chevron" aria-hidden="true"></i>
+            <i class="ti ti-calendar-due eureka-mask-card__icon" aria-hidden="true"></i>
+            <h3 class="card-title eureka-doc-collapse__title mb-0">Scadenze</h3>
+            <span class="eureka-doc-collapse__count" title="Numero scadenze">{{ n }}</span>
+            {% if tipo.scadenze_obbligatorie %}
+            <span class="badge bg-orange-lt">Obbligatorie</span>
+            {% elif tipo %}
+            <span class="badge bg-azure-lt">Facoltative</span>
+            {% endif %}
+            <span class="eureka-doc-collapse__summary" data-doc-summary hidden aria-hidden="true">
+                {% if pagamento_display %}
+                <span class="eureka-doc-collapse__summary-chip" title="Pagamento">{{ pagamento_display }}</span>
+                {% endif %}
+                {% if n %}
+                {% with first=scadenze.0 last=scadenze|last %}
+                {% if first.data or last.data %}
+                <span class="eureka-doc-collapse__summary-chip eureka-doc-collapse__summary-chip--strong" title="Prima / ultima scadenza">
+                    {% if first.data and last.data and first.data != last.data %}
+                    {{ first.data|date:"d/m/Y" }} → {{ last.data|date:"d/m/Y" }}
+                    {% elif first.data %}
+                    {{ first.data|date:"d/m/Y" }}
+                    {% elif last.data %}
+                    {{ last.data|date:"d/m/Y" }}
+                    {% endif %}
+                </span>
+                {% endif %}
+                {% endwith %}
+                {% endif %}
+            </span>
+        </button>
+    </div>
+    <div class="eureka-doc-collapse__body" id="scadenzeCollapseBody">
+        <div class="card-body py-2">
+            <div class="eureka-doc-scadenze" role="list" id="scadenzeList">
+                {% for slot in scadenze %}
+                <div class="eureka-doc-scadenze__slot{% if slot.data %} is-filled{% endif %}" role="listitem">
+                    <div class="eureka-doc-scadenze__num">{{ slot.numero }}</div>
+                    <div class="eureka-doc-scadenze__date">
+                        {% if slot.data %}{{ slot.data|date:"d/m/Y" }}{% else %}—{% endif %}
+                    </div>
+                    {% if slot.importo != None %}
+                    <div class="eureka-doc-scadenze__importo">€ {{ slot.importo|euro }}</div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-secondary small py-1">Nessuna scadenza.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endif %}

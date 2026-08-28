@@ -1,0 +1,61 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · {{ valuta.codice }} · Valute · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--valute">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--valute">{{ currency_symbol }}</span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ valuta.codice }}</span>
+                {% if valuta.descrizione %}<span class="badge bg-secondary-lt">{{ valuta.descrizione }}</span>{% endif %}
+                {% if valuta.abbrev %}<span class="badge bg-azure-lt">{{ valuta.abbrev }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        <a href="{% url 'valute:detail' valuta.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio valuta
+        </a>
+        <a href="{% url 'valute:list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" class="eureka-mask-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card eureka-mask-card--compact eureka-mask-card--valute-storico mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <span class="eureka-mask-card__icon"><i class="ti ti-chart-line"></i></span>
+                {% if is_create %}Nuovo cambio storico{% else %}Cambio del {{ cambio_data_label }}{% endif %}
+            </h3>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.data col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.cambio col="col-sm-4" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="eureka-mask-actions">
+        <a href="{% url 'valute:detail' valuta.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ti ti-device-floppy"></i> Salva
+        </button>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}

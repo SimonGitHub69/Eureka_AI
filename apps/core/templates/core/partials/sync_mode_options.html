@@ -1,0 +1,21 @@
+<div class="mb-3">
+    <label class="form-check">
+        <input type="checkbox"
+               name="incremental_only"
+               value="on"
+               class="form-check-input sync-incremental-checkbox"
+               {% if incremental_checked|default:True %}checked{% endif %}>
+        <span class="form-check-label">Solo record modificati</span>
+    </label>
+    <label class="form-check">
+        <input type="checkbox"
+               name="full_sync"
+               value="on"
+               class="form-check-input sync-full-checkbox">
+        <span class="form-check-label">Sincronizzazione completa</span>
+    </label>
+    <div class="form-text">
+        Default: import incrementale in base a Data/Ora Modifica 4D.
+        Se le colonne modifica mancano, viene eseguito un import completo con avviso.
+    </div>
+</div>

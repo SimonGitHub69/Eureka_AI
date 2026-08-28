@@ -22,10 +22,13 @@ from apps.core.mirror_crud import stamp_modifica
 from apps.core.pagination import PerPageListMixin, SafeMirrorListMixin, safe_mirror_count
 from apps.core.sorting import SortableListMixin
 from apps.core.programma import (
+    DOC_MENU_FIELDS,
     get_documenti_menu_flags,
+    get_documenti_menu_items,
     get_tipi_documento_abilitati,
     is_documento_menu_enabled,
 )
+from apps.documenti.mapping import PREVENTIVI_TIPI
 from apps.core.sync_incremental import sync_full_from_request
 from apps.documenti.bridge import (
     FattureMirrorUnavailable,
@@ -43,6 +46,7 @@ from apps.documenti.castelletto import (
 from apps.documenti.sconto import sconti_map_for_js
 from apps.documenti.forms import (
     AliquotaIvaSpeseForm,
+    InviaDocumentoMailForm,
     RigaDocumentoFormSet,
     TestaDocumentoForm,
     riga_formset_for,
@@ -195,14 +199,45 @@ def _run_sync_documenti_task(
                 _SYNC_DOCUMENTI_RUNNING_LOG_ID = None
 
 
+def list_tipo_codes_for(tipo_doc: str) -> tuple[str, ...]:
+    """Tipi visibili in elenco/filtro: il tipo richiesto più varianti serie nascoste.
+
+    Es. Preventivi (PRV) include PRF (FF) e PRT (T). Fatture/NCR/NDB restano
+    elenchi distinti perché hanno ciascuno una voce di menu.
+    """
+    codice = (tipo_doc or "").upper()
+    if not codice:
+        return ()
+    codes = [codice]
+    tipo = TipoDocumento.objects.filter(codice=codice).only("source_table_4d").first()
+    source = ((tipo.source_table_4d if tipo else "") or "").strip()
+    if not source:
+        if codice in PREVENTIVI_TIPI:
+            return tuple(PREVENTIVI_TIPI)
+        return (codice,)
+    siblings = TipoDocumento.objects.filter(
+        attivo=True,
+        source_table_4d__iexact=source,
+    ).values_list("codice", flat=True)
+    for sib in siblings:
+        if sib not in codes and sib not in DOC_MENU_FIELDS:
+            codes.append(sib)
+    return tuple(codes)
+
+
 def _filter_documenti_queryset(
     request, tipo_doc: str | None = None, *, clifor_tipo: str | None = None
 ):
     qs = TestaDocumento.objects.select_related("tipo_doc")
     if tipo_doc:
-        qs = qs.filter(tipo_doc_id=tipo_doc.upper())
+        codes = list_tipo_codes_for(tipo_doc)
+        if len(codes) == 1:
+            qs = qs.filter(tipo_doc_id=codes[0])
+        else:
+            qs = qs.filter(tipo_doc_id__in=codes)
 
     q = (request.GET.get("q") or "").strip()
+    serie = (request.GET.get("serie") or request.GET.get("alfa") or "").strip()
     data_da = parse_date((request.GET.get("data_da") or "").strip())
     data_a = parse_date((request.GET.get("data_a") or "").strip())
 
@@ -220,10 +255,13 @@ def _filter_documenti_queryset(
         # and does not match alfa alone.
         m = _NUMERO_SERIE_RE.match(q)
         if m:
-            serie = m.group(2).strip()
-            if serie:
-                filters |= Q(numero=int(m.group(1)), alfa__icontains=serie)
+            serie_q = m.group(2).strip()
+            if serie_q:
+                filters |= Q(numero=int(m.group(1)), alfa__icontains=serie_q)
         qs = qs.filter(filters)
+
+    if serie:
+        qs = qs.filter(alfa__iexact=serie)
 
     if data_da:
         qs = qs.filter(data_documento__date__gte=data_da)
@@ -231,7 +269,7 @@ def _filter_documenti_queryset(
         qs = qs.filter(data_documento__date__lte=data_a)
 
     return annotate_clifor_ragione_sociale(
-        qs.order_by("-data_documento", "-numero", "-id_4d"),
+        qs.order_by("-data_documento", "-numero", "alfa", "-id_4d"),
         clifor_tipo=clifor_tipo,
     )
 
@@ -245,6 +283,12 @@ def _resolve_tipo_doc(tipo_doc: str) -> TipoDocumento:
         codice=codice,
         attivo=True,
     )
+
+
+def _is_preventivo(tipo: TipoDocumento) -> bool:
+    if (getattr(tipo, "categoria", "") or "") == TipoDocumento.CATEGORIA_PREVENTIVI:
+        return True
+    return (getattr(tipo, "codice", "") or "").upper() in PREVENTIVI_TIPI
 
 
 def _clifor_label(tipo: TipoDocumento) -> str:
@@ -583,6 +627,7 @@ def _riga_has_content(obj: RigaDocumento) -> bool:
             "iva",
             "sconto",
             "unita_misura",
+            "provvigione",
         )
     )
 
@@ -626,8 +671,7 @@ class DocumentoIndexView(LoginRequiredMixin, ListView):
     context_object_name = "tipi"
 
     def get_queryset(self):
-        tipi = list(TipoDocumento.objects.filter(attivo=True))
-        allowed = [t.codice for t in tipi if is_documento_menu_enabled(t.codice)]
+        allowed = [item["codice"] for item in get_documenti_menu_items()]
         return TipoDocumento.objects.filter(codice__in=allowed)
 
 
@@ -648,7 +692,7 @@ class DocumentoListView(LoginRequiredMixin, SortableListMixin, SafeMirrorListMix
     )
     default_sort = "data_documento"
     default_dir = "desc"
-    sort_tiebreaker = "id_4d"
+    sort_tiebreaker = ("-numero", "alfa", "-id_4d")
     sort_fallbacks = {"cliente_ragione_sociale1": "codice_clifor"}
     paginate_by = 50
 
@@ -683,16 +727,22 @@ class DocumentoListView(LoginRequiredMixin, SortableListMixin, SafeMirrorListMix
         context["tipo"] = self.tipo
         context["filter_query"] = params.urlencode()
         context["q"] = (self.request.GET.get("q") or "").strip()
+        context["serie"] = (
+            self.request.GET.get("serie") or self.request.GET.get("alfa") or ""
+        ).strip()
         context["data_da"] = (self.request.GET.get("data_da") or "").strip()
         context["data_a"] = (self.request.GET.get("data_a") or "").strip()
         context["has_filters"] = bool(
-            context["q"] or context["data_da"] or context["data_a"]
+            context["q"]
+            or context["serie"]
+            or context["data_da"]
+            or context["data_a"]
         )
         if getattr(self, "_clienti_available", None) is None:
             self._clienti_available = _clifor_mirror_available(self.tipo)
         context["sort_cliente_ragione_sociale"] = self._clienti_available
         context["totale"] = safe_mirror_count(
-            TestaDocumento.objects.filter(tipo_doc_id=self.tipo_doc)
+            TestaDocumento.objects.filter(tipo_doc_id__in=list_tipo_codes_for(self.tipo_doc))
         )
         return context
 
@@ -753,6 +803,148 @@ class DocumentoDetailView(LoginRequiredMixin, DetailView):
         context["clifor_lookup_tipo"] = _clifor_lookup_tipo(self.tipo)
         context["clifor_url"] = _clifor_url(self.tipo, self.object.codice_clifor)
         return context
+
+
+class DocumentoPrintView(LoginRequiredMixin, View):
+    """Stampa HTML del documento (layout preventivo) con logo stampe documenti."""
+
+    template_name = "documenti/documento_print.html"
+
+    def get(self, request, tipo_doc, pk):
+        tipo = _resolve_tipo_doc(tipo_doc)
+        documento = get_object_or_404(
+            TestaDocumento.objects.select_related("tipo_doc"),
+            pk=pk,
+            tipo_doc_id=tipo.codice,
+        )
+        from apps.documenti.print_documento import build_documento_print_context
+
+        ctx = build_documento_print_context(
+            documento,
+            autoprint=(request.GET.get("autoprint") or "").strip()
+            in {"1", "true", "yes"},
+        )
+        return render(request, self.template_name, ctx)
+
+
+class DocumentoInviaMailView(LoginRequiredMixin, View):
+    """Invio del documento via SMTP (Parametri mail)."""
+
+    template_name = "documenti/documento_invia_mail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.tipo_doc = kwargs.get("tipo_doc", "").upper()
+        self.tipo = _resolve_tipo_doc(self.tipo_doc)
+        return super().dispatch(request, *args, **kwargs)
+
+    def _documento(self, pk):
+        return get_object_or_404(
+            annotate_clifor_ragione_sociale(
+                TestaDocumento.objects.select_related("tipo_doc").filter(
+                    tipo_doc_id=self.tipo.codice
+                ),
+                clifor_tipo=self.tipo.clifor_tipo,
+            ),
+            pk=pk,
+        )
+
+    def _next_url(self, request, documento):
+        nxt = (request.POST.get("next") or request.GET.get("next") or "").strip()
+        if nxt.startswith("/") and not nxt.startswith("//"):
+            return nxt
+        return reverse(
+            "documenti:list",
+            kwargs={"tipo_doc": documento.tipo_doc_id},
+        )
+
+    def _mail_status(self):
+        from apps.core.mail import get_parametri_mail, normalize_smtp_host
+
+        cfg = get_parametri_mail()
+        host, _port = normalize_smtp_host(cfg.server_smtp)
+        return {
+            "attiva": bool(cfg.attiva),
+            "smtp_ok": bool(host and (cfg.mittente or "").strip()),
+        }
+
+    def _form(self, documento, data=None):
+        from apps.documenti.mail_documento import (
+            default_mail_body,
+            default_mail_subject,
+            resolve_documento_email,
+        )
+
+        initial = {
+            "destinatario": resolve_documento_email(documento),
+            "oggetto": default_mail_subject(documento),
+            "messaggio": default_mail_body(documento),
+        }
+        return InviaDocumentoMailForm(data, initial=initial)
+
+    def _context(self, request, documento, form):
+        from apps.documenti.mail_documento import documento_mail_title
+
+        return {
+            "tipo": self.tipo,
+            "documento": documento,
+            "form": form,
+            "mail_title": documento_mail_title(documento),
+            "next_url": self._next_url(request, documento),
+            "mail_status": self._mail_status(),
+            "list_url": reverse(
+                "documenti:list", kwargs={"tipo_doc": documento.tipo_doc_id}
+            ),
+        }
+
+    def get(self, request, tipo_doc, pk):
+        documento = self._documento(pk)
+        return render(
+            request,
+            self.template_name,
+            self._context(request, documento, self._form(documento)),
+        )
+
+    def post(self, request, tipo_doc, pk):
+        from apps.core.mail import describe_mail_error, parse_address_list, send_mail_automatica
+        from apps.documenti.mail_documento import parse_destinatari
+
+        documento = self._documento(pk)
+        form = self._form(documento, request.POST)
+        if not form.is_valid():
+            return render(
+                request, self.template_name, self._context(request, documento, form)
+            )
+        to = parse_destinatari(form.cleaned_data["destinatario"])
+        cc = parse_address_list(form.cleaned_data.get("cc"))
+        try:
+            from apps.documenti.pdf_documento import pdf_filename_for, render_documento_pdf
+
+            pdf_bytes = render_documento_pdf(documento)
+            send_mail_automatica(
+                subject=form.cleaned_data["oggetto"],
+                body=form.cleaned_data["messaggio"],
+                to=to,
+                cc=cc,
+                attachments=[
+                    (pdf_filename_for(documento), pdf_bytes, "application/pdf"),
+                ],
+            )
+        except RuntimeError as exc:
+            messages.error(request, str(exc))
+            return render(
+                request, self.template_name, self._context(request, documento, form)
+            )
+        except Exception as exc:
+            messages.error(
+                request,
+                describe_mail_error(exc, host=""),
+            )
+            return render(
+                request, self.template_name, self._context(request, documento, form)
+            )
+        dest = ", ".join(to)
+        messages.success(request, f"Documento inviato per email a {dest}.")
+        return redirect(self._next_url(request, documento))
 
 
 class DocumentoCreateView(LoginRequiredMixin, View):
@@ -922,16 +1114,23 @@ class CalcScadenzeView(LoginRequiredMixin, View):
 
     def get(self, request):
         codice = (request.GET.get("codice") or "").strip()
-        slots = calcola_scadenze(
-            data_documento=request.GET.get("data"),
-            condizione=load_condizione(codice),
-            totale=request.GET.get("totale"),
-        )
+        kwargs = {
+            "data_documento": request.GET.get("data"),
+            "condizione": load_condizione(codice),
+            "totale": request.GET.get("totale"),
+        }
+        raw_max = (request.GET.get("max_n") or "").strip()
+        if raw_max:
+            try:
+                kwargs["max_n"] = int(raw_max)
+            except (TypeError, ValueError):
+                pass
+        slots = calcola_scadenze(**kwargs)
         return JsonResponse({"ok": True, "scadenze": slots_as_json(slots)})
 
 
 class CalcPesoDocumentoView(LoginRequiredMixin, View):
-    """POST JSON: {lines:[{codice, quantita}, ...]} → totale_peso da Articoli.PesoNetto."""
+    """POST JSON: {lines:[{codice, quantita}, ...]} → totale_peso da Articoli.PesoLordo_Manodopera."""
 
     def post(self, request):
         try:
@@ -1113,11 +1312,10 @@ class DocumentoParametriSpeseView(LoginRequiredMixin, View):
     """Parametri Preventivi: modifica aliquota IVA spese (Parametri contabili)."""
 
     template_name = "documenti/parametri_spese.html"
-    allowed_tipi = frozenset({"PRV"})
 
     def dispatch(self, request, *args, **kwargs):
         self.tipo = _resolve_tipo_doc(kwargs.get("tipo_doc", ""))
-        if self.tipo.codice not in self.allowed_tipi:
+        if not _is_preventivo(self.tipo):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 

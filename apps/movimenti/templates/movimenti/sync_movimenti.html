@@ -1,0 +1,89 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Sync Movimenti 4D · Eureka AI{% endblock %}
+{% block page_title %}Sync Movimenti 4D{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">Sync Movimenti 4D</h2>
+            <div class="text-secondary">
+                Importa <code>MovimentiT</code> e <code>MovimentiT_Dettaglio</code> da 4D
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'movimenti:list' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-list"></i>
+                Elenco
+            </a>
+            <a href="{% url 'core:parametri_4d' %}" class="btn btn-outline-secondary">
+                <i class="ti ti-settings"></i>
+                Parametri 4D
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards mb-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">MovimentiT in PostgreSQL</div>
+                <div class="h1 mb-0">{{ movimentit_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Dettaglio in PostgreSQL</div>
+                <div class="h1 mb-0">{{ dettaglio_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <p class="mb-2">
+            Il sync ricrea le tabelle mirror <code>movimentit</code> /
+            <code>movimentit_dettaglio</code> con le colonne 4D, poi importa i dati.
+            Chiavi: <code>ID_Testa</code> / <code>ID</code>.
+        </p>
+        <p class="mb-2">
+            Aggiornamento incrementale: testa su <code>DataRegistraz</code>+<code>OraRegistraz</code>,
+            dettaglio su <code>DataMov</code>
+            (<code>DataModifica</code> in 4D non è valorizzata su questi archivi).
+        </p>
+        <p class="text-secondary mb-0">
+            Da terminale:
+            <code>.\.venv\Scripts\python.exe manage.py sync_movimenti_4d</code>
+        </p>
+    </div>
+    <div class="card-footer d-flex justify-content-end">
+        <form method="post">
+            {% csrf_token %}
+            {% include "core/partials/sync_mode_options.html" %}
+            <button type="submit" class="btn btn-primary"
+                    onclick="this.disabled=true; this.innerHTML='<i class=&quot;ti ti-loader-2&quot;></i> Sync in corso...'; this.form.submit();">
+                <i class="ti ti-refresh"></i>
+                Avvia sincronizzazione
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if last_message %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Dettaglio ultimo sync</h3>
+    </div>
+    <div class="card-body">
+        <pre class="mb-0" style="white-space: pre-wrap;">{{ last_message }}</pre>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

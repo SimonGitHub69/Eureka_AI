@@ -14,7 +14,7 @@
             <h2 class="page-title mb-0">Raggruppamento Clienti-Fornitori</h2>
             <div class="text-secondary mt-1">
                 Raggruppamenti importati da 4D (<code>Gruppo_Cli_For</code> / Tab_CliFor)
-                {% if totale %}· <strong>{{ totale }}</strong> totali{% endif %}
+                {% include "partials/tlist_count.html" %}
             </div>
         </div>
     </div>
@@ -26,7 +26,9 @@
 
 <div class="card mb-3 eureka-tlist-search">
     <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
         <form method="get" action="{% url 'raggruppamento_clifor:list' %}">
+            {% include "partials/sort_hidden.html" %}
             <div class="row g-2 align-items-center">
                 <div class="col">
                     <div class="input-icon">
@@ -53,9 +55,10 @@
     <div class="table-responsive">
         <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
             <thead>
-                <tr>
-                    <th>Codice</th>
-                    <th>Descrizione</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "codice" "Codice" default_dir="asc" %}
+                    {% sort_th "descrizione" "Descrizione" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>

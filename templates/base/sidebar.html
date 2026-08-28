@@ -30,18 +30,13 @@
             <span class="st-nav-label">Agenda</span>
         </a>
 
-        <div class="st-nav-collapse {% if request.resolver_match.namespace == 'fatture' and request.resolver_match.url_name != 'analisi' and request.resolver_match.url_name != 'sync' or request.path|slice:':9' == '/clienti/' or request.path|slice:':11' == '/fornitori/' or request.path|slice:':8' == '/agenti/' or request.path|slice:':10' == '/articoli/' or request.path|slice:':15' == '/distinte-base/' %}is-open{% endif %}" data-nav-section="gestione">
+        <div class="st-nav-collapse {% if request.path|slice:':9' == '/clienti/' or request.path|slice:':11' == '/fornitori/' or request.path|slice:':8' == '/agenti/' %}is-open{% endif %}" data-nav-section="archivi">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
-                <span class="st-nav-section-label">Gestione</span>
+                <span class="st-nav-section-label">Archivi</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
                 <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
             </button>
             <div class="st-nav-collapse-body" data-nav-body>
-                <a class="st-nav-link {% if request.resolver_match.namespace == 'fatture' and request.resolver_match.url_name != 'analisi' and request.resolver_match.url_name != 'sync' %}active{% endif %}" href="{% url 'fatture:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-file-invoice"></i></span>
-                    <span class="st-nav-label">Fatture</span>
-                </a>
-
                 <a class="st-nav-link {% if request.path|slice:':9' == '/clienti/' %}active{% endif %}" href="{% url 'anagrafiche:clienti_list' %}">
                     <span class="st-nav-icon"><i class="ti ti-users"></i></span>
                     <span class="st-nav-label">Clienti</span>
@@ -56,16 +51,155 @@
                     <span class="st-nav-icon"><i class="ti ti-user-star"></i></span>
                     <span class="st-nav-label">Agenti</span>
                 </a>
+            </div>
+        </div>
 
-                <a class="st-nav-link {% if request.path|slice:':10' == '/articoli/' %}active{% endif %}" href="{% url 'articoli:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-package"></i></span>
-                    <span class="st-nav-label">Articoli</span>
-                </a>
+        <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':11' == '/primanota/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' or '/pdc/stampa/' in request.path or '/primanota/stampa/' in request.path or '/causali-contabili/stampa/' in request.path or '/raggruppamento-conti/stampa/' in request.path or '/raggruppamento-clifor/stampa/' in request.path or '/registri-iva/stampa/' in request.path %}is-open{% endif %}" data-nav-section="primanota">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Primanota</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':11' == '/primanota/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' %}is-open{% endif %}" data-nav-section="primanota-gestione">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Gestione</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if request.path|slice:':5' == '/pdc/' and '/pdc/stampa/' not in request.path %}active{% endif %}" href="{% url 'pdc:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-report-money"></i></span>
+                            <span class="st-nav-label">Piano dei Conti</span>
+                        </a>
 
-                <a class="st-nav-link {% if request.path|slice:':15' == '/distinte-base/' %}active{% endif %}" href="{% url 'distinte_base:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-list-tree"></i></span>
-                    <span class="st-nav-label">Distinte base</span>
-                </a>
+                        <a class="st-nav-link {% if request.path|slice:':11' == '/primanota/' and '/primanota/stampa/' not in request.path %}active{% endif %}" href="{% url 'primanota:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-notebook"></i></span>
+                            <span class="st-nav-label">Primanota</span>
+                        </a>
+
+                        <a class="st-nav-link {% if request.path|slice:':19' == '/causali-contabili/' and '/causali-contabili/stampa/' not in request.path %}active{% endif %}" href="{% url 'causali_contabili:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-file-description"></i></span>
+                            <span class="st-nav-label">Causali Contabili</span>
+                        </a>
+
+                        <a class="st-nav-link {% if request.path|slice:':22' == '/raggruppamento-conti/' and '/raggruppamento-conti/stampa/' not in request.path %}active{% endif %}" href="{% url 'raggruppamento_conti:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-category-2"></i></span>
+                            <span class="st-nav-label">Raggruppamento Conti</span>
+                        </a>
+
+                        <a class="st-nav-link {% if request.path|slice:':22' == '/raggruppamento-clifor/' and '/raggruppamento-clifor/stampa/' not in request.path %}active{% endif %}" href="{% url 'raggruppamento_clifor:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-users-group"></i></span>
+                            <span class="st-nav-label">Raggr. Clienti-Fornitori</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="st-nav-collapse {% if '/pdc/stampa/' in request.path or '/primanota/stampa/' in request.path or '/causali-contabili/stampa/' in request.path or '/raggruppamento-conti/stampa/' in request.path or '/raggruppamento-clifor/stampa/' in request.path or '/registri-iva/stampa/' in request.path %}is-open{% endif %}" data-nav-section="primanota-stampe">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Stampe</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if '/pdc/stampa/' in request.path %}active{% endif %}" href="{% url 'pdc:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-report-money"></i></span>
+                            <span class="st-nav-label">Piano dei Conti</span>
+                        </a>
+                        <a class="st-nav-link {% if '/primanota/stampa/' in request.path %}active{% endif %}" href="{% url 'primanota:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-notebook"></i></span>
+                            <span class="st-nav-label">Primanota</span>
+                        </a>
+                        <a class="st-nav-link {% if '/registri-iva/stampa/' in request.path %}active{% endif %}" href="{% url 'registri_iva:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-book-2"></i></span>
+                            <span class="st-nav-label">Registri IVA</span>
+                        </a>
+                        <a class="st-nav-link {% if '/causali-contabili/stampa/' in request.path %}active{% endif %}" href="{% url 'causali_contabili:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-file-description"></i></span>
+                            <span class="st-nav-label">Causali Contabili</span>
+                        </a>
+                        <a class="st-nav-link {% if '/raggruppamento-conti/stampa/' in request.path %}active{% endif %}" href="{% url 'raggruppamento_conti:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-category-2"></i></span>
+                            <span class="st-nav-label">Raggruppamento Conti</span>
+                        </a>
+                        <a class="st-nav-link {% if '/raggruppamento-clifor/stampa/' in request.path %}active{% endif %}" href="{% url 'raggruppamento_clifor:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-users-group"></i></span>
+                            <span class="st-nav-label">Raggr. Clienti-Fornitori</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="st-nav-collapse {% if request.path|slice:':10' == '/articoli/' or request.path|slice:':15' == '/distinte-base/' or request.path|slice:':11' == '/documenti/' or request.path|slice:':11' == '/movimenti/' or request.path|slice:':8' == '/stampe/' or request.resolver_match.namespace == 'fatture' and request.resolver_match.url_name != 'analisi' and request.resolver_match.url_name != 'sync' and request.resolver_match.url_name != 'analisi_regioni' and request.resolver_match.url_name != 'classifica' %}is-open{% endif %}" data-nav-section="fatturazione_magazzino">
+            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
+                <span class="st-nav-section-label">Fatturazione Magazzino</span>
+                <span class="st-nav-section-rule" aria-hidden="true"></span>
+                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="st-nav-collapse-body" data-nav-body>
+                <div class="st-nav-collapse {% if request.path|slice:':16' != '/articoli/stampa' and request.path|slice:':10' == '/articoli/' or request.path|slice:':22' != '/distinte-base/stampa' and request.path|slice:':15' == '/distinte-base/' or request.path|slice:':18' != '/movimenti/stampa' and request.path|slice:':11' == '/movimenti/' %}is-open{% endif %}" data-nav-section="fatturazione-magazzino-articoli">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Magazzino</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if request.path|slice:':10' == '/articoli/' and request.path|slice:':16' != '/articoli/stampa' %}active{% endif %}" href="{% url 'articoli:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-package"></i></span>
+                            <span class="st-nav-label">Articoli</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':15' == '/distinte-base/' and request.path|slice:':22' != '/distinte-base/stampa' %}active{% endif %}" href="{% url 'distinte_base:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-list-tree"></i></span>
+                            <span class="st-nav-label">Distinte base</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':11' == '/movimenti/' and request.path|slice:':18' != '/movimenti/stampa' %}active{% endif %}" href="{% url 'movimenti:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-transfer"></i></span>
+                            <span class="st-nav-label">Movimenti</span>
+                        </a>
+                    </div>
+                </div>
+                {% if eureka_doc_menu_items %}
+                <div class="st-nav-collapse {% if request.path|slice:':11' == '/documenti/' or request.resolver_match.namespace == 'fatture' and request.resolver_match.url_name != 'analisi' and request.resolver_match.url_name != 'sync' and request.resolver_match.url_name != 'analisi_regioni' and request.resolver_match.url_name != 'classifica' %}is-open{% endif %}" data-nav-section="fatturazione-documenti">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Documenti</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        {% for item in eureka_doc_menu_items %}
+                        <a class="st-nav-link {% if item.active %}active{% endif %}" href="{{ item.href }}">
+                            <span class="st-nav-icon"><i class="ti {{ item.icon }}"></i></span>
+                            <span class="st-nav-label">{{ item.label }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                <div class="st-nav-collapse {% if request.path|slice:':8' == '/stampe/' or request.path|slice:':16' == '/articoli/stampa' or request.path|slice:':22' == '/distinte-base/stampa' or request.path|slice:':18' == '/movimenti/stampa' %}is-open{% endif %}" data-nav-section="fatturazione-stampe">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Stampe</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if request.path|slice:':16' == '/articoli/stampa' %}active{% endif %}" href="{% url 'articoli:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-package"></i></span>
+                            <span class="st-nav-label">Articoli</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':20' == '/stampe/inventario' %}active{% endif %}" href="{% url 'core:stampe_inventario' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-packages"></i></span>
+                            <span class="st-nav-label">Inventario</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':22' == '/distinte-base/stampa' %}active{% endif %}" href="{% url 'distinte_base:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-list-tree"></i></span>
+                            <span class="st-nav-label">Distinte base</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':18' == '/movimenti/stampa' %}active{% endif %}" href="{% url 'movimenti:print_list' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-transfer"></i></span>
+                            <span class="st-nav-label">Movimenti</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -91,36 +225,8 @@
             </div>
         </div>
 
-        <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' %}is-open{% endif %}" data-nav-section="contabilita">
-            <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
-                <span class="st-nav-section-label">Contabilità</span>
-                <span class="st-nav-section-rule" aria-hidden="true"></span>
-                <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
-            </button>
-            <div class="st-nav-collapse-body" data-nav-body>
-                <a class="st-nav-link {% if request.path|slice:':5' == '/pdc/' %}active{% endif %}" href="{% url 'pdc:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-report-money"></i></span>
-                    <span class="st-nav-label">Piano dei Conti</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':19' == '/causali-contabili/' %}active{% endif %}" href="{% url 'causali_contabili:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-file-description"></i></span>
-                    <span class="st-nav-label">Causali Contabili</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':22' == '/raggruppamento-conti/' %}active{% endif %}" href="{% url 'raggruppamento_conti:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-category-2"></i></span>
-                    <span class="st-nav-label">Raggruppamento Conti</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':22' == '/raggruppamento-clifor/' %}active{% endif %}" href="{% url 'raggruppamento_clifor:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-users-group"></i></span>
-                    <span class="st-nav-label">Raggr. Clienti-Fornitori</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="st-nav-collapse {% if request.path|slice:':8' == '/carbon/' or request.path|slice:':20' == '/schede-lavorazione/' or request.path|slice:':8' == '/stampi/' or request.path|slice:':12' == '/timbrature/' %}is-open{% endif %}" data-nav-section="carbon">
+        {% if eureka_extra_carbon %}
+        <div class="st-nav-collapse {% if request.path|slice:':8' == '/carbon/' and '/carbon/reparti' not in request.path or request.path|slice:':20' == '/schede-lavorazione/' or request.path|slice:':8' == '/stampi/' %}is-open{% endif %}" data-nav-section="carbon" data-extra-module="carbon">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">CARBON</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
@@ -143,10 +249,6 @@
                     <span class="st-nav-icon"><i class="ti ti-box"></i></span>
                     <span class="st-nav-label">Stampi</span>
                 </a>
-                <a class="st-nav-link {% if '/carbon/reparti' in request.path %}active{% endif %}" href="{% url 'carbon:reparti_list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-building-factory"></i></span>
-                    <span class="st-nav-label">Reparti</span>
-                </a>
                 <a class="st-nav-link {% if '/carbon/lavorazioni-partite' in request.path %}active{% endif %}" href="{% url 'carbon:lavorazioni_list' %}">
                     <span class="st-nav-icon"><i class="ti ti-list-details"></i></span>
                     <span class="st-nav-label">Lavorazioni partite</span>
@@ -159,83 +261,158 @@
                     <span class="st-nav-icon"><i class="ti ti-tools"></i></span>
                     <span class="st-nav-label">Lavorazioni extra</span>
                 </a>
-                <a class="st-nav-link {% if request.path|slice:':12' == '/timbrature/' %}active{% endif %}" href="{% url 'timbrature:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-clock"></i></span>
-                    <span class="st-nav-label">Presenze</span>
-                </a>
             </div>
         </div>
+        {% endif %}
 
-        <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':12' == '/condizioni/' or request.path|slice:':10' == '/aliquote/' or request.path|slice:':8' == '/banche/' or request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':11' == '/operatori/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
+        <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':12' == '/condizioni/' or request.path|slice:':10' == '/aliquote/' or request.path|slice:':14' == '/registri-iva/' or request.path|slice:':8' == '/banche/' or request.path|slice:':8' == '/sconti/' or request.path|slice:':8' == '/valute/' or request.path|slice:':6' == '/zone/' or request.path|slice:':7' == '/porto/' or request.path|slice:':9' == '/vettori/' or request.path|slice:':15' == '/causali-trasp/' or request.path|slice:':14' == '/destinazioni/' or request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':10' == '/depositi/' or request.path|slice:':19' == '/causali-magazzino/' or request.path|slice:':11' == '/operatori/' or '/carbon/reparti' in request.path or request.path|slice:':12' == '/timbrature/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Tabelle</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
                 <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
             </button>
             <div class="st-nav-collapse-body" data-nav-body>
-                <a class="st-nav-link {% if request.path|slice:':9' == '/aziende/' %}active{% endif %}" href="{% url 'aziende:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-building"></i></span>
-                    <span class="st-nav-label">Azienda</span>
-                </a>
+                <div class="st-nav-collapse {% if request.path|slice:':11' == '/categorie/' or request.path|slice:':17' == '/gruppi-articoli/' or request.path|slice:':18' == '/gruppi-magazzini/' or request.path|slice:':11' == '/magazzini/' or request.path|slice:':10' == '/depositi/' or request.path|slice:':19' == '/causali-magazzino/' %}is-open{% endif %}" data-nav-section="tabelle-magazzino">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Magazzino</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if request.path|slice:':11' == '/categorie/' %}active{% endif %}" href="{% url 'categorie:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-category"></i></span>
+                            <span class="st-nav-label">Categorie</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':17' == '/gruppi-articoli/' %}active{% endif %}" href="{% url 'gruppi_articoli:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-folders"></i></span>
+                            <span class="st-nav-label">Gruppi articoli</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':18' == '/gruppi-magazzini/' %}active{% endif %}" href="{% url 'gruppi_magazzini:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-building-warehouse"></i></span>
+                            <span class="st-nav-label">Gruppi Magazzini</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':11' == '/magazzini/' %}active{% endif %}" href="{% url 'magazzini:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-building-store"></i></span>
+                            <span class="st-nav-label">Magazzini</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':10' == '/depositi/' %}active{% endif %}" href="{% url 'depositi:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-box"></i></span>
+                            <span class="st-nav-label">Depositi</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':19' == '/causali-magazzino/' %}active{% endif %}" href="{% url 'causali_magazzino:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-arrows-exchange"></i></span>
+                            <span class="st-nav-label">Causali magazzino</span>
+                        </a>
+                    </div>
+                </div>
 
-                <a class="st-nav-link {% if request.path|slice:':12' == '/condizioni/' %}active{% endif %}" href="{% url 'condizioni:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-cash"></i></span>
-                    <span class="st-nav-label">Condizioni di pagamento</span>
-                </a>
+                <div class="st-nav-collapse {% if request.path|slice:':10' == '/aliquote/' or request.path|slice:':14' == '/registri-iva/' or request.path|slice:':8' == '/banche/' or request.path|slice:':8' == '/sconti/' or request.path|slice:':8' == '/valute/' or request.path|slice:':12' == '/condizioni/' %}is-open{% endif %}" data-nav-section="tabelle-contabilita">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Contabilità</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if request.path|slice:':10' == '/aliquote/' %}active{% endif %}" href="{% url 'aliquote:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-receipt-tax"></i></span>
+                            <span class="st-nav-label">Aliquote IVA</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':14' == '/registri-iva/' %}active{% endif %}" href="{% url 'registri_iva:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-book-2"></i></span>
+                            <span class="st-nav-label">Registri IVA</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':8' == '/banche/' %}active{% endif %}" href="{% url 'banche:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-building-bank"></i></span>
+                            <span class="st-nav-label">Banche</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':8' == '/sconti/' %}active{% endif %}" href="{% url 'sconti:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-percentage"></i></span>
+                            <span class="st-nav-label">Sconti</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':8' == '/valute/' %}active{% endif %}" href="{% url 'valute:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-currency-dollar"></i></span>
+                            <span class="st-nav-label">Valute</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':12' == '/condizioni/' %}active{% endif %}" href="{% url 'condizioni:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-cash"></i></span>
+                            <span class="st-nav-label">Condizioni di Pagamento</span>
+                        </a>
+                    </div>
+                </div>
 
-                <a class="st-nav-link {% if request.path|slice:':10' == '/aliquote/' %}active{% endif %}" href="{% url 'aliquote:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-receipt-tax"></i></span>
-                    <span class="st-nav-label">Aliquote IVA</span>
-                </a>
+                <div class="st-nav-collapse {% if request.path|slice:':9' == '/aziende/' or request.path|slice:':6' == '/zone/' or request.path|slice:':7' == '/porto/' or request.path|slice:':9' == '/vettori/' or request.path|slice:':15' == '/causali-trasp/' or request.path|slice:':14' == '/destinazioni/' or request.path|slice:':9' == '/regioni/' or request.path|slice:':10' == '/province/' or request.path|slice:':7' == '/citta/' %}is-open{% endif %}" data-nav-section="tabelle-fatturazione">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Fatturazione</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if request.path|slice:':9' == '/aziende/' %}active{% endif %}" href="{% url 'aziende:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-building"></i></span>
+                            <span class="st-nav-label">Azienda</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':6' == '/zone/' %}active{% endif %}" href="{% url 'zone:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-world"></i></span>
+                            <span class="st-nav-label">Zone</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':14' == '/destinazioni/' %}active{% endif %}" href="{% url 'destinazioni:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-map-pin"></i></span>
+                            <span class="st-nav-label">Destinazioni diverse</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':7' == '/porto/' %}active{% endif %}" href="{% url 'documenti:porto_list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-package"></i></span>
+                            <span class="st-nav-label">Porto</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':9' == '/vettori/' %}active{% endif %}" href="{% url 'vettori:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-truck"></i></span>
+                            <span class="st-nav-label">Spedizionieri</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':15' == '/causali-trasp/' %}active{% endif %}" href="{% url 'causali_trasp:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-package-export"></i></span>
+                            <span class="st-nav-label">Causali trasporto</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':9' == '/regioni/' %}active{% endif %}" href="{% url 'geografia:regioni_list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-map"></i></span>
+                            <span class="st-nav-label">Regioni</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':10' == '/province/' %}active{% endif %}" href="{% url 'geografia:province_list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-map-pin"></i></span>
+                            <span class="st-nav-label">Province</span>
+                        </a>
+                        <a class="st-nav-link {% if request.path|slice:':7' == '/citta/' %}active{% endif %}" href="{% url 'geografia:citta_list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-building-community"></i></span>
+                            <span class="st-nav-label">Città</span>
+                        </a>
+                    </div>
+                </div>
 
-                <a class="st-nav-link {% if request.path|slice:':8' == '/banche/' %}active{% endif %}" href="{% url 'banche:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-building-bank"></i></span>
-                    <span class="st-nav-label">Banche</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':11' == '/categorie/' %}active{% endif %}" href="{% url 'categorie:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-category"></i></span>
-                    <span class="st-nav-label">Categorie</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':17' == '/gruppi-articoli/' %}active{% endif %}" href="{% url 'gruppi_articoli:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-folders"></i></span>
-                    <span class="st-nav-label">Gruppi articoli</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':18' == '/gruppi-magazzini/' %}active{% endif %}" href="{% url 'gruppi_magazzini:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-building-warehouse"></i></span>
-                    <span class="st-nav-label">Raggruppamenti magazzini</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':11' == '/magazzini/' %}active{% endif %}" href="{% url 'magazzini:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-building-store"></i></span>
-                    <span class="st-nav-label">Magazzini</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':11' == '/operatori/' %}active{% endif %}" href="{% url 'operatori:list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-user-cog"></i></span>
-                    <span class="st-nav-label">Operatori</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':9' == '/regioni/' %}active{% endif %}" href="{% url 'geografia:regioni_list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-map"></i></span>
-                    <span class="st-nav-label">Regioni</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':10' == '/province/' %}active{% endif %}" href="{% url 'geografia:province_list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-map-pin"></i></span>
-                    <span class="st-nav-label">Province</span>
-                </a>
-
-                <a class="st-nav-link {% if request.path|slice:':7' == '/citta/' %}active{% endif %}" href="{% url 'geografia:citta_list' %}">
-                    <span class="st-nav-icon"><i class="ti ti-building-community"></i></span>
-                    <span class="st-nav-label">Città</span>
-                </a>
+                <div class="st-nav-collapse {% if request.path|slice:':11' == '/operatori/' or '/carbon/reparti' in request.path or request.path|slice:':12' == '/timbrature/' %}is-open{% endif %}" data-nav-section="tabelle-risorse-umane">
+                    <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
+                        <span class="st-nav-section-label">Risorse Umane</span>
+                        <span class="st-nav-section-rule" aria-hidden="true"></span>
+                        <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="st-nav-collapse-body" data-nav-body>
+                        <a class="st-nav-link {% if request.path|slice:':11' == '/operatori/' %}active{% endif %}" href="{% url 'operatori:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-user-cog"></i></span>
+                            <span class="st-nav-label">Operatori</span>
+                        </a>
+                        {% if eureka_extra_carbon %}
+                        <a class="st-nav-link {% if '/carbon/reparti' in request.path %}active{% endif %}" href="{% url 'carbon:reparti_list' %}" data-extra-module="carbon">
+                            <span class="st-nav-icon"><i class="ti ti-building-factory"></i></span>
+                            <span class="st-nav-label">Reparti</span>
+                        </a>
+                        {% endif %}
+                        <a class="st-nav-link {% if request.path|slice:':12' == '/timbrature/' %}active{% endif %}" href="{% url 'timbrature:list' %}">
+                            <span class="st-nav-icon"><i class="ti ti-clock"></i></span>
+                            <span class="st-nav-label">Presenze</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="st-nav-collapse {% if '/parametri/' in request.path or request.path|slice:':8' == '/offline' %}is-open{% endif %}" data-nav-section="parametri">
+        <div class="st-nav-collapse {% if '/parametri/' in request.path or request.path|slice:':8' == '/offline' or request.path|slice:':21' == '/parametri-documento/' or request.path|slice:':21' == '/parametri/contabili/' %}is-open{% endif %}" data-nav-section="parametri">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
                 <span class="st-nav-section-label">Parametri</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
@@ -246,7 +423,23 @@
                     <span class="st-nav-icon"><i class="ti ti-cloud-download"></i></span>
                     <span class="st-nav-label">Dati offline</span>
                 </a>
+                <a class="st-nav-link {% if request.path|slice:':21' == '/parametri-documento/' and '/parametri-documento/contatori/' not in request.path %}active{% endif %}" href="{% url 'documenti:parametri_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-file-settings"></i></span>
+                    <span class="st-nav-label">Parametri documento</span>
+                </a>
+                <a class="st-nav-link {% if '/parametri-documento/contatori/' in request.path %}active{% endif %}" href="{% url 'documenti:contatori_list' %}">
+                    <span class="st-nav-icon"><i class="ti ti-hash"></i></span>
+                    <span class="st-nav-label">Contatori</span>
+                </a>
+                <a class="st-nav-link {% if request.path == '/parametri/contabili/' %}active{% endif %}" href="{% url 'core:parametri_contabili' %}">
+                    <span class="st-nav-icon"><i class="ti ti-calculator"></i></span>
+                    <span class="st-nav-label">Parametri contabili</span>
+                </a>
                 {% if perms.core.access_parametri_4d or user.is_superuser %}
+                <a class="st-nav-link {% if request.path == '/parametri/mail/' %}active{% endif %}" href="{% url 'core:parametri_mail' %}">
+                    <span class="st-nav-icon"><i class="ti ti-mail"></i></span>
+                    <span class="st-nav-label">Parametri mail</span>
+                </a>
                 <a class="st-nav-link {% if request.path == '/parametri/programma/' %}active{% endif %}" href="{% url 'core:parametri_programma' %}">
                     <span class="st-nav-icon"><i class="ti ti-adjustments"></i></span>
                     <span class="st-nav-label">Programma</span>

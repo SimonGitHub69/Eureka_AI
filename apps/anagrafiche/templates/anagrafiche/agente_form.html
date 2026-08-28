@@ -1,0 +1,134 @@
+{% extends "base/layout.html" %}
+
+{% block title %}{{ page_heading }} · Agenti · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--agent"><i class="ti ti-user-star"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                {% if is_create %}
+                Nuovo agente
+                {% else %}
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ agente.codice }}</span>
+                {% if agente.ragione_sociale %}
+                <span class="text-truncate" style="max-width: 28rem;">{{ agente.ragione_sociale }}</span>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if not is_create %}
+        <a href="{% url 'anagrafiche:agente_detail' agente.codice %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Dettaglio
+        </a>
+        {% endif %}
+        <a href="{% url 'anagrafiche:agenti_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" class="eureka-mask-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="eureka-mask-form__body">
+
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-id eureka-mask-card__icon"></i>
+                Anagrafica
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.codice col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.ragione_sociale col="col-8 col-sm-6" %}
+                {% include "partials/mask_field.html" with field=form.email col="col-sm-4" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="ti ti-percentage eureka-mask-card__icon"></i>
+                        Condizioni
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.provvigione col="col-6" %}
+                        {% include "partials/mask_field.html" with field=form.sconto_base col="col-6" %}
+                        {% include "partials/mask_field.html" with field=form.ritenuta_acconto col="col-6" %}
+                        {% include "partials/mask_field.html" with field=form.perc_imp_rit_acc col="col-6" %}
+                        {% include "partials/mask_field.html" with field=form.listino_art col="col-6" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card eureka-mask-card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="ti ti-target-arrow eureka-mask-card__icon"></i>
+                        Target annuali
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-compact">
+                        {% include "partials/mask_field.html" with field=form.target_annuale1 col="col-12" %}
+                        {% include "partials/mask_field.html" with field=form.target_annuale2 col="col-12" %}
+                        {% include "partials/mask_field.html" with field=form.target_annuale3 col="col-12" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card eureka-mask-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="ti ti-adjustments eureka-mask-card__icon"></i>
+                Opzioni
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="eureka-option-chips">
+                {% include "partials/mask_option_chip.html" with field=form.flag_mono_mandatario icon="ti-user-check" hint="Un solo mandato" %}
+                {% include "partials/mask_option_chip.html" with field=form.flag_agente_venditore icon="ti-shopping-cart" hint="Ruolo venditore" %}
+                {% include "partials/mask_option_chip.html" with field=form.flag_soc_capitale icon="ti-building-bank" hint="Società di capitale" %}
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <div class="eureka-mask-actions">
+        {% if is_create %}
+        <a href="{% url 'anagrafiche:agenti_list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% else %}
+        <a href="{% url 'anagrafiche:agente_detail' agente.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ti ti-device-floppy"></i> Salva
+        </button>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}

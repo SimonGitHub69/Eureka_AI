@@ -125,6 +125,83 @@ def apply_scadenze_to_primanota(obj: Primanota, slots: list[dict] | None) -> Non
         )
 
 
+def _scadenza_data(value: Any) -> date | None:
+    """Date 4D vuote (00/00/00, anno < 1901) → None."""
+    d = _as_date(value)
+    if d is None or d.year < 1901:
+        return None
+    return d
+
+
+def stored_scadenze_righe(obj: Primanota) -> list[dict]:
+    """Valori grezzi Scad*/ImpScad*/Flag_RA* (senza ricalcolo)."""
+    rows: list[dict] = []
+    for i in range(1, PRIMANOTA_MAX_SCADENZE + 1):
+        importo = getattr(obj, f"imp_scad{i}", None)
+        rows.append(
+            {
+                "n": i,
+                "data": _scadenza_data(getattr(obj, f"scad{i}", None)),
+                "importo": float(importo or 0),
+                "rit_acc": bool(getattr(obj, f"flag_ra{i:02d}", False)),
+            }
+        )
+    return rows
+
+
+def enrich_scadenze_dates(obj: Primanota, rows: list[dict] | None = None) -> list[dict]:
+    """Come la maschera 4D: se ScadenzeIns=No e Scad* sono vuote, calcola le date
+    dalla condizione di pagamento (ODBC spesso lascia Scad* a NULL anche quando
+    4D mostra la data calcolata).
+    """
+    base = [dict(r) for r in (rows if rows is not None else stored_scadenze_righe(obj))]
+    if obj.scadenze_ins:
+        return base
+    if not (obj.codice_paga or "").strip():
+        return base
+    needs_dates = any(r["importo"] and not r["data"] for r in base)
+    if not needs_dates:
+        return base
+    totale = sum(r["importo"] for r in base) or None
+    try:
+        kind = int(obj.tipo) if obj.tipo is not None else None
+    except (TypeError, ValueError):
+        kind = None
+    if kind in (Primanota.TIPO_IVA, Primanota.TIPO_IVA_AUTOFATTURA):
+        computed = compute_scadenze(
+            codice_paga=obj.codice_paga,
+            data_doc=obj.data_doc,
+            data_reg=obj.data_reg,
+            tipo=obj.tipo,
+            totale_imponibile=totale,
+            totale_iva=0,
+        )
+    else:
+        computed = compute_scadenze(
+            codice_paga=obj.codice_paga,
+            data_doc=obj.data_doc,
+            data_reg=obj.data_reg,
+            tipo=obj.tipo,
+            totale_dare=totale,
+            totale_avere=0,
+        )
+    by_n = {
+        int(s["numero"]): s
+        for s in computed
+        if isinstance(s, dict) and s.get("numero") is not None
+    }
+    for row in base:
+        if row["data"] is not None:
+            continue
+        slot = by_n.get(int(row["n"]))
+        if not slot:
+            continue
+        computed_date = _scadenza_data(slot.get("data"))
+        if computed_date is not None:
+            row["data"] = computed_date
+    return base
+
+
 def maybe_apply_scadenze(obj: Primanota, formset=None, *, totals: dict | None = None) -> bool:
     """Se scadenze_ins è spento, riempie scad/imp dalla condizione. Non tocca flag RA."""
     if obj.scadenze_ins:

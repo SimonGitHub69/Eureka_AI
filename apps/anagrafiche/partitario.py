@@ -356,8 +356,9 @@ def _fetch_movimenti_pdc_cassa_corrispettivi(codice: str):
 
     In 4D/Eureka la cassa non viene scritta su ContoDare/ContoAvere dei dettagli
     (solo ricavi/IVA in Avere). Per il partitario PDC si genera una riga per
-    registrazione in Dare (= imponibile + IVA, incasso), escludendo le
-    registrazioni che già muovono il sottoconto sul dettaglio (no doppio conteggio).
+    registrazione in Dare (= solo imponibile, come totale documento Corrispettivi),
+    escludendo le registrazioni che già muovono il sottoconto sul dettaglio
+    (no doppio conteggio).
     """
     code = _norm_code(codice)
     if not code:
@@ -377,21 +378,13 @@ def _fetch_movimenti_pdc_cassa_corrispettivi(codice: str):
         p."NumeroProt" AS numero_prot,
         TRIM(BOTH FROM COALESCE(p."AlfaProt", '')) AS alfa_prot,
         CASE
-            WHEN SUM(
-                COALESCE(pd."Avere_Imponibile", 0) + COALESCE(pd."ImportoIva", 0)
-            ) > 0
-            THEN SUM(
-                COALESCE(pd."Avere_Imponibile", 0) + COALESCE(pd."ImportoIva", 0)
-            )
+            WHEN SUM(COALESCE(pd."Avere_Imponibile", 0)) > 0
+            THEN SUM(COALESCE(pd."Avere_Imponibile", 0))
             ELSE 0
         END AS dare_amt,
         CASE
-            WHEN SUM(
-                COALESCE(pd."Avere_Imponibile", 0) + COALESCE(pd."ImportoIva", 0)
-            ) < 0
-            THEN -SUM(
-                COALESCE(pd."Avere_Imponibile", 0) + COALESCE(pd."ImportoIva", 0)
-            )
+            WHEN SUM(COALESCE(pd."Avere_Imponibile", 0)) < 0
+            THEN -SUM(COALESCE(pd."Avere_Imponibile", 0))
             ELSE 0
         END AS avere_amt,
         COALESCE(
@@ -437,9 +430,7 @@ def _fetch_movimenti_pdc_cassa_corrispettivi(codice: str):
     GROUP BY
         p."ID", p."NumeroReg", p."DataReg", p."Tipo", p."Causale",
         p."CodicePaga", p."NumeroDoc", p."DataDoc", p."NumeroProt", p."AlfaProt"
-    HAVING SUM(
-        COALESCE(pd."Avere_Imponibile", 0) + COALESCE(pd."ImportoIva", 0)
-    ) <> 0
+    HAVING SUM(COALESCE(pd."Avere_Imponibile", 0)) <> 0
     ORDER BY data_reg NULLS LAST, numero_reg NULLS LAST, id_testa
     """
     with connection.cursor() as cursor:

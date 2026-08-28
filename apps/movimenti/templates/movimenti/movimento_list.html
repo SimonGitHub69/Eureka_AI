@@ -1,0 +1,206 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}Movimenti · Eureka AI{% endblock %}
+{% block page_title %}Movimenti{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-transfer"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Movimenti</h2>
+            <div class="text-secondary mt-1">
+                Movimenti magazzino importati da 4D (<code>MovimentiT</code>)
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="movimenti:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="movimenti:export_list" %}
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'movimenti:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label" for="movimentiSearch">Ricerca</label>
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input
+                            type="text"
+                            id="movimentiSearch"
+                            name="q"
+                            value="{{ q }}"
+                            class="form-control"
+                            placeholder="N. reg., documento, causale, articolo, cliente...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="movimentiCausale">Causale</label>
+                    <input type="text" id="movimentiCausale" name="causale" value="{{ causale }}" class="form-control" placeholder="Codice">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="movimentiDataDa">Data da</label>
+                    <input type="date" id="movimentiDataDa" name="data_da" value="{{ data_da }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="movimentiDataA">Data a</label>
+                    <input type="date" id="movimentiDataA" name="data_a" value="{{ data_a }}" class="form-control">
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter"></i>
+                        Filtra
+                    </button>
+                    {% if has_filters %}
+                    <a href="{% url 'movimenti:list' %}" class="btn btn-outline-secondary" title="Reset">
+                        <i class="ti ti-x"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    <th class="text-secondary text-center" style="width: 1%;">#</th>
+                    {% sort_th "num_registraz" "N. reg." default_dir="desc" %}
+                    {% sort_th "data_registraz" "Data" default_dir="desc" %}
+                    {% sort_th "causale" "Causale" default_dir="asc" %}
+                    {% sort_th "num_doc" "Documento" default_dir="asc" %}
+                    {% sort_th "cliente" "Cliente" default_dir="asc" %}
+                    {% sort_th "fornitore" "Fornitore" default_dir="asc" %}
+                    <th>Depositi</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movimenti %}
+                <tr>
+                    <td class="text-secondary text-center fw-semibold align-middle">
+                        {% if page_obj %}
+                        {{ page_obj.start_index|add:forloop.counter0 }}
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-orange-lt text-orange">
+                                <i class="ti ti-transfer"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'movimenti:detail' m.id_testa %}" class="eureka-tlist-name text-truncate d-block">
+                                    {{ m.num_registraz|default:"—" }}
+                                </a>
+                                <span class="eureka-tlist-code">
+                                    <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                    {{ m.id_testa }}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{% if m.data_registraz %}{{ m.data_registraz|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                    <td>
+                        {% if m.causale %}
+                        <div class="overflow-hidden" style="max-width: 220px;">
+                            <a href="{% url 'causali_magazzino:detail' m.causale %}" class="text-decoration-none d-block text-truncate" title="{% if m.causale_descrizione %}{{ m.causale }} — {{ m.causale_descrizione }}{% else %}{{ m.causale }}{% endif %}">
+                                {% if m.causale_descrizione %}{{ m.causale_descrizione }}{% else %}{{ m.causale }}{% endif %}
+                            </a>
+                            {% if m.causale_descrizione %}
+                            <span class="eureka-tlist-code">
+                                <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                {{ m.causale }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div>{{ m.num_doc|default:"—" }}</div>
+                        {% if m.data_doc %}<div class="text-secondary small">{{ m.data_doc|date:"d/m/Y" }}</div>{% endif %}
+                    </td>
+                    <td>
+                        {% if m.cliente %}
+                        <div class="overflow-hidden" style="max-width: 220px;">
+                            {% if m.cliente_ragione_sociale %}
+                            <a href="{% url 'anagrafiche:cliente_detail' m.cliente %}" class="eureka-tlist-name text-truncate d-block" title="{{ m.cliente_ragione_sociale }}">
+                                {{ m.cliente_ragione_sociale }}
+                            </a>
+                            <span class="eureka-tlist-code">
+                                <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                {{ m.cliente }}
+                            </span>
+                            {% else %}
+                            <a href="{% url 'anagrafiche:cliente_detail' m.cliente %}" class="text-decoration-none">{{ m.cliente }}</a>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if m.fornitore %}
+                        <div class="overflow-hidden" style="max-width: 220px;">
+                            {% if m.fornitore_ragione_sociale %}
+                            <a href="{% url 'anagrafiche:fornitore_detail' m.fornitore %}" class="eureka-tlist-name text-truncate d-block" title="{{ m.fornitore_ragione_sociale }}">
+                                {{ m.fornitore_ragione_sociale }}
+                            </a>
+                            <span class="eureka-tlist-code">
+                                <i class="ti ti-hash" style="font-size:.85em;"></i>
+                                {{ m.fornitore }}
+                            </span>
+                            {% else %}
+                            <a href="{% url 'anagrafiche:fornitore_detail' m.fornitore %}" class="text-decoration-none">{{ m.fornitore }}</a>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td class="small">
+                        {% if m.dep_entrata %}<div><span class="text-secondary">E:</span> {{ m.dep_entrata }}</div>{% endif %}
+                        {% if m.dep_uscita %}<div><span class="text-secondary">U:</span> {{ m.dep_uscita }}</div>{% endif %}
+                        {% if not m.dep_entrata and not m.dep_uscita %}—{% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'movimenti:detail' m.id_testa %}" class="btn btn-ghost-primary btn-icon btn-sm" title="Apri">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-secondary py-4">
+                        Nessun movimento. Esegui lo sync da
+                        <a href="{% url 'core:parametri_4d' %}">Parametri 4D</a>
+                        (step Movimenti magazzino).
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

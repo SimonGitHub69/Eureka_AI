@@ -12,8 +12,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--batch-size",
             type=int,
-            default=2000,
-            help="Righe lette/scritte per batch (default 2000).",
+            default=5000,
+            help="Righe lette/scritte per batch (default 5000).",
         )
         parser.add_argument(
             "--only",

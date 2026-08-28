@@ -1,151 +1,221 @@
 {% extends "base/layout.html" %}
+{% load static %}
 
 {% block title %}{{ cliente.ragione_sociale|default:cliente.codice }} · Clienti · Eureka AI{% endblock %}
-
 {% block page_title %}Cliente{% endblock %}
 
 {% block content %}
 
-<div class="page-header d-print-none mb-3">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="page-title">{{ cliente.ragione_sociale|default:cliente.codice }}</h2>
-            <div class="text-secondary">
-                Codice {{ cliente.codice }}
-                {% if cliente.fl_disattivato %}· <span class="badge bg-secondary">Disattivato</span>{% endif %}
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-building"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ cliente.ragione_sociale|default:cliente.codice }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ cliente.codice }}</span>
+                {% if cliente.fl_disattivato %}<span class="badge bg-secondary-lt">Disattivato</span>{% endif %}
+                {% if cliente.flag_pa %}<span class="badge bg-azure-lt">PA</span>{% endif %}
+                {% if cliente.persona_fisica %}<span class="badge bg-blue-lt">Persona fisica</span>{% endif %}
             </div>
         </div>
-        <a href="{% url 'anagrafiche:clienti_list' %}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Elenco
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if back_url %}
+        <a href="{{ back_url }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-notebook"></i> {{ back_label }}
         </a>
+        {% endif %}
+        <a href="{% url 'anagrafiche:cliente_partitario' cliente.codice %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-report-money"></i> Partitario
+        </a>
+        <a href="{% url 'anagrafiche:cliente_edit' cliente.codice %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        {% if not back_url %}
+        <a href="{% url 'anagrafiche:clienti_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="ti ti-arrow-left"></i> Elenco
+        </a>
+        {% endif %}
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Anagrafica</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="datagrid-title">Ragione sociale</div>
-                <div class="datagrid-content">{{ cliente.ragione_sociale1|default:"—" }}</div>
-                {% if cliente.ragione_sociale2 %}
-                <div class="datagrid-content text-secondary">{{ cliente.ragione_sociale2 }}</div>
-                {% endif %}
+<div class="card eureka-mask-card">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ragione sociale 1</div>
+                <div class="eureka-mask-field__value">{{ cliente.ragione_sociale1|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">P. IVA</div>
-                <div class="datagrid-content">{{ cliente.partita_iva|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ragione sociale 2</div>
+                <div class="eureka-mask-field__value">{{ cliente.ragione_sociale2|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Codice fiscale</div>
-                <div class="datagrid-content">{{ cliente.cod_fiscale|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">P. IVA</div>
+                <div class="eureka-mask-field__value">{{ cliente.partita_iva|default:"—" }}</div>
             </div>
-            <div class="col-md-6">
-                <div class="datagrid-title">Indirizzo</div>
-                <div class="datagrid-content">
-                    {{ cliente.indirizzo|default:"—" }}
-                    {% if cliente.cap or cliente.localita %}
-                    <div class="text-secondary">
-                        {% if cliente.cap %}{{ cliente.cap }} {% endif %}{{ cliente.localita|default:"" }}
-                        {% if cliente.provincia %} ({{ cliente.provincia }}){% endif %}
-                    </div>
-                    {% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice fiscale</div>
+                <div class="eureka-mask-field__value">{{ cliente.cod_fiscale|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Nazione</div>
-                <div class="datagrid-content">{{ cliente.cod_nazione|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Indirizzo</div>
+                <div class="eureka-mask-field__value">{{ cliente.indirizzo|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Gruppo / Zona</div>
-                <div class="datagrid-content">
-                    {{ cliente.gruppo|default:"—" }}
-                    {% if cliente.zona %} · {{ cliente.zona }}{% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">CAP</div>
+                <div class="eureka-mask-field__value">{{ cliente.cap|default:"—" }}</div>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Contatti</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="datagrid-title">Telefono</div>
-                <div class="datagrid-content">{{ cliente.telefono|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Località</div>
+                <div class="eureka-mask-field__value">{{ cliente.localita|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Cellulare</div>
-                <div class="datagrid-content">{{ cliente.cellulare|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Provincia</div>
+                <div class="eureka-mask-field__value">{{ cliente.provincia|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Fax</div>
-                <div class="datagrid-content">{{ cliente.fax|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Nazione</div>
+                <div class="eureka-mask-field__value">{{ cliente.cod_nazione|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Email</div>
-                <div class="datagrid-content">{{ cliente.email|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Telefono</div>
+                <div class="eureka-mask-field__value">{{ cliente.telefono|default:"—" }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">PEC</div>
-                <div class="datagrid-content">{{ cliente.pec|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cellulare</div>
+                <div class="eureka-mask-field__value">{{ cliente.cellulare|default:"—" }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Email commerciale</div>
-                <div class="datagrid-content">{{ cliente.email_commerciale|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Fax</div>
+                <div class="eureka-mask-field__value">{{ cliente.fax|default:"—" }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Sito web</div>
-                <div class="datagrid-content">{{ cliente.www|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email</div>
+                <div class="eureka-mask-field__value">{{ cliente.email|default:"—" }}</div>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Altri dati</h3>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="datagrid-title">Agente</div>
-                <div class="datagrid-content">
-                    {{ cliente.agente|default:"—" }}
-                    {% if cliente.agente2 %} · {{ cliente.agente2 }}{% endif %}
-                </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">PEC</div>
+                <div class="eureka-mask-field__value">{{ cliente.pec|default:"—" }}</div>
             </div>
-            <div class="col-md-3">
-                <div class="datagrid-title">Cond. pagamento</div>
-                <div class="datagrid-content">{{ cliente.cond_paga|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Email commerciale</div>
+                <div class="eureka-mask-field__value">{{ cliente.email_commerciale|default:"—" }}</div>
             </div>
-            <div class="col-md-2">
-                <div class="datagrid-title">Listino</div>
-                <div class="datagrid-content">{{ cliente.listino|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Sito web</div>
+                <div class="eureka-mask-field__value">{{ cliente.www|default:"—" }}</div>
             </div>
-            <div class="col-md-4">
-                <div class="datagrid-title">Note</div>
-                <div class="datagrid-content">{{ cliente.note|default:"—" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Agente</div>
+                <div class="eureka-mask-field__value">{{ agente_display|default:cliente.agente|default:"—" }}</div>
             </div>
-            {% if cliente.annotazioni %}
-            <div class="col-12">
-                <div class="datagrid-title">Annotazioni</div>
-                <div class="datagrid-content">{{ cliente.annotazioni }}</div>
+            {% if cliente.agente2 %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Agente 2</div>
+                <div class="eureka-mask-field__value">{{ agente2_display|default:cliente.agente2 }}</div>
             </div>
             {% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Gruppo / Zona</div>
+                <div class="eureka-mask-field__value">{{ cliente.gruppo|default:"—" }}{% if cliente.zona %} · {{ cliente.zona }}{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cond. pagamento</div>
+                <div class="eureka-mask-field__value">{{ cond_paga_display|default:cliente.cond_paga|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Listino</div>
+                <div class="eureka-mask-field__value">{{ cliente.listino|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Codice ufficio</div>
+                <div class="eureka-mask-field__value">{{ cliente.codice_ufficio|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cod. esenz. IVA</div>
+                <div class="eureka-mask-field__value">{{ cliente.cod_esenz_iva|default:"—" }}</div>
+            </div>
+            {% if cliente.persona_fisica %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Cognome</div>
+                <div class="eureka-mask-field__value">{{ cliente.cognome|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Nome</div>
+                <div class="eureka-mask-field__value">{{ cliente.nome|default:"—" }}</div>
+            </div>
+            {% endif %}
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Note</div>
+                <div class="eureka-mask-field__value">{{ cliente.note|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Annotazioni</div>
+                <div class="eureka-mask-field__value">{{ cliente.annotazioni|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultima modifica</div>
+                <div class="eureka-mask-field__value">
+                    {% if cliente.data_modifica %}{{ cliente.data_modifica|date:"d/m/Y" }}{% else %}—{% endif %}
+                    {% if cliente.ora_modifica %} {{ cliente.ora_modifica|time:"H:i" }}{% endif %}
+                </div>
+            </div>
             {% if cliente.synced_at %}
-            <div class="col-12">
-                <div class="text-secondary small">Ultimo sync: {{ cliente.synced_at|date:"d/m/Y H:i" }}</div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo sync</div>
+                <div class="eureka-mask-field__value">{{ cliente.synced_at|date:"d/m/Y H:i" }}</div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
 
+{% include "anagrafiche/partials/vies_panel.html" with subject=cliente subject_label="Cliente" %}
+{% include "anagrafiche/partials/cf_panel.html" with subject=cliente subject_label="Cliente" %}
+{% include "destinazioni/partials/anagrafica_card.html" %}
+
+<div class="eureka-mask-delete" id="eliminaClienteWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaCliente">
+        <i class="ti ti-trash"></i> Elimina
+    </button>
+    <div id="confermaEliminaCliente" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ cliente.codice }}?</div>
+                    <div class="text-secondary small mb-2">Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaCliente">Annulla</button>
+                        <button type="submit" form="formEliminaCliente" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaCliente" method="post" action="{% url 'anagrafiche:cliente_delete' cliente.codice %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/vies-check.js' %}?v=2"></script>
+<script src="{% static 'eureka/js/cf-check.js' %}?v=1"></script>
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaCliente");
+  document.getElementById("btnApriEliminaCliente")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaCliente")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
 {% endblock %}

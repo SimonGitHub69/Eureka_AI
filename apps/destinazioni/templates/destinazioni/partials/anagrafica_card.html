@@ -1,0 +1,62 @@
+<div class="card eureka-mask-card mt-3">
+    <div class="card-header d-flex align-items-center justify-content-between py-2">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-map-pin me-1"></i>
+            Destinazioni diverse
+            {% if destinazioni %}
+            <span class="badge bg-azure-lt ms-1">{{ destinazioni|length }}</span>
+            {% endif %}
+        </h3>
+        {% if destinazione_codice %}
+        <a href="{% url 'destinazioni:create' %}?codice={{ destinazione_codice }}&from=anagrafica" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-plus"></i> Aggiungi
+        </a>
+        {% elif destinazioni_salva_prima %}
+        <span class="btn btn-outline-secondary btn-sm disabled" title="Salva prima l'anagrafica">
+            <i class="ti ti-plus"></i> Aggiungi
+        </span>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+            <thead>
+                <tr>
+                    <th>Cod. dest.</th>
+                    <th>Destinazione</th>
+                    <th>Indirizzo</th>
+                    <th>Città</th>
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in destinazioni %}
+                <tr>
+                    <td><span class="eureka-mask-code">{{ d.codice_dest|default:d.id }}</span></td>
+                    <td>
+                        <a href="{% url 'destinazioni:detail' d.pk %}?from=anagrafica">{{ d.ragione_sociale|default:"—" }}</a>
+                    </td>
+                    <td>{{ d.indirizzo|default:"—" }}</td>
+                    <td>
+                        {{ d.citta|default:"—" }}{% if d.provincia %} ({{ d.provincia|cut:" " }}){% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'destinazioni:edit' d.pk %}?from=anagrafica" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-secondary text-center py-3">
+                        {% if destinazioni_salva_prima %}
+                        Salva l'anagrafica per gestire le destinazioni diverse.
+                        {% else %}
+                        Nessuna destinazione diversa per questa anagrafica.
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,18 @@
+{% comment %}
+Campo read-only per maschere dettaglio.
+Parametri: label, value; opzionali: hide_empty, wide, code, link, mono
+{% endcomment %}
+{% if not hide_empty or value %}
+<div class="eureka-mask-field{% if wide %} eureka-mask-field--wide{% endif %}{% if not value %} is-empty{% endif %}">
+    <div class="eureka-mask-field__label">{{ label }}</div>
+    <div class="eureka-mask-field__value{% if mono %} eureka-mask-field__value--mono{% endif %}">
+        {% if link and value %}
+        <a href="{{ link }}" class="text-decoration-none">{{ value }}</a>
+        {% elif value %}
+        {{ value }}
+        {% else %}
+        <span class="eureka-mask-field__placeholder">Non impostato</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,38 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Stampe · Eureka AI{% endblock %}
+{% block page_title %}Stampe{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-print-none mb-3">
+    <div>
+        <h2 class="page-title">Stampe</h2>
+        <div class="text-secondary">
+            Stampe elenco di Fatturazione Magazzino
+        </div>
+    </div>
+</div>
+
+<div class="row row-cards">
+    {% for item in stampe_items %}
+    <div class="col-sm-6 col-lg-4">
+        <a href="{{ item.href }}" class="card card-link card-link-pop" target="_blank" rel="opener">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="avatar bg-azure-lt text-azure">
+                        <i class="ti {{ item.icon }}"></i>
+                    </span>
+                    <div class="flex-fill">
+                        <div class="fw-semibold">{{ item.label }}</div>
+                        <div class="text-secondary small">{{ item.subtitle }}</div>
+                    </div>
+                    <i class="ti ti-printer text-secondary"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

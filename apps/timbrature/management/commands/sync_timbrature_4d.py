@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand
 
+from apps.core.sync_incremental import add_sync_mode_arguments, sync_full_from_options
+
 from apps.timbrature.sync import sync_timbrature
 
 
@@ -19,13 +21,15 @@ class Command(BaseCommand):
             default="",
             help="Sincronizza solo Timbrature/timbrature (source/target name).",
         )
+        add_sync_mode_arguments(parser)
 
     def handle(self, *args, **options):
+        full = sync_full_from_options(options)
         batch_size = options["batch_size"]
         only = (options.get("only") or "").strip() or None
         self.stdout.write(self.style.WARNING("Avvio sync 4D -> PostgreSQL..."))
 
-        result = sync_timbrature(batch_size=batch_size, only=only)
+        result = sync_timbrature(batch_size=batch_size, only=only, full=full)
 
         for table in result.tables:
             style = self.style.SUCCESS if table.ok else self.style.ERROR

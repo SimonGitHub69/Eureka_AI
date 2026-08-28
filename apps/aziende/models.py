@@ -38,6 +38,8 @@ class Azienda(models.Model):
     capitale_soc = models.FloatField(null=True, blank=True, db_column="CapitaleSoc")
     socio_unico = models.BooleanField(null=True, blank=True, db_column="SocioUnico")
     in_liquidazione = models.BooleanField(null=True, blank=True, db_column="InLiquidazione")
+    data_modifica = models.DateTimeField(null=True, blank=True, db_column="DataModifica")
+    ora_modifica = models.TimeField(null=True, blank=True, db_column="OraModifica")
     synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -57,6 +59,11 @@ def azienda_logo_upload_to(instance, filename: str) -> str:
     return f"aziende/loghi/{instance.azienda_id}/{uuid4().hex}{ext}"
 
 
+def azienda_logo_documenti_upload_to(instance, filename: str) -> str:
+    ext = Path(filename).suffix.lower() or ".png"
+    return f"aziende/loghi_documenti/{instance.azienda_id}/{uuid4().hex}{ext}"
+
+
 class AziendaDati(BaseModel):
     """Dati locali Eureka collegati all'azienda 4D (logo escluso dallo sync)."""
 
@@ -71,7 +78,19 @@ class AziendaDati(BaseModel):
         upload_to=azienda_logo_upload_to,
         blank=True,
         null=True,
-        help_text="Formato PNG o JPG.",
+        help_text="Logo generale (elenchi, UI). Formato PNG o JPG.",
+    )
+    logo_documenti = models.ImageField(
+        "Logo stampe documenti",
+        upload_to=azienda_logo_documenti_upload_to,
+        blank=True,
+        null=True,
+        help_text="Intestazione nelle stampe di preventivi, fatture e altri documenti. Formato PNG o JPG.",
+    )
+    azienda_noleggio = models.BooleanField(
+        "Azienda di noleggio",
+        default=False,
+        help_text="Abilita Nomenclatura Intrastat, Bene o servizio e Tipo noleggio nel Piano dei Conti.",
     )
 
     class Meta:

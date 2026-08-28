@@ -44,7 +44,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card eureka-tlist">
     <div class="card-header">
         <h3 class="card-title mb-0">
             <i class="ti ti-microphone me-1"></i>
@@ -54,14 +54,15 @@
     <div class="table-responsive">
         <table class="table table-vcenter card-table">
             <thead>
-                <tr>
-                    <th>Ordine</th>
-                    <th>Frase</th>
-                    <th>Azione</th>
-                    <th>Destinazione</th>
-                    <th>Query</th>
-                    <th>Match</th>
-                    <th>Attivo</th>
+                                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "ordine" "Ordine" default_dir="asc" %}
+                    {% sort_th "frase" "Frase" default_dir="asc" %}
+                    {% sort_th "azione" "Azione" default_dir="asc" %}
+                    {% sort_th "destinazione" "Destinazione" default_dir="asc" %}
+                    {% sort_th "query" "Query" default_dir="asc" %}
+                    {% sort_th "match_mode" "Match" default_dir="asc" %}
+                    {% sort_th "attivo" "Attivo" default_dir="asc" %}
                     <th class="w-1"></th>
                 </tr>
             </thead>
@@ -81,23 +82,31 @@
                         <span class="badge bg-secondary-lt">No</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <div class="btn-list flex-nowrap justify-content-end">
-                            <a href="{% url 'core:comando_vocale_edit' comando.pk %}" class="btn btn-sm btn-outline-primary">
-                                Modifica
-                            </a>
-                            <form method="post" action="{% url 'core:comando_vocale_duplicate' comando.pk %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                    <i class="ti ti-copy"></i>
-                                    Duplica
-                                </button>
-                            </form>
-                            <form method="post" action="{% url 'core:comando_vocale_delete' comando.pk %}" class="d-inline" onsubmit="return confirm('Eliminare il comando &quot;{{ comando.frase|escapejs }}&quot;?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Elimina</button>
-                            </form>
-                        </div>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'core:comando_vocale_edit' comando.pk %}"
+                           class="btn btn-icon"
+                           title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                        <form method="post" action="{% url 'core:comando_vocale_duplicate' comando.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-icon"
+                                    title="Duplica">
+                                <i class="ti ti-copy"></i>
+                            </button>
+                        </form>
+                        <form method="post"
+                              action="{% url 'core:comando_vocale_delete' comando.pk %}"
+                              class="d-inline"
+                              onsubmit="return confirm('Eliminare il comando &quot;{{ comando.frase|escapejs }}&quot;?');">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-icon eureka-tlist-actions__danger"
+                                    title="Elimina">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% empty %}

@@ -1,0 +1,766 @@
+{% extends "base/layout.html" %}
+
+
+
+{% block title %}Sync documenti 4D · Eureka AI{% endblock %}
+
+{% block page_title %}Sync documenti 4D{% endblock %}
+
+
+
+{% block content %}
+
+<div class="row row-cards">
+
+    <div class="col-lg-8">
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <h3 class="card-title">Sincronizza documenti unificati</h3>
+
+            </div>
+
+            <div class="card-body">
+
+                <p class="text-secondary">
+
+                    Importa da 4D ODBC nelle tabelle PostgreSQL
+
+                    <code>teste_documenti</code> e <code>righe_documenti</code>.
+
+                    Solo i tipi abilitati in
+
+                    <a href="{% url 'core:parametri_programma' %}">Parametri programma</a>
+
+                    possono essere importati.
+
+                </p>
+
+
+
+                <h4 class="mt-4">Tipi in Parametri programma</h4>
+
+                <div class="d-flex flex-wrap gap-2 mb-3">
+
+                    {% for codice, enabled in doc_menu_flags.items %}
+
+                    <span class="badge {% if enabled %}bg-green-lt text-green{% else %}bg-secondary-lt text-secondary{% endif %}">
+
+                        {{ codice }}{% if not enabled %} — escluso{% endif %}
+
+                    </span>
+
+                    {% endfor %}
+
+                </div>
+
+
+
+                <form method="post" class="mt-4" id="syncDocumentiForm">
+
+                    {% csrf_token %}
+
+
+
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+
+                        <h4 class="mb-0">Tabelle da importare</h4>
+
+                        <div class="btn-group btn-group-sm">
+
+                            <button type="button" class="btn btn-outline-secondary" id="selectAllTipos">
+
+                                Seleziona tutte
+
+                            </button>
+
+                            <button type="button" class="btn btn-outline-secondary" id="selectNoneTipos">
+
+                                Deseleziona tutte
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="list-group mb-3">
+
+                        {% for item in tipi_con_flags %}
+
+                        {% with tipo=item.tipo enabled=item.enabled %}
+
+                        <label class="list-group-item d-flex gap-3 align-items-start {% if not enabled %}text-secondary{% endif %}">
+
+                            <input type="checkbox"
+
+                                   name="tipos"
+
+                                   value="{{ tipo.codice }}"
+
+                                   class="form-check-input mt-1 tipo-checkbox"
+
+                                   {% if not enabled %}disabled{% endif %}>
+
+                            <span class="flex-fill">
+
+                                <span class="fw-semibold">{{ tipo.label }}</span>
+
+                                <span class="text-secondary">({{ tipo.codice }})</span>
+
+                                {% if not enabled %}
+
+                                <span class="badge bg-secondary-lt text-secondary ms-1">disabilitato in Parametri programma</span>
+
+                                {% endif %}
+
+                                <small class="text-secondary d-block">
+
+                                    {{ tipo.source_table_4d }} + {{ tipo.source_detail_4d }}
+
+                                </small>
+
+                            </span>
+
+                        </label>
+
+                        {% endwith %}
+
+                        {% endfor %}
+
+                    </div>
+
+
+
+                    {% include "core/partials/sync_mode_options.html" %}
+
+
+
+                    <div class="form-check mb-4">
+
+                        <input type="checkbox"
+
+                               class="form-check-input"
+
+                               name="from_fatture_mirror"
+
+                               id="from_fatture_mirror"
+
+                               value="on"
+
+                               data-mirror-available="{% if fatture_mirror_available %}1{% else %}0{% endif %}"
+
+                               {% if not fatture_mirror_available %}disabled{% endif %}>
+
+                        <label class="form-check-label {% if not fatture_mirror_available %}text-secondary{% endif %}" for="from_fatture_mirror">
+
+                            Bridge da mirror fatture (<code>fatture</code> / <code>fatture_dettaglio</code>)
+
+                            — solo FAT, NCR, NDB, senza ODBC
+
+                            {% if not fatture_mirror_available %}
+
+                            <span class="badge bg-secondary-lt text-secondary">tabelle assenti — usare ODBC</span>
+
+                            {% endif %}
+
+                        </label>
+
+                    </div>
+
+
+
+                    <button type="submit" class="btn btn-primary" id="syncDocumentiSubmitBtn">
+
+                        <i class="ti ti-download"></i>
+
+                        Importa selezionate
+
+                    </button>
+
+                    <button type="button" class="btn btn-danger ms-2 d-none" id="syncDocumentiCancelBtn">
+
+                        <i class="ti ti-player-stop"></i>
+
+                        Blocca sincronizzazione
+
+                    </button>
+
+                </form>
+
+
+
+                <div class="card mt-4 d-none" id="syncDocumentiProgressCard">
+
+                    <div class="card-body">
+
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+
+                            <h4 class="mb-0">Sincronizzazione in corso</h4>
+
+                            <span class="badge bg-blue-lt" id="syncDocumentiStatusBadge">In corso</span>
+
+                        </div>
+
+                        <div class="progress mb-2" style="height: 1rem;">
+
+                            <div id="syncDocumentiProgressBar"
+
+                                 class="progress-bar progress-bar-striped progress-bar-animated"
+
+                                 role="progressbar"
+
+                                 style="width: 100%;"
+
+                                 aria-valuenow="100"
+
+                                 aria-valuemin="0"
+
+                                 aria-valuemax="100"></div>
+
+                        </div>
+
+                        <p class="text-secondary small mb-2" id="syncDocumentiStatusText">Avvio sync...</p>
+
+                        <pre class="small bg-light p-2 rounded mb-0 d-none" id="syncDocumentiResultMessage"></pre>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        {% if last_log %}
+
+        <div class="card mt-3">
+
+            <div class="card-header"><h3 class="card-title">Ultimo log</h3></div>
+
+            <div class="card-body">
+
+                <p class="mb-1"><strong>{{ last_log.started_at }}</strong> —
+                    {% if last_log.cancel_requested and not last_log.ok %}
+                        Interrotta
+                    {% elif last_log.ok %}
+                        OK
+                    {% else %}
+                        Errore
+                    {% endif %}
+                </p>
+
+                <p class="text-secondary small mb-2">{{ last_log.teste_count }} testate, {{ last_log.righe_count }} righe</p>
+
+                <pre class="small bg-light p-2 rounded mb-0">{{ last_log.message }}</pre>
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+
+    <div class="col-lg-4">
+
+        <div class="card">
+
+            <div class="card-header"><h3 class="card-title">Conteggi PostgreSQL</h3></div>
+
+            <div class="list-group list-group-flush">
+
+                {% for codice, count in counts.items %}
+
+                <div class="list-group-item d-flex justify-content-between">
+
+                    <span>{{ codice }}</span>
+
+                    <strong>{{ count }}</strong>
+
+                </div>
+
+                {% endfor %}
+
+                <div class="list-group-item d-flex justify-content-between">
+
+                    <span>Righe totali</span>
+
+                    <strong>{{ righe_count }}</strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="card mt-3">
+
+            <div class="card-body">
+
+                <h4 class="card-title">CLI</h4>
+
+                <code class="d-block small">.\.venv\Scripts\python.exe manage.py sync_documenti_4d --seed-tipi</code>
+
+                <code class="d-block small mt-2">.\.venv\Scripts\python.exe manage.py sync_documenti_4d</code>
+
+                <code class="d-block small mt-2">.\.venv\Scripts\python.exe manage.py sync_documenti_4d --only ORV --only PRV</code>
+
+                <code class="d-block small mt-2">.\.venv\Scripts\python.exe manage.py sync_documenti_4d --only ORV,PRV,DDT</code>
+
+                <code class="d-block small mt-2">.\.venv\Scripts\python.exe manage.py sync_documenti_4d --full</code>
+
+                <code class="d-block small mt-2">.\.venv\Scripts\python.exe manage.py sync_documenti_4d --from-fatture-mirror</code>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+(function () {
+
+    const STORAGE_KEY = "eureka_sync_documenti_tipos";
+
+    const form = document.getElementById("syncDocumentiForm");
+
+    if (!form) return;
+
+
+
+    const submitBtn = document.getElementById("syncDocumentiSubmitBtn");
+
+    const cancelBtn = document.getElementById("syncDocumentiCancelBtn");
+
+    const progressCard = document.getElementById("syncDocumentiProgressCard");
+
+    const progressBar = document.getElementById("syncDocumentiProgressBar");
+
+    const statusText = document.getElementById("syncDocumentiStatusText");
+
+    const statusBadge = document.getElementById("syncDocumentiStatusBadge");
+
+    const resultMessage = document.getElementById("syncDocumentiResultMessage");
+
+    const statusUrlTemplate = "{% url 'documenti:sync_status' 0 %}".replace("/0/", "/LOG_ID/");
+
+    const cancelUrl = "{% url 'documenti:sync_cancel' %}";
+
+    const runningLogId = {% if running_log %}{{ running_log.pk }}{% else %}null{% endif %};
+
+    let activeLogId = runningLogId;
+
+    let pollTimer = null;
+
+
+
+    const enabledBoxes = () =>
+
+        Array.from(form.querySelectorAll(".tipo-checkbox:not(:disabled)"));
+
+
+
+    function csrfToken() {
+
+        const input = form.querySelector("input[name=csrfmiddlewaretoken]");
+
+        return input ? input.value : "";
+
+    }
+
+
+
+    function setRunningUi(running) {
+
+        submitBtn.disabled = running;
+
+        enabledBoxes().forEach((box) => { box.disabled = running; });
+
+        const mirrorBox = document.getElementById("from_fatture_mirror");
+
+        if (mirrorBox) {
+            const mirrorAvailable = mirrorBox.getAttribute("data-mirror-available") === "1";
+            mirrorBox.disabled = running || !mirrorAvailable;
+        }
+
+        document.getElementById("selectAllTipos")?.toggleAttribute("disabled", running);
+
+        document.getElementById("selectNoneTipos")?.toggleAttribute("disabled", running);
+
+        cancelBtn.classList.toggle("d-none", !running);
+
+        progressCard.classList.toggle("d-none", !running);
+
+    }
+
+
+
+    function renderLog(log) {
+
+        statusText.textContent = log.message || "Sync in corso...";
+
+        if (log.status === "running") {
+
+            statusBadge.textContent = "In corso";
+
+            statusBadge.className = "badge bg-blue-lt";
+
+            progressBar.classList.add("progress-bar-animated");
+
+            progressBar.classList.remove("bg-success", "bg-danger", "bg-warning");
+
+        } else if (log.status === "cancelled") {
+
+            statusBadge.textContent = "Interrotta";
+
+            statusBadge.className = "badge bg-warning-lt";
+
+            progressBar.classList.remove("progress-bar-animated");
+
+            progressBar.classList.add("bg-warning");
+
+        } else if (log.status === "done") {
+
+            statusBadge.textContent = "Completata";
+
+            statusBadge.className = "badge bg-green-lt";
+
+            progressBar.classList.remove("progress-bar-animated");
+
+            progressBar.classList.add("bg-success");
+
+        } else {
+
+            statusBadge.textContent = "Errore";
+
+            statusBadge.className = "badge bg-red-lt";
+
+            progressBar.classList.remove("progress-bar-animated");
+
+            progressBar.classList.add("bg-danger");
+
+        }
+
+        if (!log.running && log.message) {
+
+            resultMessage.textContent = log.message;
+
+            resultMessage.classList.remove("d-none");
+
+        }
+
+    }
+
+
+
+    function stopPolling() {
+
+        if (pollTimer) {
+
+            clearTimeout(pollTimer);
+
+            pollTimer = null;
+
+        }
+
+    }
+
+
+
+    function pollStatus(logId) {
+
+        const url = statusUrlTemplate.replace("LOG_ID", String(logId));
+
+        fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+
+            .then(function (res) { return res.json(); })
+
+            .then(function (data) {
+
+                if (!data.ok) {
+
+                    throw new Error(data.error || "Errore stato sync");
+
+                }
+
+                renderLog(data.log);
+
+                if (data.log.running) {
+
+                    pollTimer = setTimeout(function () { pollStatus(logId); }, 1500);
+
+                } else {
+
+                    activeLogId = null;
+
+                    setRunningUi(false);
+
+                    stopPolling();
+
+                }
+
+            })
+
+            .catch(function (err) {
+
+                statusText.textContent = err.message || "Errore durante il polling.";
+
+                setRunningUi(false);
+
+                stopPolling();
+
+            });
+
+    }
+
+
+
+    function startSync(formData) {
+
+        setRunningUi(true);
+
+        resultMessage.classList.add("d-none");
+
+        resultMessage.textContent = "";
+
+        statusText.textContent = "Avvio sync...";
+
+        fetch(form.action, {
+
+            method: "POST",
+
+            headers: {
+
+                "X-CSRFToken": csrfToken(),
+
+                "X-Requested-With": "XMLHttpRequest",
+
+            },
+
+            body: formData,
+
+        })
+
+            .then(function (res) {
+
+                return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+
+            })
+
+            .then(function (result) {
+
+                if (!result.data.ok) {
+
+                    throw new Error(result.data.error || "Impossibile avviare il sync.");
+
+                }
+
+                activeLogId = result.data.log_id;
+
+                stopPolling();
+
+                pollStatus(activeLogId);
+
+            })
+
+            .catch(function (err) {
+
+                statusText.textContent = err.message || "Errore di avvio.";
+
+                setRunningUi(false);
+
+            });
+
+    }
+
+
+
+    cancelBtn?.addEventListener("click", function () {
+
+        if (!activeLogId) return;
+
+        cancelBtn.disabled = true;
+
+        statusText.textContent = "Interruzione in corso...";
+
+        const body = new FormData();
+
+        body.append("log_id", String(activeLogId));
+
+        fetch(cancelUrl, {
+
+            method: "POST",
+
+            headers: {
+
+                "X-CSRFToken": csrfToken(),
+
+                "X-Requested-With": "XMLHttpRequest",
+
+            },
+
+            body: body,
+
+        })
+
+            .then(function (res) {
+
+                return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+
+            })
+
+            .then(function (result) {
+
+                if (!result.data.ok) {
+
+                    throw new Error(result.data.error || "Impossibile interrompere il sync.");
+
+                }
+
+                statusText.textContent = "Interruzione richiesta, attendere...";
+
+            })
+
+            .catch(function (err) {
+
+                statusText.textContent = err.message || "Errore interruzione.";
+
+            })
+
+            .finally(function () {
+
+                cancelBtn.disabled = false;
+
+            });
+
+    });
+
+
+
+    form.addEventListener("submit", function (event) {
+
+        event.preventDefault();
+
+        saveSelection();
+
+        startSync(new FormData(form));
+
+    });
+
+
+
+    function loadSelection() {
+
+        try {
+
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+            if (!Array.isArray(saved)) return;
+
+            enabledBoxes().forEach((box) => {
+
+                box.checked = saved.includes(box.value);
+
+            });
+
+        } catch (_) {
+
+            /* ignore */
+
+        }
+
+    }
+
+
+
+    function saveSelection() {
+
+        const selected = enabledBoxes()
+
+            .filter((box) => box.checked)
+
+            .map((box) => box.value);
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
+
+    }
+
+
+
+    document.getElementById("selectAllTipos")?.addEventListener("click", () => {
+
+        enabledBoxes().forEach((box) => { box.checked = true; });
+
+        saveSelection();
+
+    });
+
+
+
+    document.getElementById("selectNoneTipos")?.addEventListener("click", () => {
+
+        enabledBoxes().forEach((box) => { box.checked = false; });
+
+        saveSelection();
+
+    });
+
+
+
+    form.querySelectorAll(".tipo-checkbox").forEach((box) => {
+
+        box.addEventListener("change", saveSelection);
+
+    });
+
+
+
+    loadSelection();
+
+    (function initSyncModeToggles() {
+        const incrementalBox = document.querySelector(".sync-incremental-checkbox");
+        const fullBox = document.querySelector(".sync-full-checkbox");
+        if (!incrementalBox || !fullBox) return;
+        incrementalBox.addEventListener("change", function () {
+            if (incrementalBox.checked) fullBox.checked = false;
+        });
+        fullBox.addEventListener("change", function () {
+            if (fullBox.checked) incrementalBox.checked = false;
+        });
+    })();
+
+    if (runningLogId) {
+
+        setRunningUi(true);
+
+        pollStatus(runningLogId);
+
+    }
+
+})();
+
+</script>
+
+{% endblock %}
+
+

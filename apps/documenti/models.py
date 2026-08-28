@@ -1,8 +1,13 @@
 from django.conf import settings
 from django.db import models
 from django.db.models import OuterRef, Subquery
+from django.utils import timezone
 
 from apps.documenti.layout import CAMPO_RIGA_CHOICES
+
+
+def _default_esercizio() -> int:
+    return timezone.localdate().year
 
 
 class ContatoreDocumento(models.Model):
@@ -13,13 +18,33 @@ class ContatoreDocumento(models.Model):
     (sequenza unica) oppure usarne di distinti (sequenze indipendenti).
     """
 
+    TIPO_DOCUMENTI = "DOCUMENTI"
+    TIPO_PRIMANOTA = "PRIMANOTA"
+    TIPO_CHOICES = (
+        (TIPO_DOCUMENTI, "Documenti"),
+        (TIPO_PRIMANOTA, "Primanota"),
+    )
+
     codice = models.CharField(
         max_length=16,
-        primary_key=True,
         verbose_name="Codice",
-        help_text="Codice breve univoco (es. FAT, ORD, DDT1).",
+        help_text="Codice breve (es. FAT, ORD, PN). Univoco insieme a esercizio e tipo.",
+        db_index=True,
     )
     label = models.CharField("Descrizione", max_length=120)
+    tipo_contatore = models.CharField(
+        "Tipo contatore",
+        max_length=16,
+        choices=TIPO_CHOICES,
+        default=TIPO_DOCUMENTI,
+        db_index=True,
+        help_text="Ambito di utilizzo: numerazione documenti o primanota.",
+    )
+    esercizio = models.PositiveSmallIntegerField(
+        "Esercizio",
+        default=_default_esercizio,
+        help_text="Anno contabile/fiscale di riferimento per la numerazione.",
+    )
     ultimo_numero = models.PositiveIntegerField(
         "Ultimo numero",
         default=0,
@@ -36,10 +61,25 @@ class ContatoreDocumento(models.Model):
         db_table = "contatori_documento"
         verbose_name = "Contatore documento"
         verbose_name_plural = "Contatori documento"
-        ordering = ["codice"]
+        ordering = ["tipo_contatore", "esercizio", "codice"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["codice", "esercizio", "tipo_contatore"],
+                name="uniq_contatore_codice_esercizio_tipo",
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.codice} — {self.label}"
+        return f"{self.codice} · {self.esercizio} — {self.label}"
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("documenti:contatori_detail", kwargs={"pk": self.pk})
+
+    @property
+    def tipo_contatore_label(self) -> str:
+        return dict(self.TIPO_CHOICES).get(self.tipo_contatore, self.tipo_contatore or "—")
 
     @property
     def prossimo_numero(self) -> int:
@@ -162,6 +202,15 @@ class TipoDocumento(models.Model):
             "(ignorata se l'utente sceglie un'altra serie dal combo)."
         ),
     )
+    testo_mail = models.TextField(
+        "Testo mail",
+        blank=True,
+        default="",
+        help_text=(
+            "Testo precompilato in Invia mail. Segnaposto: "
+            "{tipo} {numero} {data} {cliente} {totale} {destinatario} {codice}"
+        ),
+    )
 
     class Meta:
         db_table = "parametri_documento"
@@ -193,7 +242,7 @@ class TipoDocumento(models.Model):
         if not self.contatore_id:
             return "—"
         c = self.contatore
-        return f"{c.codice} — {c.label}"
+        return f"{c.codice} · {c.esercizio} — {c.label}"
 
     @classmethod
     def categorie_affini_contatori(cls, categoria: str) -> frozenset[str]:
@@ -220,8 +269,8 @@ class TipoDocumento(models.Model):
         multi = list(tipo.contatori.all())
         if multi:
             if tipo.contatore_id:
-                codes = {c.codice for c in multi}
-                if tipo.contatore_id not in codes:
+                pks = {c.pk for c in multi}
+                if tipo.contatore_id not in pks:
                     multi.insert(0, tipo.contatore)
             return multi
         if tipo.contatore_id:
@@ -234,31 +283,32 @@ class TipoDocumento(models.Model):
         Unisce i contatori di questo tipo con quelli dei tipi affini
         (stessa famiglia: es. Preventivi + Ordini, Fatture + NC/ND).
         """
-        by_code: dict[str, ContatoreDocumento] = {}
-        origin: dict[str, list[str]] = {}
+        by_pk: dict[int, ContatoreDocumento] = {}
+        origin: dict[int, list[str]] = {}
         for tipo in self.tipi_affini_contatori():
             for c in self._contatori_del_tipo(tipo):
-                if c.codice not in by_code:
-                    by_code[c.codice] = c
-                    origin[c.codice] = []
-                if tipo.codice not in origin[c.codice]:
-                    origin[c.codice].append(tipo.codice)
+                if c.pk not in by_pk:
+                    by_pk[c.pk] = c
+                    origin[c.pk] = []
+                if tipo.codice not in origin[c.pk]:
+                    origin[c.pk].append(tipo.codice)
         # Se nessun affine attivo ha contatori, fallback sul solo self
         # (anche se inattivo) così create/edit restano coerenti.
-        if not by_code:
+        if not by_pk:
             for c in self._contatori_del_tipo(self):
-                by_code[c.codice] = c
-                origin[c.codice] = [self.codice]
+                by_pk[c.pk] = c
+                origin[c.pk] = [self.codice]
         ordered = sorted(
-            by_code.values(),
+            by_pk.values(),
             key=lambda c: (
+                int(c.esercizio or 0),
                 (c.serie_default or "").strip(),
                 c.codice,
                 c.label or "",
             ),
         )
         for c in ordered:
-            tipicodes = origin.get(c.codice) or []
+            tipicodes = origin.get(c.pk) or []
             # Annotazione per label combo (PRV/ORV …): non persistita.
             c._tipi_origine_codici = tipicodes  # type: ignore[attr-defined]
         return ordered
@@ -438,7 +488,7 @@ class TestaDocumento(models.Model):
         db_table = "teste_documenti"
         verbose_name = "Testata documento"
         verbose_name_plural = "Testate documenti"
-        ordering = ["-data_documento", "-numero", "-id_4d"]
+        ordering = ["-data_documento", "-numero", "alfa", "-id_4d"]
         constraints = [
             models.UniqueConstraint(
                 fields=["tipo_doc", "id_4d"],
@@ -509,7 +559,7 @@ class RigaDocumento(models.Model):
     Campi mappati dai dettagli 4D (*_Dettaglio):
     - ID → id_4d
     - id_added_by_converter → FK testa (ID_Testa testata)
-    - ID_Riga, NumeroRiga, Codice, DescAgg, Quantita, PrezzoUnitario, Iva, UnitaMisura, Sconto
+    - ID_Riga, NumeroRiga, Codice, DescAgg, Quantita, PrezzoUnitario, Iva, UnitaMisura, Sconto, Provvigione
     """
 
     testa = models.ForeignKey(
@@ -528,6 +578,9 @@ class RigaDocumento(models.Model):
     iva = models.TextField(blank=True)  # 4D: Iva
     unita_misura = models.TextField(blank=True)  # 4D: UnitaMisura
     sconto = models.TextField(blank=True)  # 4D: Sconto
+    provvigione = models.FloatField(
+        null=True, blank=True
+    )  # 4D: Provvigione (Preventivi_Dettaglio)
     synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
