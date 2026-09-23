@@ -412,6 +412,91 @@ def resolve_column_name(
     return None
 
 
+def _is_invalid_odbc_datetime(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    return "year must be" in text or "1..9999" in text
+
+
+def _is_odbc_datetime_column(col: dict[str, Any]) -> bool:
+    type_name = (col.get("type_name") or "").upper()
+    pg_type = (col.get("pg_type") or "").lower()
+    return (
+        "DATE" in type_name
+        or "TIME" in type_name
+        or pg_type in {"timestamp", "date", "time"}
+    )
+
+
+def _next_pk_after(
+    cursor,
+    source: str,
+    page_pk: str,
+    last: Any,
+    extra_where: str | None = None,
+) -> Any:
+    predicates: list[str] = []
+    if extra_where:
+        predicates.append(f"({extra_where})")
+    if last is not None:
+        predicates.append(f"[{page_pk}] > {_sql_pk_literal(last)}")
+    sql = f"SELECT [{page_pk}] FROM [{source}]"
+    if predicates:
+        sql += " WHERE " + " AND ".join(predicates)
+    sql += f" ORDER BY [{page_pk}]"
+    cursor.execute(sql)
+    row = cursor.fetchone()
+    return None if row is None else row[0]
+
+
+def _fetch_row_skipping_bad_dates(
+    cursor,
+    source: str,
+    columns: list[dict[str, Any]],
+    page_pk: str,
+    pk_value: Any,
+    extra_where: str | None = None,
+) -> tuple[Any, ...] | None:
+    """Legge una riga 4D colonna per colonna, azzerando le date ODBC invalide."""
+    values: list[Any] = [None] * len(columns)
+    dt_indexes = [i for i, col in enumerate(columns) if _is_odbc_datetime_column(col)]
+    other_indexes = [i for i in range(len(columns)) if i not in set(dt_indexes)]
+    pk_pred = f"[{page_pk}] = {_sql_pk_literal(pk_value)}"
+    if extra_where:
+        pk_pred = f"({extra_where}) AND {pk_pred}"
+
+    if other_indexes:
+        names = ", ".join(f"[{columns[i]['name']}]" for i in other_indexes)
+        cursor.execute(f"SELECT {names} FROM [{source}] WHERE {pk_pred}")
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        for pos, idx in enumerate(other_indexes):
+            values[idx] = row[pos]
+    else:
+        cursor.execute(f"SELECT [{page_pk}] FROM [{source}] WHERE {pk_pred}")
+        if cursor.fetchone() is None:
+            return None
+
+    for idx in dt_indexes:
+        name = columns[idx]["name"]
+        cursor.execute(f"SELECT [{name}] FROM [{source}] WHERE {pk_pred}")
+        try:
+            row = cursor.fetchone()
+            values[idx] = None if row is None else row[0]
+        except ValueError as exc:
+            if not _is_invalid_odbc_datetime(exc):
+                raise
+            logger.warning(
+                "4D %s.%s id=%s: data non valida (%s), impostata a vuoto.",
+                source,
+                name,
+                pk_value,
+                exc,
+            )
+            values[idx] = None
+    return tuple(values)
+
+
 def fetch_4d_rows(
     cursor,
     source: str,
@@ -475,14 +560,71 @@ def fetch_4d_rows(
         cursor.execute(sql)
         fetched = 0
         page_last = last
+        poisoned = False
         while fetched < page_size:
             take = min(batch_size, page_size - fetched)
-            batch = cursor.fetchmany(take)
+            try:
+                batch = cursor.fetchmany(take)
+            except ValueError as exc:
+                if not _is_invalid_odbc_datetime(exc):
+                    raise
+                poisoned = True
+                while fetched < page_size:
+                    next_pk = _next_pk_after(
+                        cursor,
+                        source,
+                        page_pk,
+                        page_last,
+                        extra_where=where_clause,
+                    )
+                    if next_pk is None:
+                        break
+                    resume_predicates: list[str] = []
+                    if where_clause:
+                        resume_predicates.append(f"({where_clause})")
+                    if page_last is not None:
+                        resume_predicates.append(
+                            f"[{page_pk}] > {_sql_pk_literal(page_last)}"
+                        )
+                    resume_sql = f"SELECT {col_4d} FROM [{source}]"
+                    if resume_predicates:
+                        resume_sql += " WHERE " + " AND ".join(resume_predicates)
+                    resume_sql += f" ORDER BY [{page_pk}]"
+                    cursor.execute(resume_sql)
+                    try:
+                        row = cursor.fetchone()
+                    except ValueError as exc2:
+                        if not _is_invalid_odbc_datetime(exc2):
+                            raise
+                        row = _fetch_row_skipping_bad_dates(
+                            cursor,
+                            source,
+                            columns,
+                            page_pk,
+                            next_pk,
+                            extra_where=where_clause,
+                        )
+                        if row is not None:
+                            yield [row]
+                        page_last = next_pk
+                        fetched += 1
+                        continue
+                    if row is None:
+                        break
+                    yield [row]
+                    page_last = row[pk_idx]
+                    fetched += 1
+                break
             if not batch:
                 break
             fetched += len(batch)
             page_last = batch[-1][pk_idx]
             yield batch
+        if poisoned:
+            if page_last == last:
+                break
+            last = page_last
+            continue
         if fetched == 0 or fetched < page_size:
             break
         if page_last == last:

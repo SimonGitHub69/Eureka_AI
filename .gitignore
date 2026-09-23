@@ -26,3 +26,6 @@ API_KEY/
 scripts/eureka_share_net/bin/
 scripts/eureka_share_net/obj/
 scripts/share_publish/
+
+# Pacchetti Windows Server generati (ZIP/EXE)
+installazione/dist/

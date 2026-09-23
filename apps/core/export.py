@@ -52,6 +52,14 @@ def export_bridge_response(request: HttpRequest, *, title: str = "Esportazione")
     )
 
 
+def _safe_xlsx_sheet_title(title: str | None) -> str:
+    """openpyxl rifiuta \\ / * ? : [ ] nel nome foglio."""
+    text = (title or "Dati").strip() or "Dati"
+    for ch in r"\/:*?[]":
+        text = text.replace(ch, "-")
+    return text[:31]
+
+
 def build_xlsx_bytes(
     *,
     headers: Sequence[str],
@@ -63,7 +71,7 @@ def build_xlsx_bytes(
 
     wb = Workbook()
     ws = wb.active
-    ws.title = (sheet_title or "Dati")[:31]
+    ws.title = _safe_xlsx_sheet_title(sheet_title)
     ws.append(list(headers))
     for row in rows:
         ws.append(list(row))

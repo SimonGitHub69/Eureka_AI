@@ -1,0 +1,125 @@
+{% extends "base/layout.html" %}
+
+{% block title %}Set articoli · Eureka AI{% endblock %}
+{% block page_title %}Set articoli{% endblock %}
+
+{% block content %}
+
+<div class="eureka-tlist">
+
+<div class="eureka-tlist-hero">
+    <div class="eureka-tlist-hero__title">
+        <span class="eureka-tlist-hero__icon"><i class="ti ti-stack-2"></i></span>
+        <div>
+            <h2 class="page-title mb-0">Set articoli</h2>
+            <div class="text-secondary mt-1">
+                Set articoli importati da 4D (<code>Set_Articoli_H</code> / <code>Set_Articoli_D</code>)
+                {% include "partials/tlist_count.html" %}
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% include "partials/stampa_lista_button.html" with print_url="set_articoli:print_list" %}
+        {% include "partials/export_lista_button.html" with export_url="set_articoli:export_list" %}
+        <a href="{% url 'set_articoli:create' %}" class="btn btn-primary">
+            <i class="ti ti-plus"></i>
+            Nuovo set
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3 eureka-tlist-search">
+    <div class="card-body py-3">
+        {% include "partials/tlist_search_count.html" %}
+        <form method="get" action="{% url 'set_articoli:list' %}">
+            {% include "partials/sort_hidden.html" %}
+            <div class="row g-2 align-items-center">
+                <div class="col-lg-5">
+                    <div class="input-icon">
+                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                        <input type="text" id="setArticoliSearch" name="q" value="{{ q }}" class="form-control" placeholder="Nome, numero, codice articolo, fornitore...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" name="fornitore" value="{{ fornitore }}" class="form-control" placeholder="Fornitore">
+                </div>
+                <div class="col-md-2">
+                    <select name="stato" class="form-select">
+                        <option value="">Tutti</option>
+                        <option value="attivi"{% if stato == "attivi" %} selected{% endif %}>Attivi</option>
+                        <option value="disattivi"{% if stato == "disattivi" %} selected{% endif %}>Disattivati</option>
+                    </select>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="ti ti-filter"></i> Filtra</button>
+                    {% if has_filters %}
+                    <a href="{% url 'set_articoli:list' %}" class="btn btn-outline-secondary" title="Reset"><i class="ti ti-x"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover eureka-tlist-table mb-0">
+            <thead>
+                <tr>
+                    {% load pagination_tags %}
+                    {% sort_th "numero_set" "N." default_dir="asc" %}
+                    {% sort_th "nome_set" "Nome" default_dir="asc" %}
+                    {% sort_th "data_set" "Data" default_dir="desc" %}
+                    {% sort_th "fornitore" "Fornitore" default_dir="asc" %}
+                    {% sort_th "n_righe" "Righe" align="end" default_dir="desc" %}
+                    <th class="w-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in set_list %}
+                <tr>
+                    <td class="text-secondary">{{ s.numero_set|default:s.id }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="eureka-tlist-avatar bg-indigo-lt text-indigo">
+                                <i class="ti ti-stack-2"></i>
+                            </span>
+                            <div class="overflow-hidden">
+                                <a href="{% url 'set_articoli:detail' s.id %}" class="eureka-tlist-name text-truncate d-block" style="max-width: 420px;">
+                                    {{ s.nome_set|default:"—" }}
+                                </a>
+                                {% if s.disattivato %}<span class="badge bg-secondary-lt">Disattivato</span>{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>{% if s.data_set_date %}{{ s.data_set_date|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                    <td>{{ s.fornitore|default:"—" }}</td>
+                    <td class="text-end">{{ s.n_righe|default:0 }}</td>
+                    <td class="eureka-tlist-actions">
+                        <a href="{% url 'set_articoli:edit' s.id %}" class="btn btn-icon" title="Modifica">
+                            <i class="ti ti-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="eureka-tlist-empty text-center text-secondary">
+                            <div class="eureka-tlist-empty__icon"><i class="ti ti-stack-2"></i></div>
+                            Nessun set articoli trovato
+                            {% if has_filters %}
+                            <div class="mt-2"><a href="{% url 'set_articoli:list' %}">Azzera filtri</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "partials/pagination.html" %}
+</div>
+
+</div>
+
+{% endblock %}

@@ -22,6 +22,13 @@ STAMPE_FATTURAZIONE = (
         "subtitle": "Valori articoli / giacenze",
     },
     {
+        "key": "set_articoli",
+        "label": "Set Articoli",
+        "icon": "ti-stack-2",
+        "url_name": "set_articoli:print_list",
+        "subtitle": "Set e articoli collegati",
+    },
+    {
         "key": "distinte_base",
         "label": "Distinte base",
         "icon": "ti-list-tree",

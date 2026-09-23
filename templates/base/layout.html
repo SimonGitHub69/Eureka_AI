@@ -40,20 +40,22 @@
     <link rel="stylesheet" href="{% static 'vendor/tabler/css/tabler.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
     <link rel="stylesheet" href="{% static 'eureka/css/variables.css' %}">
-    <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}?v=compact-9">
+    <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}?v=compact-10">
     <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}?v=bar-11">
     <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-3">
     <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-19">
-    <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-35">
+    <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-47">
     {% if user.is_authenticated and eureka_voice_enabled %}
     <link rel="stylesheet" href="{% static 'eureka/css/voice-assistant.css' %}">
     {% endif %}
     <link rel="stylesheet" href="{% static 'eureka/css/ai-assistant-modal.css' %}?v=20">
+    <link rel="stylesheet" href="{% static 'eureka/css/multi-window.css' %}?v=2">
 
     {% block extra_css %}{% endblock %}
 </head>
 
-<body class="{% if eureka_navbar_fissa %}st-navbar-fixed{% endif %}{% if eureka_liste_fisse %} st-liste-fisse{% endif %}"{% if back_url %} data-back-url="{{ back_url }}" data-back-label="{{ back_label }}"{% endif %}>
+<body class="{% if request.is_embed %}st-embed{% endif %}{% if eureka_navbar_fissa %} st-navbar-fixed{% endif %}{% if eureka_liste_fisse %} st-liste-fisse{% endif %}"{% if back_url %} data-back-url="{{ back_url }}" data-back-label="{{ back_label }}"{% endif %}>
+{% if not request.is_embed %}
 <script>
 (function () {
     try {
@@ -63,15 +65,19 @@
     } catch (e) { /* ignore */ }
 })();
 </script>
+{% endif %}
 
 <div class="page">
 
+    {% if not request.is_embed %}
     <div class="st-sidebar-backdrop" data-sidebar-backdrop hidden></div>
     {% include "base/sidebar.html" %}
+    {% endif %}
 
     <div class="page-wrapper">
 
         {% block navbar %}
+        {% if not request.is_embed %}
         <header class="eureka-navbar">
             <div class="eureka-navbar__inner">
 
@@ -165,6 +171,16 @@
                             title="Attiva tema scuro">
                             <i class="ti ti-moon" data-theme-toggle-icon></i>
                         </button>
+
+                        <button
+                            type="button"
+                            class="eureka-navbar__btn"
+                            data-mw-toggle
+                            aria-pressed="false"
+                            aria-label="Attiva multi-finestra"
+                            title="Attiva multi-finestra (i link del menu aprono finestre)">
+                            <i class="ti ti-layout-board"></i>
+                        </button>
                     </div>
 
                     <div class="dropdown">
@@ -198,6 +214,7 @@
 
             </div>
         </header>
+        {% endif %}
         {% endblock %}
 
         <div class="page-body">
@@ -207,7 +224,9 @@
             </div>
         </div>
 
+        {% if not request.is_embed %}
         {% include "base/footer.html" %}
+        {% endif %}
 
     </div>
 
@@ -218,13 +237,18 @@
 <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
 <script src="{% static 'eureka/js/disable-autocomplete.js' %}?v=2"></script>
 <script>window.EUREKA_SW_URL = "{% url 'core:service_worker' %}";</script>
-<script src="{% static 'eureka/js/app.js' %}?v=share-helper-11"></script>
+<script src="{% static 'eureka/js/app.js' %}?v=share-helper-13"></script>
+{% if request.is_embed %}
+<script src="{% static 'eureka/js/embed.js' %}?v=1"></script>
+{% else %}
+<script src="{% static 'eureka/js/multi-window.js' %}?v=1"></script>
+{% endif %}
 <script>
     window.EUREKA_ERROR_SOUND_ENABLED = {% if eureka_error_sound_enabled %}true{% else %}false{% endif %};
     window.EUREKA_ERROR_SOUND_URL = "{{ eureka_error_sound_url|default:''|escapejs }}";
 </script>
 <script src="{% static 'eureka/js/error-feedback.js' %}?v=5"></script>
-{% if user.is_authenticated and eureka_voice_enabled %}
+{% if user.is_authenticated and eureka_voice_enabled and not request.is_embed %}
 <script>
     window.EUREKA_VOICE_ENABLED = true;
     window.EUREKA_VOICE_ROUTES = {
@@ -234,6 +258,7 @@
         fornitori: "{% url 'anagrafiche:fornitori_list' %}",
         agenti: "{% url 'anagrafiche:agenti_list' %}",
         articoli: "{% url 'articoli:list' %}",
+        set_articoli: "{% url 'set_articoli:list' %}",
         distinte_base: "{% url 'distinte_base:list' %}",
         fatture: "{% url 'fatture:list' %}",
         preventivi: "{% url 'documenti:list' tipo_doc='PRV' %}",
@@ -247,6 +272,7 @@
         analisi_fatturato: "{% url 'fatture:analisi' %}",
         fatturato_regioni: "{% url 'fatture:analisi_regioni' %}",
         classifica_clienti: "{% url 'fatture:classifica' %}",
+        statistiche_magazzino: "{% url 'movimenti:statistiche' %}",
         categorie: "{% url 'categorie:list' %}",
         condizioni: "{% url 'condizioni:list' %}",
         aliquote: "{% url 'aliquote:list' %}",
@@ -305,6 +331,7 @@
         sync_raggruppamento_conti: "{% url 'raggruppamento_conti:sync' %}",
         sync_raggruppamento_clifor: "{% url 'raggruppamento_clifor:sync' %}",
         sync_distinte_base: "{% url 'distinte_base:sync' %}",
+        sync_set_articoli: "{% url 'set_articoli:sync' %}",
         sync_gruppi_articoli: "{% url 'gruppi_articoli:sync' %}",
         sync_gruppi_magazzini: "{% url 'gruppi_magazzini:sync' %}",
         sync_magazzini: "{% url 'magazzini:sync' %}",
@@ -323,6 +350,9 @@
 </script>
 <script src="{% static 'eureka/js/voice-assistant.js' %}"></script>
 {% endif %}
+
+{% include "partials/eureka_confirm_dialog.html" %}
+<script src="{% static 'eureka/js/confirm-dialog.js' %}?v=2"></script>
 
 {% block extra_js %}{% endblock %}
 
@@ -1081,7 +1111,7 @@
     return normalized.length;
   }
 
-  function importSearchBlock(rawText) {
+  async function importSearchBlock(rawText) {
     let parsed;
     try {
       parsed = JSON.parse(rawText);
@@ -1109,11 +1139,20 @@
       return false;
     }
 
-    const replace = window.confirm(
-      "Sostituire le ricerche salvate con il blocco importato?\n\n"
-      + "OK = sostituisci tutto\n"
-      + "Annulla = unisci al blocco attuale (senza duplicati)"
-    );
+    let replace = false;
+    if (window.EurekaConfirm && typeof window.EurekaConfirm.ask === "function") {
+      replace = await window.EurekaConfirm.ask({
+        title: "Importa ricerche",
+        message:
+          "Sostituire le ricerche salvate con il blocco importato?\n\n" +
+          "Conferma = sostituisci tutto\n" +
+          "Annulla = unisci al blocco attuale (senza duplicati)",
+        confirmLabel: "Sostituisci",
+        cancelLabel: "Unisci",
+        confirmClass: "btn btn-primary",
+        variant: "info",
+      });
+    }
 
     const addedSaved = mergeSavedFromImport(savedIncoming, { replace });
     if (recentIncoming.length) {
@@ -3062,7 +3101,58 @@
   if (!backUrl) return;
   const actions = document.querySelector(".eureka-mask-hero__actions");
   if (!actions) return;
-  if ([...actions.querySelectorAll("a[href]")].some((anchor) => anchor.getAttribute("href") === backUrl)) return;
+
+  function withNext(href) {
+    try {
+      const url = new URL(href, window.location.origin);
+      if (url.origin !== window.location.origin) return href;
+      if (url.searchParams.has("next") || url.searchParams.has("list_back")) return href;
+      url.searchParams.set("next", backUrl);
+      return url.pathname + url.search + url.hash;
+    } catch (error) {
+      return href;
+    }
+  }
+
+  function pathOnly(href) {
+    try {
+      return new URL(href, window.location.origin).pathname.replace(/\/+$/, "") || "/";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  const backPath = pathOnly(backUrl);
+
+  actions.querySelectorAll("a[href]").forEach((anchor) => {
+    const href = anchor.getAttribute("href") || "";
+    if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+    const text = (anchor.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const isElenco =
+      text === "elenco" ||
+      text.endsWith(" elenco") ||
+      anchor.classList.contains("eureka-list-exit");
+    const isModifica =
+      /\/(modifica|edit)(\/|\?|$)/i.test(href) ||
+      text === "modifica" ||
+      text.endsWith(" modifica");
+
+    if (isElenco) {
+      // Elenco deve riportare alla lista di partenza (filtri inclusi), non alla root.
+      const anchorPath = pathOnly(href);
+      if (!anchorPath || backPath.startsWith(anchorPath) || anchorPath === backPath) {
+        anchor.setAttribute("href", backUrl);
+      }
+      return;
+    }
+    if (isModifica) {
+      anchor.setAttribute("href", withNext(href));
+    }
+  });
+
+  if ([...actions.querySelectorAll("a[href]")].some((anchor) => anchor.getAttribute("href") === backUrl)) {
+    return;
+  }
   const label = document.body.dataset.backLabel || "Torna all'elenco";
   const link = document.createElement("a");
   link.href = backUrl;

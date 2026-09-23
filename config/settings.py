@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,6 +15,21 @@ DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
+
+def _read_app_version() -> str:
+    pkg = BASE_DIR / "package.json"
+    try:
+        data = json.loads(pkg.read_text(encoding="utf-8"))
+        ver = str(data.get("version") or "").strip()
+        if ver:
+            return ver
+    except Exception:
+        pass
+    return "1.0.4"
+
+
+EUREKA_VERSION = env("EUREKA_VERSION", default=_read_app_version())
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -27,6 +43,7 @@ INSTALLED_APPS = [
     "apps.documenti",
     "apps.anagrafiche",
     "apps.articoli",
+    "apps.set_articoli",
     "apps.distinte_base",
     "apps.categorie",
     "apps.condizioni",
@@ -70,8 +87,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.core.middleware.PreserveEmbedMiddleware",
     "apps.core.middleware.BindClientPcMiddleware",
 ]
+
+# Consenti iframe same-origin (multi-finestra)
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 ROOT_URLCONF = "config.urls"
 
@@ -90,6 +111,7 @@ TEMPLATES = [
                 "apps.core.context_processors.programma_documenti",
                 "apps.core.context_processors.ai_debug_flags",
                 "apps.core.context_processors.list_back",
+                "apps.core.context_processors.app_version",
             ],
         },
     },

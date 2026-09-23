@@ -410,9 +410,12 @@ def set_watermark(source_table: str, dt: datetime) -> None:
 
     naive = _as_naive(dt)
     assert naive is not None
+    stored = naive
+    if timezone.is_naive(stored):
+        stored = timezone.make_aware(stored, timezone.get_current_timezone())
     SyncWatermark.objects.update_or_create(
         source_table=source_table,
-        defaults={"last_modifica": naive},
+        defaults={"last_modifica": stored},
     )
 
 

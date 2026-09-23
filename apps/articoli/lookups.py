@@ -435,7 +435,10 @@ def resolve_clifor(tipo: str, codice: str | None) -> dict:
 
 
 def resolve_articolo(codice: str | None) -> dict:
-    """Dati riga documento da scheda articolo (codice → descrizione, IVA, UM, listino)."""
+    """Dati riga documento da scheda articolo (codice → descrizione, IVA, UM, listino).
+
+    Accetta anche codice a lettura facilitata (CodBreveArt) e codici alternativi.
+    """
     empty = {
         "found": False,
         "codice": _norm(codice),
@@ -443,24 +446,37 @@ def resolve_articolo(codice: str | None) -> dict:
         "iva": "",
         "unita_misura": "",
         "prezzo_unitario": None,
+        "cod_breve": "",
     }
     code = _norm(codice)
     if not code:
         return empty
     try:
+        from django.db.models import Q
+
         from apps.articoli.models import Articolo
 
-        obj = (
-            Articolo.objects.filter(codice__iexact=code)
-            .only(
-                "codice",
-                "descrizione",
-                "cod_iva",
-                "unita_misura",
-                "listino1",
-            )
-            .first()
+        only = (
+            "codice",
+            "descrizione",
+            "cod_iva",
+            "unita_misura",
+            "listino1",
+            "cod_breve_art",
+            "codice_alternativo1",
+            "codice_alternativo2",
         )
+        obj = Articolo.objects.filter(codice__iexact=code).only(*only).first()
+        if obj is None:
+            obj = (
+                Articolo.objects.filter(
+                    Q(cod_breve_art__iexact=code)
+                    | Q(codice_alternativo1__iexact=code)
+                    | Q(codice_alternativo2__iexact=code)
+                )
+                .only(*only)
+                .first()
+            )
         if obj is None:
             return empty
         return {
@@ -470,6 +486,7 @@ def resolve_articolo(codice: str | None) -> dict:
             "iva": (obj.cod_iva or "").strip(),
             "unita_misura": (obj.unita_misura or "").strip(),
             "prezzo_unitario": obj.listino1,
+            "cod_breve": (obj.cod_breve_art or "").strip(),
         }
     except Exception:
         return empty
@@ -798,16 +815,28 @@ def search_opzioni(
                 "cod_iva",
                 "unita_misura",
                 "listino1",
+                "cod_breve_art",
             )
             if q:
                 # Ranking: exact/prefix codice first. Otherwise "VA" matches
                 # STI*VA*LETTO / VALVOLA in descrizione and buries VA12/VA22.
-                qs = qs.filter(Q(codice__icontains=q) | Q(descrizione__icontains=q))
+                qs = qs.filter(
+                    Q(codice__icontains=q)
+                    | Q(descrizione__icontains=q)
+                    | Q(cod_breve_art__icontains=q)
+                    | Q(codice_alternativo1__icontains=q)
+                    | Q(codice_alternativo2__icontains=q)
+                )
                 qs = qs.annotate(
                     _rank=Case(
                         When(codice__iexact=q, then=Value(0)),
+                        When(cod_breve_art__iexact=q, then=Value(0)),
+                        When(codice_alternativo1__iexact=q, then=Value(0)),
+                        When(codice_alternativo2__iexact=q, then=Value(0)),
                         When(codice__istartswith=q, then=Value(1)),
+                        When(cod_breve_art__istartswith=q, then=Value(1)),
                         When(codice__icontains=q, then=Value(2)),
+                        When(cod_breve_art__icontains=q, then=Value(2)),
                         When(descrizione__istartswith=q, then=Value(3)),
                         default=Value(4),
                         output_field=IntegerField(),
@@ -821,6 +850,7 @@ def search_opzioni(
                 row["iva"] = (o.cod_iva or "").strip()
                 row["unita_misura"] = (o.unita_misura or "").strip()
                 row["prezzo_unitario"] = o.listino1
+                row["cod_breve"] = (o.cod_breve_art or "").strip()
                 row["found"] = True
                 rows.append(row)
             return rows

@@ -1,0 +1,61 @@
+{% extends "base/layout.html" %}
+{% load static %}
+
+{% block title %}{{ page_heading }} · Set articoli · Eureka AI{% endblock %}
+{% block page_title %}{{ page_heading }}{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-stack-2"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">{{ page_heading }}</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if is_create %}Nuovo set articoli{% else %}<span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ set_h.numero_set|default:set_h.id }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% include "partials/list_back_button.html" %}
+        {% if not is_create %}
+        <a href="{% url 'set_articoli:detail' set_h.id %}{% if back_url %}?next={{ back_url|urlencode }}{% endif %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left"></i> Dettaglio</a>
+        {% endif %}
+        <a href="{{ exit_url|default:list_url }}" class="btn btn-outline-secondary btn-sm eureka-list-exit"><i class="ti ti-list"></i> Elenco</a>
+    </div>
+</div>
+
+<form method="post" autocomplete="off" data-linked-lookups data-lookup-url="{{ lookup_url }}">
+    {% csrf_token %}
+    {% if back_url %}<input type="hidden" name="next" value="{{ back_url }}">{% endif %}
+    {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="card eureka-mask-card">
+        <div class="card-body py-3">
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=form.numero_set col="col-4 col-sm-2" %}
+                {% include "partials/mask_field.html" with field=form.nome_set col="col-8 col-sm-7" %}
+                {% include "partials/mask_field.html" with field=form.data_set col="col-sm-3" %}
+                {% include "partials/mask_linked_code.html" with field=form.fornitore label=labels.fornitore tipo="fornitore" col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=form.disattivato col="col-auto" check=1 %}
+                {% include "partials/mask_field.html" with field=form.controllo_doc col="col-auto" check=1 %}
+                {% include "partials/mask_field.html" with field=form.note col="col-12" %}
+                {% include "partials/mask_field.html" with field=form.note_controllo col="col-12" %}
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2 py-2">
+            <a href="{{ exit_url|default:list_url }}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
+        </div>
+    </div>
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=28"></script>
+{% endblock %}

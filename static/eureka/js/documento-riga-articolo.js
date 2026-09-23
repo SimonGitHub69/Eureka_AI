@@ -366,6 +366,20 @@
       moveActive(-1);
       return;
     }
+    if (ev.key === "PageDown" || ev.key === "PageUp" || ev.key === "Home" || ev.key === "End") {
+      if (!menuOpen || !menuItems().length) return;
+      ev.preventDefault();
+      const items = menuItems();
+      let idx = items.findIndex((x) => x.classList.contains("is-active"));
+      if (idx < 0) idx = 0;
+      if (ev.key === "PageDown") idx = Math.min(items.length - 1, idx + 5);
+      else if (ev.key === "PageUp") idx = Math.max(0, idx - 5);
+      else if (ev.key === "Home") idx = 0;
+      else idx = items.length - 1;
+      items.forEach((x, i) => x.classList.toggle("is-active", i === idx));
+      items[idx].scrollIntoView({ block: "nearest" });
+      return;
+    }
     if (ev.key === "Escape") {
       if (!menuOpen) return;
       ev.preventDefault();

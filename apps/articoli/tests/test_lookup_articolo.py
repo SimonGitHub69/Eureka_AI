@@ -23,6 +23,7 @@ class ResolveArticoloTests(SimpleTestCase):
         art.cod_iva = "22"
         art.unita_misura = "PZ"
         art.listino1 = 12.5
+        art.cod_breve_art = ""
         mock_objects.filter.return_value.only.return_value.first.return_value = art
 
         info = resolve_articolo("va22")
@@ -32,6 +33,24 @@ class ResolveArticoloTests(SimpleTestCase):
         self.assertEqual(info["iva"], "22")
         self.assertEqual(info["unita_misura"], "PZ")
         self.assertEqual(info["prezzo_unitario"], 12.5)
+
+    @patch("apps.articoli.models.Articolo.objects")
+    def test_found_by_cod_breve(self, mock_objects):
+        art = MagicMock()
+        art.codice = "VA22"
+        art.descrizione = "Viti"
+        art.cod_iva = "22"
+        art.unita_misura = "PZ"
+        art.listino1 = 1.0
+        art.cod_breve_art = "V22"
+        qs = MagicMock()
+        qs.only.return_value.first.side_effect = [None, art]
+        mock_objects.filter.return_value = qs
+
+        info = resolve_articolo("V22")
+        self.assertTrue(info["found"])
+        self.assertEqual(info["codice"], "VA22")
+        self.assertEqual(info["cod_breve"], "V22")
 
     @patch("apps.articoli.models.Articolo.objects")
     def test_not_found(self, mock_objects):

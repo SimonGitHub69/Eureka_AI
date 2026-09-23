@@ -836,6 +836,7 @@ class CodiceLookupView(LoginRequiredMixin, View):
                     "iva": info.get("iva") or "",
                     "unita_misura": info.get("unita_misura") or "",
                     "prezzo_unitario": info.get("prezzo_unitario"),
+                    "cod_breve": info.get("cod_breve") or "",
                 }
             )
         if tipo in ("cliente", "fornitore", "clifor"):

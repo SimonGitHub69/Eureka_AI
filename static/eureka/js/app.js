@@ -203,6 +203,11 @@ document.addEventListener("DOMContentLoaded", function () {
             compactIcon.classList.toggle("ti-layout-sidebar-left-collapse", !compact);
             compactIcon.classList.toggle("ti-layout-sidebar-left-expand", compact);
         }
+        try {
+            window.dispatchEvent(
+                new CustomEvent("eureka:sidebar-compact", { detail: { compact: !!compact } })
+            );
+        } catch (e) { /* ignore */ }
     }
 
     applyNavTitles();
@@ -1018,4 +1023,76 @@ document.addEventListener("DOMContentLoaded", function () {
         const swUrl = (window.EUREKA_SW_URL || "/sw.js");
         navigator.serviceWorker.register(swUrl).catch(function () { /* ignore */ });
     }
+
+    // Ricerca typeahead nei <select>: case-insensitive (it-IT).
+    (function bindCaseInsensitiveSelectSearch() {
+        var buffers = new WeakMap();
+
+        function norm(text) {
+            return String(text || "")
+                .toLocaleLowerCase("it-IT")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function findOptionIndex(select, needle, fromIndex) {
+            var opts = select.options;
+            var n = opts.length;
+            if (!n || !needle) return -1;
+            var start = Math.max(0, fromIndex | 0);
+            var i;
+            for (i = start; i < n; i += 1) {
+                if (opts[i].disabled) continue;
+                if (norm(opts[i].text).indexOf(needle) === 0) return i;
+            }
+            for (i = 0; i < start; i += 1) {
+                if (opts[i].disabled) continue;
+                if (norm(opts[i].text).indexOf(needle) === 0) return i;
+            }
+            for (i = start; i < n; i += 1) {
+                if (opts[i].disabled) continue;
+                if (norm(opts[i].text).indexOf(needle) >= 0) return i;
+            }
+            for (i = 0; i < start; i += 1) {
+                if (opts[i].disabled) continue;
+                if (norm(opts[i].text).indexOf(needle) >= 0) return i;
+            }
+            return -1;
+        }
+
+        document.querySelectorAll("select").forEach(function (select) {
+            if (select.multiple || select.size > 1) return;
+            if (select.dataset.caseSearchBound === "1") return;
+            select.dataset.caseSearchBound = "1";
+
+            select.addEventListener("keydown", function (ev) {
+                if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+                if (ev.key === "Backspace") {
+                    var cur = buffers.get(select) || { text: "", timer: null };
+                    cur.text = cur.text.slice(0, -1);
+                    buffers.set(select, cur);
+                    return;
+                }
+                if (ev.key.length !== 1) return;
+
+                ev.preventDefault();
+                var state = buffers.get(select) || { text: "", timer: null };
+                clearTimeout(state.timer);
+                state.text += ev.key;
+                state.timer = setTimeout(function () {
+                    state.text = "";
+                }, 900);
+                buffers.set(select, state);
+
+                var needle = norm(state.text);
+                var idx = findOptionIndex(select, needle, select.selectedIndex);
+                if (idx < 0) return;
+                if (select.selectedIndex !== idx) {
+                    select.selectedIndex = idx;
+                    select.dispatchEvent(new Event("change", { bubbles: true }));
+                    select.dispatchEvent(new Event("input", { bubbles: true }));
+                }
+            });
+        });
+    })();
 });

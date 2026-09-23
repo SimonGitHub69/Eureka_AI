@@ -16,6 +16,7 @@ class DestinazioneComandoVocale(models.TextChoices):
     FORNITORI = "fornitori", "Fornitori"
     AGENTI = "agenti", "Agenti"
     ARTICOLI = "articoli", "Articoli"
+    SET_ARTICOLI = "set_articoli", "Set articoli"
     FATTURE = "fatture", "Fatture"
     CATEGORIE = "categorie", "Categorie"
     AZIENDE = "aziende", "Azienda"
@@ -27,6 +28,7 @@ class DestinazioneComandoVocale(models.TextChoices):
     SYNC_AZIENDE = "sync_aziende", "Sync azienda 4D"
     SYNC_CATEGORIE = "sync_categorie", "Sync categorie 4D"
     SYNC_GRUPPI_ARTICOLI = "sync_gruppi_articoli", "Sync gruppi articoli 4D"
+    SYNC_SET_ARTICOLI = "sync_set_articoli", "Sync set articoli 4D"
 
 
 class MatchModeComandoVocale(models.TextChoices):

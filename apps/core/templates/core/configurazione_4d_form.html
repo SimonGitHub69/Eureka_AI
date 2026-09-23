@@ -758,43 +758,57 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (clearBtn) {
         clearBtn.addEventListener("click", function () {
-            const confirmed = window.confirm(
-                "Azzerare tutte le tabelle mirror su PostgreSQL?\n\n" +
-                "Verranno eliminate le tabelle importate da 4D (clienti, fornitori, agenti, aziende, articoli, categorie, magazzini, stampi, operatori, timbrature, fatture, documenti, ...).\n" +
-                "I dati in 4D non vengono modificati. Poi potrai rilanciare il sync completo."
-            );
-            if (!confirmed) return;
-
-            clearBtn.disabled = true;
-            startBtn.disabled = true;
-            setSelectionDisabled(true);
-            statusText.textContent = "Azzeramento tabelle in corso...";
-            fetch(app.dataset.clearUrl, {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": csrfToken(),
-                    "X-Requested-With": "XMLHttpRequest"
-                }
-            })
-                .then(parseJsonResponse)
-                .then(function (result) {
-                    if (!result.data.ok) {
-                        throw new Error(result.data.error || "Azzeramento non riuscito.");
+            const runClear = function () {
+                clearBtn.disabled = true;
+                startBtn.disabled = true;
+                setSelectionDisabled(true);
+                statusText.textContent = "Azzeramento tabelle in corso...";
+                fetch(app.dataset.clearUrl, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": csrfToken(),
+                        "X-Requested-With": "XMLHttpRequest"
                     }
-                    const msg = result.data.message || "Tabelle azzerate.";
-                    statusText.textContent = msg;
-                    showSyncToast(msg, "success");
-                    window.location.reload();
                 })
-                .catch(function (err) {
-                    const msg = err.message || "Errore durante l'azzeramento.";
-                    statusText.textContent = msg;
-                    statusText.classList.add("text-danger");
-                    showSyncToast(msg, "danger");
-                    clearBtn.disabled = false;
-                    startBtn.disabled = false;
-                    setSelectionDisabled(false);
+                    .then(parseJsonResponse)
+                    .then(function (result) {
+                        if (!result.data.ok) {
+                            throw new Error(result.data.error || "Azzeramento non riuscito.");
+                        }
+                        const msg = result.data.message || "Tabelle azzerate.";
+                        statusText.textContent = msg;
+                        showSyncToast(msg, "success");
+                        window.location.reload();
+                    })
+                    .catch(function (err) {
+                        const msg = err.message || "Errore durante l'azzeramento.";
+                        statusText.textContent = msg;
+                        statusText.classList.add("text-danger");
+                        showSyncToast(msg, "danger");
+                        clearBtn.disabled = false;
+                        startBtn.disabled = false;
+                        setSelectionDisabled(false);
+                    });
+            };
+
+            if (window.EurekaConfirm && typeof window.EurekaConfirm.ask === "function") {
+                window.EurekaConfirm.ask({
+                    title: "Azzera tabelle mirror",
+                    message:
+                        "Azzerare tutte le tabelle mirror su PostgreSQL?\n\n" +
+                        "Verranno eliminate le tabelle importate da 4D (clienti, fornitori, agenti, aziende, articoli, categorie, magazzini, stampi, operatori, timbrature, fatture, documenti, ...).\n" +
+                        "I dati in 4D non vengono modificati. Poi potrai rilanciare il sync completo.",
+                    confirmLabel: "Azzera tabelle",
+                    cancelLabel: "Annulla",
+                    confirmClass: "btn btn-danger",
+                    variant: "danger",
+                    hint: "Operazione irreversibile su PostgreSQL.",
+                }).then(function (confirmed) {
+                    if (confirmed) runClear();
                 });
+                return;
+            }
+            runClear();
         });
     }
 });

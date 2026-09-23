@@ -88,6 +88,7 @@ from apps.carbon.sync import sync_carbon
 from apps.lavorazioni_extra.sync import sync_lavorazioni_extra
 from apps.stampi.sync import sync_stampi
 from apps.articoli.sync import sync_articoli
+from apps.set_articoli.sync import sync_set_articoli
 from apps.operatori.sync import sync_operatori
 from apps.timbrature.sync import sync_timbrature
 from apps.pdc.sync import sync_pdc
@@ -221,6 +222,13 @@ SYNC_4D_STEPS = (
         "description": "Articoli",
         "runner": sync_articoli,
         "tables": ("articoli",),
+    },
+    {
+        "key": "set_articoli",
+        "label": "Set Articoli",
+        "description": "Set_Articoli_H e Set_Articoli_D",
+        "runner": sync_set_articoli,
+        "tables": ("set_articoli_h", "set_articoli_d"),
     },
     {
         "key": "distinte_base",

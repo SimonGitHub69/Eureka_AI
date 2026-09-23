@@ -103,3 +103,103 @@ class Fetch4dRowsPagingTests(SimpleTestCase):
         )
         self.assertEqual([r[0] for b in batches for r in b], [1, 2])
         self.assertIn("ORDER BY [ID_Riga]", cur.sqls[0])
+
+    def test_skips_invalid_odbc_datetime_and_keeps_row(self):
+        rows = [
+            (1, "ok", "2024-01-01"),
+            (2, "bad", "poison"),
+            (3, "ok", "2024-01-03"),
+        ]
+        cur = PoisonDateCursor(rows, poison_ids={2}, date_col="DataConsegna")
+        batches = list(
+            fetch_4d_rows(
+                cur,
+                "Ordini_Vendita",
+                [
+                    {"name": "ID", "type_name": "INT32", "pg_type": "integer"},
+                    {"name": "X", "type_name": "CLOB", "pg_type": "text"},
+                    {
+                        "name": "DataConsegna",
+                        "type_name": "TIMESTAMP",
+                        "pg_type": "timestamp",
+                    },
+                ],
+                batch_size=10,
+                page_pk="ID",
+                page_size=10,
+            )
+        )
+        flat = [row for batch in batches for row in batch]
+        self.assertEqual([r[0] for r in flat], [1, 2, 3])
+        self.assertIsNone(flat[1][2])
+        self.assertEqual(flat[1][1], "bad")
+
+
+class PoisonDateCursor:
+    """Simula il driver 4D: fetchmany fallisce su date con anno fuori range."""
+
+    def __init__(self, rows, poison_ids, date_col="DataConsegna"):
+        self.rows = list(rows)
+        self.poison_ids = set(poison_ids)
+        self.date_col = date_col
+        self.sqls = []
+        self._pending = []
+        self._single = None
+
+    def execute(self, sql):
+        self.sqls.append(sql)
+        self._single = None
+        self._pending = []
+        if "WHERE [ID] =" in sql:
+            pk = int(sql.split("WHERE [ID] = ", 1)[1].split()[0])
+            row = next((r for r in self.rows if r[0] == pk), None)
+            if "SELECT [DataConsegna]" in sql and pk in self.poison_ids:
+                self._single = "poison"
+            else:
+                if row is None:
+                    self._single = None
+                elif "SELECT [DataConsegna]" in sql:
+                    self._single = (row[2],)
+                elif "SELECT [ID], [X]" in sql or "SELECT [ID], [X] FROM" in sql:
+                    self._single = (row[0], row[1])
+                elif sql.strip().startswith("SELECT [ID] FROM"):
+                    self._single = (row[0],)
+                else:
+                    self._single = (row[0], row[1])
+            return
+
+        bound = None
+        if "[ID] > " in sql:
+            bound = int(sql.split("[ID] > ", 1)[1].split()[0])
+        data = self.rows
+        if bound is not None:
+            data = [r for r in data if r[0] > bound]
+        if sql.strip().startswith("SELECT [ID] FROM"):
+            self._pending = [(r[0],) for r in data]
+        else:
+            self._pending = list(data)
+
+    def fetchmany(self, n):
+        if self._single is not None:
+            row = self.fetchone()
+            return [] if row is None else [row]
+        out = []
+        for _ in range(n):
+            if not self._pending:
+                break
+            row = self._pending[0]
+            if len(row) > 1 and row[0] in self.poison_ids:
+                raise ValueError("year must be in 1..9999, not 20224")
+            out.append(self._pending.pop(0))
+        return out
+
+    def fetchone(self):
+        if self._single == "poison":
+            self._single = None
+            raise ValueError("year must be in 1..9999, not 20224")
+        if self._single is not None:
+            row = self._single
+            self._single = None
+            return row
+        rows = self.fetchmany(1)
+        return rows[0] if rows else None

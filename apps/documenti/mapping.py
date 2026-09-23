@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Iterable, Mapping, Sequence
 
+from django.utils import timezone
+
 # TipoDoc FatturaPA → codice TipoDoc unificato
 TIPO_DOC_FE_MAP = {
     "TD04": "NCR",
@@ -338,29 +340,45 @@ def normalize_bool(value: Any, default: bool = False) -> bool:
     return default
 
 
+def _as_aware_datetime(dt: datetime) -> datetime | None:
+    """DateTimeField + USE_TZ richiede datetime aware; 4D/ODBC arriva naive."""
+    if timezone.is_aware(dt):
+        return dt
+    try:
+        return timezone.make_aware(dt, timezone.get_current_timezone())
+    except Exception:
+        return None
+
+
 def normalize_datetime(value: Any) -> datetime | None:
     if value is None or value == "":
         return None
+    parsed: datetime | None
     if isinstance(value, datetime):
-        return value
-    if isinstance(value, date):
-        return datetime.combine(value, datetime.min.time())
-    text = str(value).strip()
-    if not text:
-        return None
-    for fmt in (
-        "%Y-%m-%d %H:%M:%S",
-        "%Y-%m-%d %H:%M",
-        "%Y-%m-%d",
-        "%d/%m/%Y %H:%M:%S",
-        "%d/%m/%Y",
-        "%d/%m/%y",
-    ):
-        try:
-            return datetime.strptime(text[:19], fmt)
-        except ValueError:
-            continue
-    return None
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime.combine(value, datetime.min.time())
+    else:
+        text = str(value).strip()
+        if not text:
+            return None
+        parsed = None
+        for fmt in (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d",
+            "%d/%m/%Y %H:%M:%S",
+            "%d/%m/%Y",
+            "%d/%m/%y",
+        ):
+            try:
+                parsed = datetime.strptime(text[:19], fmt)
+                break
+            except ValueError:
+                continue
+        if parsed is None:
+            return None
+    return _as_aware_datetime(parsed)
 
 
 def normalize_date(value: Any) -> date | None:

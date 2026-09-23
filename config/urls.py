@@ -17,6 +17,7 @@ urlpatterns = [
     path("", include("apps.documenti.urls")),
     path("", include("apps.anagrafiche.urls")),
     path("", include("apps.articoli.urls")),
+    path("", include("apps.set_articoli.urls")),
     path("", include("apps.distinte_base.urls")),
     path("", include("apps.categorie.urls")),
     path("", include("apps.condizioni.urls")),

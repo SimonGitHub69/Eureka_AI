@@ -30,6 +30,7 @@ class DashboardShortcutSidebarAlignmentTests(SimpleTestCase):
         expected = {
             "articoli": "stampa_articoli",
             "inventario": "stampa_inventario",
+            "set_articoli": "stampa_set_articoli",
             "distinte_base": "stampa_distinte_base",
             "movimenti": "stampa_movimenti",
         }

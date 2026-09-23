@@ -99,7 +99,9 @@
                         <form method="post"
                               action="{% url 'core:comando_vocale_delete' comando.pk %}"
                               class="d-inline"
-                              onsubmit="return confirm('Eliminare il comando &quot;{{ comando.frase|escapejs }}&quot;?');">
+                              data-confirm="Eliminare il comando «{{ comando.frase|escape }}»?"
+                              data-confirm-title="Elimina comando"
+                              data-confirm-ok="Elimina">
                             {% csrf_token %}
                             <button type="submit"
                                     class="btn btn-icon eureka-tlist-actions__danger"

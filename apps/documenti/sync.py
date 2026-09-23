@@ -1376,8 +1376,8 @@ def sync_documenti(
         if breakdown:
             summary.message = f"{summary.message}\n{breakdown}"
     else:
-        failed = [t.source for t in summary.tables if not t.ok]
-        summary.message = "Sincronizzazione incompleta: " + ", ".join(failed)
+        failed = [t.message or t.source for t in summary.tables if not t.ok]
+        summary.message = "Sincronizzazione incompleta: " + " | ".join(failed)
     return summary
 
 

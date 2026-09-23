@@ -1,0 +1,1001 @@
+{% extends "base/layout.html" %}
+{% load format_tags static %}
+
+{% block title %}Statistiche magazzino · Eureka AI{% endblock %}
+{% block page_title %}Statistiche magazzino{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask eureka-mask--statistiche eureka-mask--wide">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon eureka-mask-hero__icon--statistiche"><i class="ti ti-chart-histogram"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title">Statistiche magazzino</h2>
+            <div class="eureka-mask-hero__meta">
+                {% if tipo_label %}{{ tipo_label }}{% else %}Elaborazione movimenti{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% if elabora and n_righe %}
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{% url 'movimenti:statistiche_export' %}?{{ request.GET.urlencode }}&amp;fmt=csv"
+           title="Esporta CSV">
+            <i class="ti ti-file-type-csv"></i> CSV
+        </a>
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{% url 'movimenti:statistiche_export' %}?{{ request.GET.urlencode }}&amp;fmt=xlsx"
+           title="Esporta Excel">
+            <i class="ti ti-file-spreadsheet"></i> Excel
+        </a>
+        <a class="btn btn-outline-primary btn-sm"
+           href="{% url 'movimenti:statistiche_print' %}?{{ request.GET.urlencode }}&amp;anteprima=1"
+           target="_blank" rel="opener">
+            <i class="ti ti-printer"></i> Stampa
+        </a>
+        {% endif %}
+        <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary btn-sm eureka-list-exit">
+            <i class="ti ti-x"></i> Esci
+        </a>
+    </div>
+</div>
+
+{% if elabora %}
+<div class="eureka-mask-kpis eureka-stat-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-teal-lt text-teal"><i class="ti ti-package"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Righe</div>
+            <div class="eureka-mask-kpi__value">{{ n_righe }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-stack-2"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Quantità</div>
+            <div class="eureka-mask-kpi__value">{{ tot_qta|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi eureka-mask-kpi--accent">
+        <span class="eureka-mask-kpi__icon bg-green-lt text-green"><i class="ti ti-currency-euro"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Valore</div>
+            <div class="eureka-mask-kpi__value">{{ tot_val|prezzo }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if not preview_count %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-file-analytics"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Movimenti testata</div>
+            <div class="eureka-mask-kpi__value">{% if preview_count %}{{ preview_count }}{% else %}—{% endif %}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<form method="get" action="{% url 'movimenti:statistiche' %}" id="statisticheMagazzinoForm" autocomplete="off"
+      data-linked-lookups data-lookup-url="{{ lookup_url }}">
+    <input type="hidden" name="elabora" value="1">
+
+    <div class="row g-3 eureka-stat-layout">
+        <div class="col-lg-7">
+            <div class="card eureka-mask-card eureka-mask-card--stat-params h-100">
+                <div class="card-header eureka-mask-card__header">
+                    <span class="eureka-mask-card__icon"><i class="ti ti-sliders-horizontal"></i></span>
+                    <h3 class="card-title mb-0">Parametri elaborazione</h3>
+                </div>
+                <div class="card-body py-3">
+                    <div class="row g-compact">
+                        <div class="col-12">
+                            <label class="form-label" for="id_tipo">Statistica</label>
+                            <select class="form-select form-select-lg eureka-stat-tipo" name="tipo" id="id_tipo">
+                                {% for t in tipi_statistica %}
+                                <option value="{{ t.key }}"{% if tipo == t.key %} selected{% endif %}>{{ t.label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-hint mt-1">Tipo di elaborazione (come in 4D)</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="id_titolo">Titolo in stampa</label>
+                            <input type="text" class="form-control" id="id_titolo" name="titolo" value="{{ titolo }}" placeholder="Es. Statistiche di Vendita">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="id_articolo_da">Da articolo</label>
+                            <div class="input-icon">
+                                <span class="input-icon-addon"><i class="ti ti-barcode"></i></span>
+                                <input type="text" class="form-control" id="id_articolo_da" name="articolo_da" value="{{ articolo_da }}" placeholder="Codice da…">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="id_articolo_a">A articolo</label>
+                            <div class="input-icon">
+                                <span class="input-icon-addon"><i class="ti ti-barcode"></i></span>
+                                <input type="text" class="form-control" id="id_articolo_a" name="articolo_a" value="{{ articolo_a }}" placeholder="Codice a…">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="id_data_da">Dalla data</label>
+                            <input type="date" class="form-control" id="id_data_da" name="data_da" value="{{ data_da_str }}">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="id_data_a">Alla data</label>
+                            <input type="date" class="form-control" id="id_data_a" name="data_a" value="{{ data_a_str }}">
+                        </div>
+                        <div class="col-12">
+                            <div class="eureka-stat-section-label">Scorciatoie periodo</div>
+                            <div class="eureka-stat-year-chips" role="group" aria-label="Anno">
+                                {% for y in anni_preset %}
+                                <button type="button"
+                                        class="eureka-stat-year-chip{% if anno == y|stringformat:'s' %} is-active{% endif %}"
+                                        data-anno-preset="{{ y }}">
+                                    <i class="ti ti-calendar"></i>
+                                    <span>Anno {{ y }}</span>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="anno" id="id_anno" value="{{ anno }}">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="eureka-stat-set-toggle{% if usa_set %} is-on{% endif %}" for="id_usa_set">
+                                <span class="eureka-stat-set-toggle__icon" aria-hidden="true">
+                                    <i class="ti ti-stack-2"></i>
+                                </span>
+                                <span class="eureka-stat-set-toggle__body">
+                                    <span class="eureka-stat-set-toggle__title">Utilizza set articoli</span>
+                                    <span class="eureka-stat-set-toggle__hint">Filtra solo gli articoli presenti nei set scelti</span>
+                                </span>
+                                <span class="eureka-stat-set-toggle__switch">
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           name="usa_set"
+                                           value="1"
+                                           id="id_usa_set"
+                                           {% if usa_set %}checked{% endif %}>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="col-12" id="setArticoliWrap"{% if not usa_set %} hidden{% endif %}
+                             data-articoli-set-url="{{ articoli_set_url }}"
+                             data-lookup-url="{{ lookup_url }}">
+                            {% if art_edit %}<input type="hidden" name="art_edit" value="1" id="id_art_edit">{% endif %}
+                            <div class="eureka-stat-picker mb-2 eureka-mask-collapse"
+                                 data-eureka-mask-collapse
+                                 data-mask-section="stat-set-articoli"
+                                 data-mask-view="statistiche"
+                                 data-mask-default="open">
+                                <div class="eureka-stat-picker__head">
+                                    <button type="button"
+                                            class="eureka-mask-collapse__toggle"
+                                            data-mask-toggle
+                                            aria-expanded="true"
+                                            aria-controls="statSetArticoliBody"
+                                            title="Comprimi set articoli">
+                                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                                        <span class="eureka-stat-picker__title">
+                                            <i class="ti ti-stack-2"></i> Set articoli
+                                        </span>
+                                        <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong" id="setSummaryChip">0 selezionati</span>
+                                        </span>
+                                    </button>
+                                    <div class="btn-list eureka-stat-collapse-actions">
+                                        <button type="button" class="btn btn-sm btn-ghost-secondary" id="btnSelAllSets">Tutti</button>
+                                        <button type="button" class="btn btn-sm btn-ghost-secondary" id="btnSelNoneSets">Nessuno</button>
+                                        <a href="{% url 'set_articoli:list' %}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="Gestione set articoli">
+                                            <i class="ti ti-external-link"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="eureka-mask-collapse__body" id="statSetArticoliBody">
+                                    <div class="px-2 pt-1 pb-0">
+                                        <div class="text-secondary small mb-1">Seleziona uno o più set, poi aggiungili all’elenco</div>
+                                        <input type="search"
+                                               class="form-control form-control-sm"
+                                               data-stat-pick-filter
+                                               data-stat-pick-target="statSetPickBody"
+                                               placeholder="Cerca set…"
+                                               autocomplete="off">
+                                    </div>
+                                    <div class="eureka-stat-picker__body">
+                                        <table class="table table-vcenter table-sm mb-0 eureka-stat-pick-table" data-stat-sortable>
+                                            <thead>
+                                                <tr>
+                                                    <th class="w-1">Sel.</th>
+                                                    <th class="w-1 eureka-sort-th is-active" data-sort-key="numero" data-sort-type="num" aria-sort="ascending">
+                                                        <button type="button" class="eureka-sort-th__link">
+                                                            N°
+                                                            <i class="ti ti-arrow-up eureka-sort-th__icon" aria-hidden="true"></i>
+                                                        </button>
+                                                    </th>
+                                                    <th class="eureka-sort-th" data-sort-key="nome" data-sort-type="text" aria-sort="none">
+                                                        <button type="button" class="eureka-sort-th__link">
+                                                            Nome set
+                                                            <i class="ti ti-selector eureka-sort-th__icon eureka-sort-th__icon--idle" aria-hidden="true"></i>
+                                                        </button>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="statSetPickBody">
+                                                {% for s in sets %}
+                                                <tr class="eureka-stat-pick-row{% if s.is_selected %} is-selected{% endif %}"
+                                                    data-pick-row
+                                                    data-sort-numero="{{ s.numero_set|default:s.id }}"
+                                                    data-sort-nome="{{ s.nome_set|default:'' }}">
+                                                    <td>
+                                                        <input type="checkbox"
+                                                               class="form-check-input set-check"
+                                                               name="set_id"
+                                                               value="{{ s.id }}"
+                                                               {% if s.is_selected %}checked{% endif %}>
+                                                    </td>
+                                                    <td><span class="eureka-stat-code">{{ s.numero_set|default:s.id }}</span></td>
+                                                    <td>{{ s.nome_set|default:"—" }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-secondary py-4">
+                                                        Nessun set articoli. Sincronizza o creane uno.
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="eureka-stat-picker__foot">
+                                        <span id="setCountBadge" class="badge bg-teal-lt text-teal">0 selezionati</span>
+                                        <button type="button" class="btn btn-sm btn-primary" id="btnAddSets">
+                                            <i class="ti ti-plus"></i> Aggiungi set
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="eureka-stat-art-panel eureka-mask-collapse"
+                                 data-eureka-mask-collapse
+                                 data-mask-section="stat-articoli-sel"
+                                 data-mask-view="statistiche"
+                                 data-mask-default="open">
+                                <div class="eureka-stat-art-panel__head">
+                                    <button type="button"
+                                            class="eureka-mask-collapse__toggle"
+                                            data-mask-toggle
+                                            aria-expanded="true"
+                                            aria-controls="statArticoliSelBody"
+                                            title="Comprimi articoli selezionati">
+                                        <i class="ti ti-chevron-right eureka-mask-collapse__chevron" aria-hidden="true"></i>
+                                        <span class="eureka-stat-art-panel__title">
+                                            <i class="ti ti-list-check"></i> Articoli selezionati
+                                        </span>
+                                        <span class="eureka-mask-collapse__summary" data-mask-summary hidden aria-hidden="true">
+                                            <span class="eureka-mask-collapse__chip eureka-mask-collapse__chip--strong" id="artSummaryChip">0 articoli</span>
+                                        </span>
+                                    </button>
+                                    <div class="btn-list eureka-stat-collapse-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="btnDelArtRows" title="Elimina righe selezionate">
+                                            <i class="ti ti-trash"></i> Canc. righe
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-ghost-secondary" id="btnClearArts">Svuota</button>
+                                    </div>
+                                </div>
+                                <div class="eureka-mask-collapse__body" id="statArticoliSelBody">
+                                    <div class="px-2 pt-1 pb-0">
+                                        <div class="text-secondary small">Elenco usato in elaborazione (puoi togliere o aggiungere righe)</div>
+                                    </div>
+                                    <div class="eureka-stat-art-panel__body">
+                                        <table class="table table-vcenter table-sm mb-0 eureka-stat-pick-table" id="statArticoliTable">
+                                            <thead>
+                                                <tr>
+                                                    <th class="w-1">Sel.</th>
+                                                    <th class="w-1">Pos.</th>
+                                                    <th class="w-1">Cod. art.</th>
+                                                    <th>Descrizione</th>
+                                                    <th class="w-1"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="statArticoliBody">
+                                                {% for a in articoli_sel %}
+                                                <tr class="eureka-stat-art-row" data-art-code="{{ a.codice }}">
+                                                    <td>
+                                                        <input type="checkbox" class="form-check-input art-row-check">
+                                                    </td>
+                                                    <td class="text-secondary art-pos">{{ forloop.counter }}</td>
+                                                    <td>
+                                                        <span class="eureka-stat-code">{{ a.codice }}</span>
+                                                        <input type="hidden" name="art" value="{{ a.codice }}">
+                                                    </td>
+                                                    <td class="art-desc">{{ a.descrizione|default:"—" }}</td>
+                                                    <td class="text-end">
+                                                        <button type="button" class="btn btn-ghost-danger btn-icon btn-sm" data-art-remove title="Rimuovi">
+                                                            <i class="ti ti-x"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                        <div class="eureka-stat-art-empty text-center text-secondary py-4{% if articoli_sel %} d-none{% endif %}" id="statArticoliEmpty">
+                                            Nessun articolo. Usa «Aggiungi set» oppure inserisci un codice sotto.
+                                        </div>
+                                    </div>
+                                    <div class="eureka-stat-art-panel__foot">
+                                        <span id="artCountBadge" class="badge bg-teal-lt text-teal">0 articoli</span>
+                                        <div class="eureka-stat-art-add flex-grow-1">
+                                            <div class="eureka-linked-field" data-linked-field data-lookup-tipo="articolo">
+                                                <div class="eureka-linked-field__control">
+                                                    <div class="eureka-combo">
+                                                        <input type="text"
+                                                               class="form-control form-control-sm"
+                                                               id="id_art_add"
+                                                               placeholder="Codice articolo da aggiungere…"
+                                                               autocomplete="off">
+                                                        <button type="button"
+                                                                class="eureka-combo__toggle"
+                                                                data-combo-toggle
+                                                                tabindex="-1"
+                                                                title="Seleziona dalla lista"
+                                                                aria-label="Seleziona dalla lista">
+                                                            <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                                                        </button>
+                                                        <div class="eureka-combo__menu" data-combo-menu hidden role="listbox"></div>
+                                                    </div>
+                                                    <div class="eureka-linked-label"
+                                                         data-linked-label
+                                                         data-lookup-tipo="articolo"
+                                                         data-for-input="id_art_add"
+                                                         hidden>
+                                                        <i class="ti ti-package eureka-linked-label__icon" aria-hidden="true"></i>
+                                                        <span class="eureka-linked-label__text"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-primary" id="btnAddArt">
+                                            <i class="ti ti-plus"></i> Aggiungi
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card eureka-mask-card eureka-mask-card--stat-causali h-100">
+                <div class="card-header eureka-mask-card__header">
+                    <span class="eureka-mask-card__icon"><i class="ti ti-arrows-exchange"></i></span>
+                    <h3 class="card-title mb-0">Causali magazzino</h3>
+                    <div class="ms-auto btn-list">
+                        <button type="button" class="btn btn-sm btn-ghost-light" id="btnSelAllCausali">Tutte</button>
+                        <button type="button" class="btn btn-sm btn-ghost-light" id="btnSelNoneCausali">Nessuna</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="px-2 pt-2">
+                        <input type="search"
+                               class="form-control form-control-sm"
+                               data-stat-pick-filter
+                               data-stat-pick-target="statCausaliPickBody"
+                               placeholder="Cerca causale…"
+                               autocomplete="off">
+                    </div>
+                    <div class="eureka-stat-picker__body eureka-stat-picker__body--tall">
+                        <table class="table table-vcenter table-sm mb-0 eureka-stat-pick-table" data-stat-sortable>
+                            <thead>
+                                <tr>
+                                    <th class="w-1">Sel.</th>
+                                    <th class="w-1 eureka-sort-th is-active" data-sort-key="codice" data-sort-type="text" aria-sort="ascending">
+                                        <button type="button" class="eureka-sort-th__link">
+                                            Cod.
+                                            <i class="ti ti-arrow-up eureka-sort-th__icon" aria-hidden="true"></i>
+                                        </button>
+                                    </th>
+                                    <th class="eureka-sort-th" data-sort-key="descrizione" data-sort-type="text" aria-sort="none">
+                                        <button type="button" class="eureka-sort-th__link">
+                                            Causale
+                                            <i class="ti ti-selector eureka-sort-th__icon eureka-sort-th__icon--idle" aria-hidden="true"></i>
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="statCausaliPickBody">
+                                {% for c in causali_list %}
+                                <tr class="eureka-stat-pick-row{% if c.is_selected %} is-selected{% endif %}"
+                                    data-pick-row
+                                    data-sort-codice="{{ c.codice }}"
+                                    data-sort-descrizione="{{ c.descrizione|default:'' }}">
+                                    <td>
+                                        <input type="checkbox"
+                                               class="form-check-input causale-check"
+                                               name="causale"
+                                               value="{{ c.codice }}"
+                                               {% if c.is_selected %}checked{% endif %}>
+                                    </td>
+                                    <td><span class="eureka-stat-code">{{ c.codice }}</span></td>
+                                    <td>{{ c.descrizione|default:"—" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-secondary py-4">
+                                        Nessuna causale sincronizzata. Esegui Sync 4D Causali magazzino.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer eureka-stat-causali-foot">
+                    <span id="causaliCountBadge" class="badge bg-azure-lt text-azure">0 causali</span>
+                    <span class="text-secondary small">
+                        {% if preview_count %}≈ <strong>{{ preview_count }}</strong> movimenti testata nel periodo{% else %}Seleziona almeno una causale{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="eureka-mask-actions eureka-stat-actions">
+        <div class="text-secondary small d-none d-md-block">
+            Imposta filtri e conferma per elaborare i movimenti.
+        </div>
+        <div class="d-flex flex-wrap gap-2 ms-auto">
+            {% if elabora and n_righe %}
+            <a class="btn btn-outline-secondary"
+               href="{% url 'movimenti:statistiche_export' %}?{{ request.GET.urlencode }}&amp;fmt=csv"
+               title="Esporta CSV">
+                <i class="ti ti-file-type-csv"></i> CSV
+            </a>
+            <a class="btn btn-outline-secondary"
+               href="{% url 'movimenti:statistiche_export' %}?{{ request.GET.urlencode }}&amp;fmt=xlsx"
+               title="Esporta Excel">
+                <i class="ti ti-file-spreadsheet"></i> Excel
+            </a>
+            <a class="btn btn-outline-primary"
+               href="{% url 'movimenti:statistiche_print' %}?{{ request.GET.urlencode }}&amp;anteprima=1"
+               target="_blank" rel="opener">
+                <i class="ti ti-printer"></i> Stampa
+            </a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-lg eureka-stat-elabora">
+                <i class="ti ti-player-play"></i> Conferma / Elabora
+            </button>
+        </div>
+    </div>
+</form>
+
+{% if elabora %}
+<div class="card eureka-mask-card eureka-mask-card--stat-result mt-3" id="statisticheRisultato">
+    <div class="card-header eureka-mask-card__header">
+        <span class="eureka-mask-card__icon"><i class="ti ti-table"></i></span>
+        <div class="min-w-0">
+            <h3 class="card-title mb-0">Risultato · {{ tipo_label|default:"Elaborazione" }}</h3>
+            <div class="eureka-stat-result-meta">{{ filter_summary }}</div>
+        </div>
+        <div class="ms-auto d-flex flex-wrap align-items-center gap-2">
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{% url 'movimenti:statistiche_export' %}?{{ request.GET.urlencode }}&amp;fmt=csv"
+               title="Esporta CSV">
+                <i class="ti ti-file-type-csv"></i> CSV
+            </a>
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{% url 'movimenti:statistiche_export' %}?{{ request.GET.urlencode }}&amp;fmt=xlsx"
+               title="Esporta Excel">
+                <i class="ti ti-file-spreadsheet"></i> Excel
+            </a>
+            <span class="badge bg-teal-lt text-teal">{{ n_righe }} righe</span>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table table-hover mb-0 eureka-stat-result-table">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th class="text-end">Quantità</th>
+                    <th class="text-end">Val. Un.</th>
+                    <th class="text-end">Valore</th>
+                    <th class="text-end">% Incid.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in righe %}
+                <tr class="{% if r.is_header %}eureka-stat-row--testata{% elif r.is_detail %}eureka-stat-row--dettaglio{% endif %} eureka-stat-row--level-{{ r.level|default:0 }}">
+                    <td>
+                        {% if r.codice and r.codice != "—" %}
+                            {% if r.link_kind == "cliente" %}
+                            <a class="eureka-stat-art-link" href="{% url 'anagrafiche:cliente_detail' r.codice %}">{{ r.codice }}</a>
+                            {% elif r.link_kind == "agente" %}
+                            <a class="eureka-stat-art-link" href="{% url 'anagrafiche:agente_detail' r.codice %}">{{ r.codice }}</a>
+                            {% elif r.link_kind == "fornitore" %}
+                            <a class="eureka-stat-art-link" href="{% url 'anagrafiche:fornitore_detail' r.codice %}">{{ r.codice }}</a>
+                            {% elif r.link_kind == "zona" %}
+                            <a class="eureka-stat-art-link" href="{% url 'zone:detail' r.codice %}">{{ r.codice }}</a>
+                            {% elif r.link_kind == "categoria" %}
+                            <a class="eureka-stat-art-link" href="{% url 'categorie:detail' r.codice %}">{{ r.codice }}</a>
+                            {% elif r.link_kind == "gruppo_cli" %}
+                            <a class="eureka-stat-art-link" href="{% url 'raggruppamento_clifor:detail' r.codice %}">{{ r.codice }}</a>
+                            {% elif r.link_kind == "articolo" or r.is_detail or tipo == "articoli" %}
+                            <a class="eureka-stat-art-link" href="{% url 'articoli:detail' r.codice %}">{{ r.codice }}</a>
+                            {% else %}
+                            <span class="eureka-stat-code">{{ r.codice }}</span>
+                            {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{% if r.is_header %}<strong>{{ r.descrizione|default:"—" }}</strong>{% else %}{{ r.descrizione|default:"—" }}{% endif %}</td>
+                    <td class="text-end text-nowrap">{{ r.quantita|floatformat:2 }}</td>
+                    <td class="text-end text-nowrap">{% if r.valore_un is not None %}{{ r.valore_un|floatformat:3 }}{% else %}—{% endif %}</td>
+                    <td class="text-end text-nowrap fw-semibold">{{ r.valore|prezzo }}</td>
+                    <td class="text-end text-nowrap">{% if r.incidenza is not None %}{{ r.incidenza|floatformat:2 }}{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="eureka-stat-empty">
+                            <i class="ti ti-chart-off"></i>
+                            <div>Nessun movimento trovato con i filtri selezionati.</div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if n_righe %}
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="text-end">TOTALE</td>
+                    <td class="text-end text-nowrap">{{ tot_qta|floatformat:2 }}</td>
+                    <td class="text-end">—</td>
+                    <td class="text-end text-nowrap">{{ tot_val|prezzo }}</td>
+                    <td class="text-end">—</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="text-end">TOTALE PERIODO</td>
+                    <td class="text-end">—</td>
+                    <td class="text-end">—</td>
+                    <td class="text-end text-nowrap">{{ tot_val|prezzo }}</td>
+                    <td class="text-end text-nowrap">100,00</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'eureka/js/mask-collapse.js' %}?v=5"></script>
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=28"></script>
+<script>
+(() => {
+  const form = document.getElementById("statisticheMagazzinoForm");
+  if (!form) return;
+  const dataDa = document.getElementById("id_data_da");
+  const dataA = document.getElementById("id_data_a");
+  const annoInput = document.getElementById("id_anno");
+  const usaSet = document.getElementById("id_usa_set");
+  const setWrap = document.getElementById("setArticoliWrap");
+  const setBadge = document.getElementById("setCountBadge");
+  const causaliBadge = document.getElementById("causaliCountBadge");
+  const artBody = document.getElementById("statArticoliBody");
+  const artBadge = document.getElementById("artCountBadge");
+  const artEmpty = document.getElementById("statArticoliEmpty");
+
+  form.querySelectorAll("[data-anno-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const y = btn.getAttribute("data-anno-preset");
+      if (!y) return;
+      if (dataDa) dataDa.value = y + "-01-01";
+      if (dataA) dataA.value = y + "-12-31";
+      if (annoInput) annoInput.value = y;
+      form.querySelectorAll("[data-anno-preset]").forEach((b) => {
+        b.classList.toggle("is-active", b === btn);
+      });
+    });
+  });
+
+  function syncSet() {
+    if (!setWrap || !usaSet) return;
+    setWrap.hidden = !usaSet.checked;
+    const toggle = usaSet.closest(".eureka-stat-set-toggle");
+    if (toggle) toggle.classList.toggle("is-on", usaSet.checked);
+  }
+  usaSet?.addEventListener("change", syncSet);
+  syncSet();
+
+  function syncRow(row) {
+    const cb = row.querySelector('input[type="checkbox"]');
+    if (!cb) return;
+    row.classList.toggle("is-selected", cb.checked);
+  }
+
+  function refreshCounts() {
+    const nSets = form.querySelectorAll(".set-check:checked").length;
+    const nCausali = form.querySelectorAll(".causale-check:checked").length;
+    const nArts = artBody ? artBody.querySelectorAll("tr[data-art-code]").length : 0;
+    const setText = nSets === 1 ? "1 selezionato" : nSets + " selezionati";
+    const artText = nArts === 1 ? "1 articolo" : nArts + " articoli";
+    if (setBadge) setBadge.textContent = setText;
+    const setSummary = document.getElementById("setSummaryChip");
+    if (setSummary) setSummary.textContent = setText;
+    if (causaliBadge) {
+      causaliBadge.textContent = nCausali === 1 ? "1 causale" : nCausali + " causali";
+    }
+    if (artBadge) artBadge.textContent = artText;
+    const artSummary = document.getElementById("artSummaryChip");
+    if (artSummary) artSummary.textContent = artText;
+    if (artEmpty) {
+      artEmpty.classList.toggle("d-none", nArts > 0);
+    }
+  }
+
+  function markArtEdit() {
+    if (!setWrap) return;
+    let el = document.getElementById("id_art_edit");
+    if (!el) {
+      el = document.createElement("input");
+      el.type = "hidden";
+      el.name = "art_edit";
+      el.id = "id_art_edit";
+      el.value = "1";
+      setWrap.prepend(el);
+    }
+  }
+
+  function renumberArts() {
+    if (!artBody) return;
+    artBody.querySelectorAll("tr[data-art-code]").forEach((row, idx) => {
+      const pos = row.querySelector(".art-pos");
+      if (pos) pos.textContent = String(idx + 1);
+    });
+  }
+
+  function hasArt(code) {
+    const key = String(code || "").trim().toLowerCase();
+    if (!key || !artBody) return false;
+    return Array.from(artBody.querySelectorAll("tr[data-art-code]")).some(
+      (r) => (r.getAttribute("data-art-code") || "").toLowerCase() === key
+    );
+  }
+
+  function addArtRow(codice, descrizione) {
+    const code = String(codice || "").trim();
+    if (!code || !artBody || hasArt(code)) return false;
+    const tr = document.createElement("tr");
+    tr.className = "eureka-stat-art-row";
+    tr.setAttribute("data-art-code", code);
+    tr.innerHTML =
+      '<td><input type="checkbox" class="form-check-input art-row-check"></td>' +
+      '<td class="text-secondary art-pos"></td>' +
+      '<td><span class="eureka-stat-code"></span><input type="hidden" name="art" value=""></td>' +
+      '<td class="art-desc"></td>' +
+      '<td class="text-end"><button type="button" class="btn btn-ghost-danger btn-icon btn-sm" data-art-remove title="Rimuovi"><i class="ti ti-x"></i></button></td>';
+    tr.querySelector(".eureka-stat-code").textContent = code;
+    tr.querySelector('input[name="art"]').value = code;
+    tr.querySelector(".art-desc").textContent = (descrizione || "").trim() || "—";
+    artBody.appendChild(tr);
+    markArtEdit();
+    renumberArts();
+    refreshCounts();
+    return true;
+  }
+
+  function removeArtRow(row) {
+    row?.remove();
+    markArtEdit();
+    renumberArts();
+    refreshCounts();
+  }
+
+  function notify(message, opts) {
+    opts = opts || {};
+    if (window.EurekaConfirm && typeof window.EurekaConfirm.alert === "function") {
+      return window.EurekaConfirm.alert({
+        title: opts.title || "Avviso",
+        message: message,
+        hint: opts.hint || "",
+        variant: opts.variant || "info",
+      });
+    }
+    return Promise.resolve();
+  }
+
+  async function mergeFromSets() {
+    if (!setWrap) return;
+    const url = setWrap.getAttribute("data-articoli-set-url") || "";
+    const ids = Array.from(form.querySelectorAll(".set-check:checked")).map((el) => el.value);
+    if (!url || !ids.length) {
+      await notify("Seleziona almeno un set da aggiungere.", {
+        title: "Set articoli",
+        hint: "Spunta uno o più set nell’elenco, poi premi Aggiungi set.",
+      });
+      return;
+    }
+    const qs = ids.map((id) => "set_id=" + encodeURIComponent(id)).join("&");
+    const btn = document.getElementById("btnAddSets");
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(url + "?" + qs, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      const data = await res.json();
+      let added = 0;
+      (data.articoli || []).forEach((row) => {
+        if (addArtRow(row.codice, row.descrizione)) added += 1;
+      });
+      if (usaSet && !usaSet.checked) {
+        usaSet.checked = true;
+        syncSet();
+      }
+      if (!added && (data.articoli || []).length) {
+        await notify("Tutti gli articoli dei set scelti sono già in elenco.", {
+          title: "Nessuna novità",
+        });
+      } else if (!(data.articoli || []).length) {
+        await notify("I set selezionati non contengono articoli.", {
+          title: "Set vuoti",
+          variant: "warning",
+        });
+      }
+    } catch (err) {
+      await notify("Impossibile caricare gli articoli dei set.", {
+        title: "Errore",
+        variant: "warning",
+      });
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function resolveAndAddArt() {
+    const input = document.getElementById("id_art_add");
+    const label = form.querySelector('[data-for-input="id_art_add"] .eureka-linked-label__text');
+    const code = (input?.value || "").trim();
+    if (!code) {
+      input?.focus();
+      return;
+    }
+    const lookupUrl = form.getAttribute("data-lookup-url") || "";
+    let descrizione = (label?.textContent || "").trim();
+    let codice = code;
+    if (lookupUrl) {
+      try {
+        const res = await fetch(
+          lookupUrl + "?tipo=articolo&codice=" + encodeURIComponent(code),
+          { headers: { "X-Requested-With": "XMLHttpRequest" } }
+        );
+        const data = await res.json();
+        if (data.found) {
+          codice = data.codice || code;
+          descrizione = data.descrizione || descrizione;
+          if (input) input.value = codice;
+        }
+      } catch (err) {
+        /* usa il codice digitato */
+      }
+    }
+    if (!addArtRow(codice, descrizione)) {
+      await notify("Articolo già presente nell’elenco.", {
+        title: "Duplicato",
+      });
+    } else if (input) {
+      input.value = "";
+      const lab = form.querySelector('[data-for-input="id_art_add"]');
+      if (lab) {
+        lab.hidden = true;
+        const t = lab.querySelector(".eureka-linked-label__text");
+        if (t) t.textContent = "";
+      }
+      input.focus();
+    }
+  }
+
+  document.getElementById("btnAddSets")?.addEventListener("click", () => {
+    mergeFromSets();
+  });
+  document.getElementById("btnAddArt")?.addEventListener("click", () => {
+    resolveAndAddArt();
+  });
+  document.getElementById("id_art_add")?.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      resolveAndAddArt();
+    }
+  });
+  document.getElementById("btnDelArtRows")?.addEventListener("click", () => {
+    if (!artBody) return;
+    artBody.querySelectorAll(".art-row-check:checked").forEach((cb) => {
+      removeArtRow(cb.closest("tr"));
+    });
+  });
+  document.getElementById("btnClearArts")?.addEventListener("click", async () => {
+    if (!artBody) return;
+    if (!artBody.querySelector("tr[data-art-code]")) return;
+    let ok = true;
+    if (window.EurekaConfirm && typeof window.EurekaConfirm.ask === "function") {
+      ok = await window.EurekaConfirm.ask({
+        title: "Svuota elenco",
+        message: "Svuotare l’elenco articoli selezionati?",
+        hint: "Potrai ricostruirlo con «Aggiungi set» o inserendo i codici.",
+        confirmLabel: "Svuota",
+        cancelLabel: "Annulla",
+        confirmClass: "btn btn-danger",
+        variant: "danger",
+      });
+    }
+    if (!ok) return;
+    artBody.querySelectorAll("tr[data-art-code]").forEach((row) => row.remove());
+    markArtEdit();
+    renumberArts();
+    refreshCounts();
+  });
+  artBody?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("[data-art-remove]");
+    if (btn) {
+      removeArtRow(btn.closest("tr"));
+      return;
+    }
+  });
+
+  function sortValue(row, key, type) {
+    const raw = (row.getAttribute("data-sort-" + key) || "").trim();
+    if (type === "num") {
+      const n = Number(raw.replace(",", "."));
+      return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+    }
+    return raw.toLocaleLowerCase("it");
+  }
+
+  function updateSortHeader(th, dir) {
+    const icon = th.querySelector(".eureka-sort-th__icon");
+    th.classList.add("is-active");
+    th.setAttribute("aria-sort", dir === "asc" ? "ascending" : "descending");
+    if (!icon) return;
+    icon.classList.remove("ti-selector", "ti-arrow-up", "ti-arrow-down", "eureka-sort-th__icon--idle");
+    icon.classList.add(dir === "asc" ? "ti-arrow-up" : "ti-arrow-down");
+  }
+
+  function resetSortHeader(th) {
+    const icon = th.querySelector(".eureka-sort-th__icon");
+    th.classList.remove("is-active");
+    th.setAttribute("aria-sort", "none");
+    if (!icon) return;
+    icon.classList.remove("ti-arrow-up", "ti-arrow-down");
+    icon.classList.add("ti-selector", "eureka-sort-th__icon--idle");
+  }
+
+  function bindSortableTables() {
+    form.querySelectorAll("[data-stat-sortable]").forEach((table) => {
+      const tbody = table.tBodies[0];
+      if (!tbody) return;
+      table.querySelectorAll("th[data-sort-key]").forEach((th) => {
+        th.querySelector(".eureka-sort-th__link")?.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          const key = th.getAttribute("data-sort-key");
+          const type = th.getAttribute("data-sort-type") || "text";
+          if (!key) return;
+          const current = th.getAttribute("aria-sort");
+          const dir = current === "ascending" ? "desc" : "asc";
+          const rows = Array.from(tbody.querySelectorAll("tr[data-pick-row]"));
+          rows.sort((a, b) => {
+            const va = sortValue(a, key, type);
+            const vb = sortValue(b, key, type);
+            let cmp = 0;
+            if (typeof va === "number" && typeof vb === "number") {
+              cmp = va - vb;
+            } else {
+              cmp = String(va).localeCompare(String(vb), "it", { sensitivity: "base", numeric: true });
+            }
+            return dir === "asc" ? cmp : -cmp;
+          });
+          rows.forEach((row) => tbody.appendChild(row));
+          table.querySelectorAll("th[data-sort-key]").forEach((other) => {
+            if (other === th) updateSortHeader(other, dir);
+            else resetSortHeader(other);
+          });
+        });
+      });
+    });
+  }
+  bindSortableTables();
+
+  function foldText(text) {
+    return String(text || "")
+      .toLocaleLowerCase("it-IT")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function bindPickFilters() {
+    form.querySelectorAll("[data-stat-pick-filter]").forEach((input) => {
+      const targetId = input.getAttribute("data-stat-pick-target");
+      const body = targetId ? document.getElementById(targetId) : null;
+      if (!body) return;
+      input.addEventListener("input", () => {
+        const needle = foldText(input.value.trim());
+        body.querySelectorAll("tr[data-pick-row]").forEach((row) => {
+          if (!needle) {
+            row.hidden = false;
+            return;
+          }
+          const hay = foldText(row.textContent || "");
+          row.hidden = !hay.includes(needle);
+        });
+      });
+    });
+  }
+  bindPickFilters();
+
+  form.querySelectorAll("[data-pick-row]").forEach((row) => {
+    syncRow(row);
+    row.addEventListener("click", (ev) => {
+      if (ev.target.closest("a, button, input, label")) return;
+      const cb = row.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    row.querySelector('input[type="checkbox"]')?.addEventListener("change", () => {
+      syncRow(row);
+      refreshCounts();
+    });
+  });
+
+  document.getElementById("btnSelAllCausali")?.addEventListener("click", () => {
+    form.querySelectorAll(".causale-check").forEach((el) => {
+      el.checked = true;
+      syncRow(el.closest("[data-pick-row]") || el.parentElement);
+    });
+    refreshCounts();
+  });
+  document.getElementById("btnSelNoneCausali")?.addEventListener("click", () => {
+    form.querySelectorAll(".causale-check").forEach((el) => {
+      el.checked = false;
+      syncRow(el.closest("[data-pick-row]") || el.parentElement);
+    });
+    refreshCounts();
+  });
+  document.getElementById("btnSelAllSets")?.addEventListener("click", () => {
+    form.querySelectorAll(".set-check").forEach((el) => {
+      el.checked = true;
+      syncRow(el.closest("[data-pick-row]") || el.parentElement);
+    });
+    if (usaSet && !usaSet.checked) {
+      usaSet.checked = true;
+      syncSet();
+    }
+    refreshCounts();
+  });
+  document.getElementById("btnSelNoneSets")?.addEventListener("click", () => {
+    form.querySelectorAll(".set-check").forEach((el) => {
+      el.checked = false;
+      syncRow(el.closest("[data-pick-row]") || el.parentElement);
+    });
+    refreshCounts();
+  });
+
+  [dataDa, dataA].forEach((el) => {
+    el?.addEventListener("change", () => {
+      if (annoInput) annoInput.value = "";
+      form.querySelectorAll("[data-anno-preset]").forEach((b) => b.classList.remove("is-active"));
+    });
+  });
+
+  renumberArts();
+  refreshCounts();
+
+  const result = document.getElementById("statisticheRisultato");
+  if (result && {{ elabora|yesno:"true,false" }}) {
+    result.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+})();
+</script>
+{% endblock %}

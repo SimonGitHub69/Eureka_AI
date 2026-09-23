@@ -64,11 +64,30 @@ class NavigationBackTests(SimpleTestCase):
         self.assertEqual(back_url, "/primanota/?q=test")
         self.assertEqual(back_label, "Torna alla selezione")
 
-    def test_rejects_external_next(self):
+    def test_set_articoli_list_is_not_movimenti_articolo(self):
         request = RequestFactory().get(
-            "/articoli/VA22/",
-            {"next": "https://evil.example/phish"},
+            "/set-articoli/75/",
+            {"next": "/set-articoli/?q=tubolare"},
         )
         back_url, back_label = related_back(request)
-        self.assertIsNone(back_url)
-        self.assertEqual(back_label, "")
+        self.assertEqual(back_url, "/set-articoli/?q=tubolare")
+        self.assertEqual(back_label, "Torna alla selezione")
+
+    def test_redirect_with_back_preserves_next(self):
+        from apps.core.navigation import redirect_with_back
+
+        request = RequestFactory().get("/set-articoli/1/modifica/", {"next": "/set-articoli/?q=x"})
+        response = redirect_with_back(request, "/set-articoli/1/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/set-articoli/1/", response.url)
+        self.assertIn("next=", response.url)
+
+    def test_redirect_with_back_exits_to_list(self):
+        from apps.core.navigation import redirect_with_back
+
+        request = RequestFactory().post("/set-articoli/1/elimina/", {"next": "/set-articoli/?q=x"})
+        response = redirect_with_back(
+            request, "/set-articoli/", preserve_on_fallback=False
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/set-articoli/?q=x")

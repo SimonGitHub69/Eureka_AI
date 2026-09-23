@@ -68,6 +68,7 @@ class PrintListUrlTests(SimpleTestCase):
     PRINT_URLS = (
         "articoli:print_list",
         "core:stampe_inventario",
+        "set_articoli:print_list",
         "distinte_base:print_list",
         "movimenti:print_list",
         "magazzini:print_list",

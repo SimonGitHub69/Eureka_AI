@@ -9,6 +9,7 @@ from apps.aliquote.models import Aliquota
 from apps.registri_iva.models import RegistroIva
 from apps.anagrafiche.models import Agente, Cliente, Fornitore
 from apps.articoli.models import Articolo
+from apps.set_articoli.models import SetArticoloH
 from apps.aziende.models import Azienda
 from apps.banche.models import Banca
 from apps.carbon.models import LavorazionePartita, Reparto, StampoSerialePartita
@@ -111,6 +112,13 @@ TABELLE_IMPORTATE = (
         "db_table": "articoli",
         "model": Articolo,
         "list_url": "articoli:list",
+    },
+    {
+        "label": "Set Articoli",
+        "source": "Set_Articoli_H",
+        "db_table": "set_articoli_h",
+        "model": SetArticoloH,
+        "list_url": "set_articoli:list",
     },
     {
         "label": "Distinte base",

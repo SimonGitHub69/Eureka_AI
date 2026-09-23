@@ -574,7 +574,18 @@
         if (!id || isSchedeMode()) {
             return;
         }
-        if (!window.confirm("Eliminare questo evento?")) {
+        if (!(window.EurekaConfirm && typeof window.EurekaConfirm.ask === "function")) {
+            return;
+        }
+        const ok = await window.EurekaConfirm.ask({
+            title: "Elimina evento",
+            message: "Eliminare questo evento?",
+            confirmLabel: "Elimina",
+            cancelLabel: "Annulla",
+            confirmClass: "btn btn-danger",
+            variant: "danger",
+        });
+        if (!ok) {
             return;
         }
         try {

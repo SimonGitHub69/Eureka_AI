@@ -158,7 +158,9 @@
                             <form method="post"
                                   action="{% url 'core:configurazione_pc_delete' pc.pk %}"
                                   class="d-inline"
-                                  onsubmit="return confirm('Eliminare la postazione &quot;{{ pc.nome_pc|escapejs }}&quot;?');">
+                                  data-confirm="Eliminare la postazione «{{ pc.nome_pc|escape }}»?"
+                                  data-confirm-title="Elimina postazione"
+                                  data-confirm-ok="Elimina">
                                 {% csrf_token %}
                                 <button type="submit"
                                         class="btn btn-icon eureka-tlist-actions__danger"

@@ -170,6 +170,8 @@ class Sync4DStaleHelpersTests(SimpleTestCase):
         self.assertIn("tab_porto", core_views.MIRROR_4D_TABLES)
         self.assertIn("movimentit", core_views.MIRROR_4D_TABLES)
         self.assertIn("depositi", core_views.MIRROR_4D_TABLES)
+        self.assertIn("set_articoli_h", core_views.MIRROR_4D_TABLES)
+        self.assertIn("set_articoli_d", core_views.MIRROR_4D_TABLES)
 
     def test_depositi_is_standalone_sync_step(self):
         keys = {step["key"] for step in core_views.SYNC_4D_STEPS}

@@ -1,0 +1,175 @@
+{% extends "base/layout.html" %}
+{% load format_tags %}
+
+{% block title %}{{ set_h.nome_set|default:set_h.numero_set }} · Set articoli · Eureka AI{% endblock %}
+{% block page_title %}Set articoli{% endblock %}
+
+{% block content %}
+
+<div class="eureka-mask">
+
+<div class="eureka-mask-hero">
+    <div class="eureka-mask-hero__title">
+        <span class="eureka-mask-hero__icon"><i class="ti ti-stack-2"></i></span>
+        <div class="overflow-hidden">
+            <h2 class="page-title text-truncate">{{ set_h.nome_set|default:set_h.numero_set }}</h2>
+            <div class="eureka-mask-hero__meta d-flex flex-wrap align-items-center gap-2">
+                <span class="eureka-mask-code"><i class="ti ti-hash"></i>{{ set_h.numero_set|default:set_h.id }}</span>
+                {% if set_h.disattivato %}<span class="badge bg-secondary-lt">Disattivato</span>{% endif %}
+                {% if set_h.controllo_doc %}<span class="badge bg-azure-lt">Controllo doc.</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="eureka-mask-hero__actions">
+        {% include "partials/list_back_button.html" %}
+        <a href="{% url 'set_articoli:edit' set_h.id %}{% if back_url %}?next={{ back_url|urlencode }}{% elif request.GET.list_back %}?next={{ request.GET.list_back|urlencode }}{% endif %}" class="btn btn-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+        <a href="{{ exit_url|default:list_url }}" class="btn btn-outline-secondary btn-sm eureka-list-exit">
+            <i class="ti ti-list"></i> Elenco
+        </a>
+    </div>
+</div>
+
+<div class="eureka-mask-kpis">
+    <div class="eureka-mask-kpi">
+        <span class="eureka-mask-kpi__icon bg-indigo-lt text-indigo"><i class="ti ti-list-details"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Articoli</div>
+            <div class="eureka-mask-kpi__value">{{ righe|length }}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if not set_h.data_set_date %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-azure-lt text-azure"><i class="ti ti-calendar"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Data</div>
+            <div class="eureka-mask-kpi__value">{% if set_h.data_set_date %}{{ set_h.data_set_date|date:"d/m/Y" }}{% else %}Non impostata{% endif %}</div>
+        </div>
+    </div>
+    <div class="eureka-mask-kpi{% if not set_h.fornitore %} is-empty{% endif %}">
+        <span class="eureka-mask-kpi__icon bg-orange-lt text-orange"><i class="ti ti-truck"></i></span>
+        <div>
+            <div class="eureka-mask-kpi__label">Fornitore</div>
+            <div class="eureka-mask-kpi__value">
+                {% if set_h.fornitore %}
+                <a href="{{ fornitore_url }}">{{ set_h.fornitore }}</a>
+                {% if fornitore_descrizione %}<div class="small text-secondary">{{ fornitore_descrizione }}</div>{% endif %}
+                {% else %}Non impostato{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card mb-3">
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            {% include "partials/mask_detail_field.html" with label="Nome set" value=set_h.nome_set %}
+            {% include "partials/mask_detail_field.html" with label="Note" value=set_h.note %}
+            {% include "partials/mask_detail_field.html" with label="Note controllo" value=set_h.note_controllo %}
+        </div>
+    </div>
+</div>
+
+<div class="card eureka-mask-card mb-3">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h3 class="card-title mb-0">
+            <i class="ti ti-package me-1"></i> Articoli del set
+        </h3>
+        <a href="{% url 'set_articoli:riga_create' set_h.id %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-plus"></i> Aggiungi articolo
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+            <thead>
+                <tr>
+                    <th class="w-1">Pos</th>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th class="text-end">Qta</th>
+                    <th>UM</th>
+                    <th class="text-end text-nowrap" style="width:5.5rem;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in righe %}
+                <tr>
+                    <td class="text-secondary">{{ r.pos|default:"—" }}</td>
+                    <td>
+                        {% if r.cod_art %}
+                        <a href="{% url 'articoli:detail' r.cod_art %}?list_back={{ request.get_full_path|urlencode }}">{{ r.cod_art }}</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ r.desc_art|default:"—" }}</td>
+                    <td class="text-end">{% if r.qta is not None %}{{ r.qta }}{% else %}—{% endif %}</td>
+                    <td>{{ r.um|default:"—" }}</td>
+                    <td class="eureka-tlist-actions text-nowrap">
+                        <div class="d-inline-flex align-items-center justify-content-end gap-1">
+                            <a href="{% url 'set_articoli:riga_edit' set_h.id r.id %}" class="btn btn-icon" title="Modifica">
+                                <i class="ti ti-pencil"></i>
+                            </a>
+                            <form method="post"
+                                  action="{% url 'set_articoli:riga_delete' set_h.id r.id %}"
+                                  class="m-0"
+                                  data-confirm="Eliminare {{ r.cod_art|default:r.id|escape }} dal set?"
+                                  data-confirm-title="Elimina riga"
+                                  data-confirm-ok="Elimina">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-icon" title="Elimina">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-secondary py-4">Nessun articolo in questo set</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="eureka-mask-delete" id="eliminaSetArticoliWrap">
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaSetArticoli">
+        <i class="ti ti-trash"></i> Elimina set
+    </button>
+    <div id="confermaEliminaSetArticoli" class="card eureka-mask-card border-danger mt-2 d-none">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-2">
+                <i class="ti ti-alert-triangle text-danger" style="font-size:1.25rem;"></i>
+                <div class="flex-fill">
+                    <div class="fw-semibold mb-1">Eliminare {{ set_h.nome_set|default:set_h.numero_set }}?</div>
+                    <div class="text-secondary small mb-2">Vengono eliminate anche le {{ righe|length }} righe. Operazione non annullabile.</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAnnullaEliminaSetArticoli">Annulla</button>
+                        <button type="submit" form="formEliminaSetArticoli" class="btn btn-danger btn-sm">
+                            <i class="ti ti-trash"></i> Conferma
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formEliminaSetArticoli" method="post" action="{% url 'set_articoli:delete' set_h.id %}" class="visually-hidden" aria-hidden="true">
+    {% csrf_token %}
+    {% if back_url %}<input type="hidden" name="next" value="{{ back_url }}">{% endif %}
+</form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+  const panel = document.getElementById("confermaEliminaSetArticoli");
+  document.getElementById("btnApriEliminaSetArticoli")?.addEventListener("click", () => panel?.classList.remove("d-none"));
+  document.getElementById("btnAnnullaEliminaSetArticoli")?.addEventListener("click", () => panel?.classList.add("d-none"));
+})();
+</script>
+{% endblock %}

@@ -75,6 +75,24 @@ def list_back_label(path: str) -> str:
     return "Torna alla selezione" if _path_has_list_filters(path) else "Torna all'elenco"
 
 
+def redirect_with_back(request, fallback: str, *, preserve_on_fallback: bool = True):
+    """Redirect a ``fallback`` preservando ``next``/``list_back`` come query ``next``.
+
+    Se ``preserve_on_fallback`` è False e c'è un back path, reindirizza direttamente lì
+    (uscita verso la lista di partenza).
+    """
+    from django.shortcuts import redirect
+    from urllib.parse import urlencode
+
+    back = _resolve_back_path(request)
+    if back and not preserve_on_fallback:
+        return redirect(back)
+    if back and preserve_on_fallback:
+        sep = "&" if "?" in fallback else "?"
+        return redirect(f"{fallback}{sep}{urlencode({'next': back})}")
+    return redirect(fallback)
+
+
 def related_back(request) -> tuple[str | None, str]:
     """Restituisce (url, label) per tornare all'elenco o alla maschera correlata."""
     path = _resolve_back_path(request)
@@ -87,7 +105,8 @@ def related_back(request) -> tuple[str | None, str]:
         return path, "Torna alla registrazione"
     if re.search(r"/movimenti/\d+", lower):
         return path, "Torna al movimento"
-    if re.search(r"/articoli/[^/?#]+", lower):
+    # Solo scheda articolo (/articoli/CODICE/…), non set-/gruppi-articoli.
+    if re.match(r"^/articoli/[^/?#]+", lower):
         if "#" not in path:
             path = f"{path}#articolo-movimenti"
         return path, "Torna ai movimenti"

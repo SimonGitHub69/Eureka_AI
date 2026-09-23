@@ -1,24 +1,37 @@
 """
 Indici trigram su articoli."Descrizione" per ricerche AI con ILIKE.
 
-Migration 0014 ha già idx_articoli_fldisatt (FlDisattivato) e idx_articoli_descrizione
-(btree, inutile per pattern '%testo%'). Qui si aggiunge pg_trgm + GIN per ILIKE,
-più un indice parziale sugli articoli attivi (FlDisattivato non true).
+Si applicano solo se la tabella articoli esiste (sync 4D).
 """
 
 from django.db import migrations
 
 
+def _create_if_table(table: str, create_sql: str) -> str:
+    escaped = create_sql.replace("'", "''")
+    return f"""
+DO $migration$
+BEGIN
+  IF to_regclass('public.{table}') IS NOT NULL THEN
+    EXECUTE '{escaped}';
+  END IF;
+END
+$migration$;
+"""
+
+
 FORWARD = [
     "CREATE EXTENSION IF NOT EXISTS pg_trgm",
-    (
+    _create_if_table(
+        "articoli",
         'CREATE INDEX IF NOT EXISTS idx_articoli_descrizione_trgm '
-        'ON articoli USING gin ("Descrizione" gin_trgm_ops)'
+        'ON articoli USING gin ("Descrizione" gin_trgm_ops)',
     ),
-    (
+    _create_if_table(
+        "articoli",
         'CREATE INDEX IF NOT EXISTS idx_articoli_descrizione_trgm_attivi '
         'ON articoli USING gin ("Descrizione" gin_trgm_ops) '
-        'WHERE "FlDisattivato" IS NOT TRUE'
+        'WHERE "FlDisattivato" IS NOT TRUE',
     ),
 ]
 

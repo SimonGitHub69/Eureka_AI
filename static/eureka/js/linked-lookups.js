@@ -258,7 +258,36 @@
     }
   }
 
-  function resolveLabel(input, label) {
+  function fillEmptySibling(ids, value) {
+    const next = String(value || "").trim();
+    if (!next) return;
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if ((el.value || "").trim()) return;
+      el.value = next;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+  }
+
+  /** Articolo: codice canonico + descrizione/UM (anche da CodBreveArt). */
+  function applyArticoloFill(input, data) {
+    if (!input || !data || !data.found) return;
+    const canonical = String(data.codice || "").trim();
+    if (canonical && (input.value || "").trim() !== canonical) {
+      input.value = canonical;
+    }
+    fillEmptySibling(["id_desc_art", "id_descrizione"], data.descrizione || "");
+    fillEmptySibling(
+      ["id_um", "id_unita_misura"],
+      data.unita_misura || ""
+    );
+  }
+
+  function resolveLabel(input, label, opts) {
+    const fillArticolo = !opts || opts.fillArticolo !== false;
     const tipo = label.dataset.lookupTipo;
     const codice = (input.value || "").trim();
     if (!codice) {
@@ -290,6 +319,8 @@
           fillFromDestinazione(input, data, false);
         } else if (tipo === "sconto") {
           applyScontoTestata(data.descrizione || "");
+        } else if (tipo === "articolo") {
+          if (fillArticolo) applyArticoloFill(input, data);
         } else {
           fillFromAnagrafica(input, data, false);
         }
@@ -340,6 +371,7 @@
     if (!menu) return;
     menu.hidden = true;
     menu.innerHTML = "";
+    menu._activeIndex = -1;
     menu.classList.remove("is-portaled");
     menu.removeAttribute("style");
     menu._input = null;
@@ -363,8 +395,83 @@
     return tipo === "pdc" || tipo === "pdc_clifor" ? 400 : 40;
   }
 
+  function menuItems(menu) {
+    return Array.from(menu.querySelectorAll(".eureka-combo__item"));
+  }
+
+  /** Come LabRepair cliente_search: tiene la riga attiva dentro l'area scrollabile. */
+  function scrollOptionIntoList(menu, option) {
+    if (!menu || !option || menu.hidden) return;
+    const boxRect = menu.getBoundingClientRect();
+    const optRect = option.getBoundingClientRect();
+    const borderTop = parseFloat(window.getComputedStyle(menu).borderTopWidth) || 0;
+    const relativeTop = optRect.top - boxRect.top - borderTop + menu.scrollTop;
+    const optionHeight = Math.max(option.offsetHeight, optRect.height);
+    const viewHeight = menu.clientHeight;
+    const pad = 8;
+    const maxScroll = Math.max(0, menu.scrollHeight - viewHeight);
+    let nextScroll = menu.scrollTop;
+    if (relativeTop < nextScroll + pad) {
+      nextScroll = relativeTop - pad;
+    } else if (relativeTop + optionHeight > nextScroll + viewHeight - pad) {
+      nextScroll = relativeTop + optionHeight - viewHeight + pad;
+    }
+    menu.scrollTop = Math.max(0, Math.min(maxScroll, nextScroll));
+  }
+
+  function setActiveIndex(menu, index) {
+    const items = menuItems(menu);
+    if (!items.length) {
+      menu._activeIndex = -1;
+      return;
+    }
+    if (index < 0) index = 0;
+    else if (index >= items.length) index = items.length - 1;
+    menu._activeIndex = index;
+    let activeOption = null;
+    items.forEach((el, i) => {
+      const isActive = i === index;
+      el.classList.toggle("is-active", isActive);
+      el.setAttribute("aria-selected", isActive ? "true" : "false");
+      if (isActive) activeOption = el;
+    });
+    if (activeOption) {
+      window.requestAnimationFrame(() => {
+        scrollOptionIntoList(menu, activeOption);
+        window.requestAnimationFrame(() => {
+          scrollOptionIntoList(menu, activeOption);
+        });
+      });
+    }
+  }
+
+  function moveActive(menu, delta) {
+    const items = menuItems(menu);
+    if (!items.length) return;
+    let idx = typeof menu._activeIndex === "number" ? menu._activeIndex : -1;
+    if (idx < 0) {
+      idx = items.findIndex((el) => el.classList.contains("is-active"));
+    }
+    if (idx < 0) idx = 0;
+    else idx = idx + delta;
+    setActiveIndex(menu, idx);
+  }
+
+  function selectActiveItem(menu) {
+    const items = menuItems(menu);
+    if (!items.length) return false;
+    let idx = typeof menu._activeIndex === "number" ? menu._activeIndex : -1;
+    if (idx < 0 || !items[idx]) {
+      idx = items.findIndex((el) => el.classList.contains("is-active"));
+    }
+    if (idx < 0 || !items[idx]) return false;
+    items[idx].dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    return true;
+  }
+
   function renderMenu(menu, results, input, label, opts) {
     menu.innerHTML = "";
+    menu._activeIndex = -1;
     if (!results.length) {
       const empty = document.createElement("div");
       empty.className = "eureka-combo__empty";
@@ -376,10 +483,14 @@
     results.forEach((row, idx) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "eureka-combo__item" + (idx === 0 ? " is-active" : "");
+      btn.className = "eureka-combo__item";
       btn.setAttribute("role", "option");
+      btn.setAttribute("aria-selected", "false");
       btn.dataset.codice = row.codice || "";
       btn.dataset.descrizione = row.descrizione || "";
+      if (row.found) btn.dataset.found = "1";
+      if (row.unita_misura) btn.dataset.unitaMisura = row.unita_misura;
+      if (row.cod_breve) btn.dataset.codBreve = row.cod_breve;
       btn.innerHTML =
         '<span class="eureka-combo__item-code"></span>' +
         '<span class="eureka-combo__item-desc"></span>';
@@ -388,9 +499,14 @@
         String(row.kind || "").toLowerCase()
       ];
       const desc = row.descrizione || "";
-      btn.querySelector(".eureka-combo__item-desc").textContent = kindLabel
-        ? kindLabel + " · " + desc
-        : desc;
+      const breve = String(row.cod_breve || "").trim();
+      let descText = desc;
+      if (kindLabel) {
+        descText = kindLabel + " · " + desc;
+      } else if (breve && breve.toUpperCase() !== String(row.codice || "").trim().toUpperCase()) {
+        descText = breve + (desc ? " · " + desc : "");
+      }
+      btn.querySelector(".eureka-combo__item-desc").textContent = descText;
       btn.addEventListener("mousedown", (ev) => {
         ev.preventDefault();
         const tipoPick = (label.dataset.lookupTipo || "").trim();
@@ -405,6 +521,8 @@
           fillFromDestinazione(input, row, true);
         } else if (tipo === "sconto") {
           applyScontoTestata(row.descrizione || "");
+        } else if (tipo === "articolo") {
+          applyArticoloFill(input, row);
         } else {
           fillFromAnagrafica(input, row, true);
         }
@@ -421,6 +539,7 @@
       menu.appendChild(hint);
     }
     layoutMenu(menu, input);
+    setActiveIndex(menu, 0);
   }
 
   function searchList(field, input, label, menu, q) {
@@ -475,7 +594,7 @@
     field.dataset.lookupBound = "1";
     menu._combo = combo;
 
-    const runResolve = () => resolveLabel(input, label);
+    const runResolve = (opts) => resolveLabel(input, label, opts);
     const runSearch = () => {
       closeAllMenus(menu);
       searchList(field, input, label, menu, (input.value || "").trim());
@@ -487,13 +606,14 @@
       timers.set(
         input,
         setTimeout(() => {
-          runResolve();
+          // In digitazione: solo etichetta, niente sostituzione codice/fill.
+          runResolve({ fillArticolo: false });
           // Apri/aggiorna la lista mentre digiti (non solo se già aperta).
           runSearch();
         }, 220)
       );
     });
-    input.addEventListener("change", runResolve);
+    input.addEventListener("change", () => runResolve());
     input.addEventListener("blur", () => {
       setTimeout(() => {
         if (!menu.contains(document.activeElement)) closeMenu(menu);
@@ -501,17 +621,72 @@
       runResolve();
     });
     input.addEventListener("keydown", (ev) => {
+      const items = menuItems(menu);
+      const menuOpen = !menu.hidden && items.length > 0;
+
       if (ev.key === "ArrowDown") {
         ev.preventDefault();
-        runSearch();
-      } else if (ev.key === "Escape") {
-        closeMenu(menu);
-      } else if (ev.key === "Enter" && !menu.hidden) {
-        const active = menu.querySelector(".eureka-combo__item.is-active");
-        if (active) {
-          ev.preventDefault();
-          active.dispatchEvent(new Event("mousedown"));
+        ev.stopPropagation();
+        if (menuOpen) {
+          moveActive(menu, 1);
+        } else {
+          runSearch();
         }
+        return;
+      }
+      if (ev.key === "ArrowUp") {
+        if (!menuOpen) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        moveActive(menu, -1);
+        return;
+      }
+      if (
+        ev.key === "PageDown" ||
+        ev.key === "PageUp" ||
+        ev.key === "Home" ||
+        ev.key === "End"
+      ) {
+        if (!menuOpen) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const cur =
+          typeof menu._activeIndex === "number" && menu._activeIndex >= 0
+            ? menu._activeIndex
+            : 0;
+        if (ev.key === "PageDown") {
+          setActiveIndex(menu, Math.min(items.length - 1, cur + 5));
+        } else if (ev.key === "PageUp") {
+          setActiveIndex(menu, Math.max(0, cur - 5));
+        } else if (ev.key === "Home") {
+          setActiveIndex(menu, 0);
+        } else {
+          setActiveIndex(menu, items.length - 1);
+        }
+        return;
+      }
+      if (ev.key === "Enter") {
+        if (!menuOpen) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        selectActiveItem(menu);
+        return;
+      }
+      if (ev.key === "Escape") {
+        if (menu.hidden) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        closeMenu(menu);
+      }
+    });
+
+    menu.addEventListener("mousemove", (ev) => {
+      const option = ev.target.closest(".eureka-combo__item");
+      if (!option || menu.hidden) return;
+      const opts = menuItems(menu);
+      const index = opts.indexOf(option);
+      if (index >= 0 && index !== menu._activeIndex) {
+        setActiveIndex(menu, index);
       }
     });
 

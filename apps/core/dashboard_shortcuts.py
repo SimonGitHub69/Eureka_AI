@@ -83,6 +83,7 @@ NAVBAR_SHORTCUT_CATALOG: tuple[dict[str, Any], ...] = (
     _sc("stampa_raggruppamento_clifor", "Raggr. Clienti-Fornitori", "Primanota · Stampe", "ti-users-group", "raggruppamento_clifor:print_list", default=SHORTCUT_OFF, color="azure", subtitle="Stampa raggruppamenti clienti/fornitori"),
     # --- Fatturazione Magazzino · Magazzino ---
     _sc("articoli", "Articoli", "Fatturazione Magazzino · Magazzino", "ti-package", "articoli:list", default=SHORTCUT_DASH, color="blue", subtitle="Anagrafica articoli"),
+    _sc("set_articoli", "Set Articoli", "Fatturazione Magazzino · Magazzino", "ti-stack-2", "set_articoli:list", default=SHORTCUT_OFF, color="indigo", subtitle="Set articoli 4D"),
     _sc("distinte_base", "Distinte base", "Fatturazione Magazzino · Magazzino", "ti-list-tree", "distinte_base:list", default=SHORTCUT_OFF, color="indigo"),
     _sc("movimenti", "Movimenti", "Fatturazione Magazzino · Magazzino", "ti-transfer", "movimenti:list", default=SHORTCUT_OFF, color="orange"),
     # --- Fatturazione Magazzino · Documenti ---
@@ -96,12 +97,14 @@ NAVBAR_SHORTCUT_CATALOG: tuple[dict[str, Any], ...] = (
     # --- Fatturazione Magazzino · Stampe ---
     _sc("stampa_articoli", "Articoli", "Fatturazione Magazzino · Stampe", "ti-package", "articoli:print_list", default=SHORTCUT_OFF, color="blue", subtitle="Stampa elenco articoli"),
     _sc("stampa_inventario", "Inventario", "Fatturazione Magazzino · Stampe", "ti-packages", "core:stampe_inventario", default=SHORTCUT_OFF, color="azure", subtitle="Valori articoli / giacenze"),
+    _sc("stampa_set_articoli", "Set Articoli", "Fatturazione Magazzino · Stampe", "ti-stack-2", "set_articoli:print_list", default=SHORTCUT_OFF, color="indigo", subtitle="Stampa set articoli"),
     _sc("stampa_distinte_base", "Distinte base", "Fatturazione Magazzino · Stampe", "ti-list-tree", "distinte_base:print_list", default=SHORTCUT_OFF, color="indigo", subtitle="Stampa distinte base"),
     _sc("stampa_movimenti", "Movimenti", "Fatturazione Magazzino · Stampe", "ti-transfer", "movimenti:print_list", default=SHORTCUT_OFF, color="orange", subtitle="Stampa movimenti"),
     # --- Elaborazioni ---
     _sc("analisi_fatturato", "Analisi fatturato", "Elaborazioni", "ti-chart-bar", "fatture:analisi", default=SHORTCUT_DASH, color="cyan", subtitle="Confronti periodi e clienti persi"),
     _sc("classifica_clienti", "Classifica clienti", "Elaborazioni", "ti-trophy", "fatture:classifica", default=SHORTCUT_DASH, color="yellow", subtitle="Migliori clienti nel periodo"),
     _sc("fatturato_geografico", "Fatturato geografico", "Elaborazioni", "ti-map-2", "fatture:analisi_regioni", default=SHORTCUT_DASH, color="green", subtitle="Italia, mondo ISO e cartine"),
+    _sc("statistiche_magazzino", "Statistiche magazzino", "Elaborazioni", "ti-chart-histogram", "movimenti:statistiche", default=SHORTCUT_OFF, color="indigo", subtitle="Vendite e movimenti per causali"),
     # --- CARBON ---
     _sc("carbon", "Panoramica", "CARBON", "ti-layout-grid", "carbon:hub", default=SHORTCUT_DASH, requires_extra="CARBON", color="teal", subtitle="Produzione e seriali"),
     _sc("carbon_seriali", "Dashboard seriali", "CARBON", "ti-chart-histogram", "carbon:seriali_dashboard", default=SHORTCUT_OFF, requires_extra="CARBON", color="teal"),

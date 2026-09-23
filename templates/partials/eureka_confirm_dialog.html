@@ -1,0 +1,27 @@
+<div class="eureka-confirm" id="eurekaConfirmModal" hidden>
+    <button type="button"
+            class="eureka-confirm__backdrop"
+            data-eureka-confirm-cancel
+            aria-label="Annulla"></button>
+    <div class="eureka-confirm__panel"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="eurekaConfirmTitle">
+        <div class="eureka-confirm__icon is-danger" id="eurekaConfirmIcon" aria-hidden="true">
+            <i class="ti ti-trash" id="eurekaConfirmIconGlyph"></i>
+        </div>
+        <div class="eureka-confirm__body">
+            <div class="eureka-confirm__title" id="eurekaConfirmTitle">Conferma operazione</div>
+            <div class="eureka-confirm__msg" id="eurekaConfirmMessage"></div>
+            <div class="eureka-confirm__hint" id="eurekaConfirmHint" hidden></div>
+            <div class="eureka-confirm__actions">
+                <button type="button" class="btn btn-outline-secondary" data-eureka-confirm-cancel>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-danger" data-eureka-confirm-accept>
+                    Conferma
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

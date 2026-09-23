@@ -1,6 +1,9 @@
 """Unit test mapping documenti (no DB ODBC)."""
 
+from datetime import date, datetime
+
 from django.test import SimpleTestCase
+from django.utils import timezone
 
 from apps.documenti.mapping import (
     DEFAULT_TIPI_DOCUMENTO,
@@ -8,6 +11,7 @@ from apps.documenti.mapping import (
     PREVENTIVI_TIPI,
     map_header_row,
     map_line_row,
+    normalize_datetime,
     pick_value,
     resolve_detail_tipo_doc,
     resolve_fattura_tipo_doc,
@@ -227,6 +231,8 @@ class FieldMappingTests(SimpleTestCase):
         self.assertEqual(mapped["note"], "NOTE GENERICHE")
         self.assertEqual(mapped["validita"], "fino al 31/08/2026")
         self.assertEqual(mapped["data_consegna"].date().isoformat(), "2026-09-15")
+        self.assertTrue(timezone.is_aware(mapped["data_consegna"]))
+        self.assertTrue(timezone.is_aware(mapped["data_documento"]))
         self.assertEqual(mapped["tipo_preventivo"], "Cliente")
         self.assertTrue(mapped["confermato"])
         self.assertEqual(mapped["valuta"], "Euro")
@@ -236,6 +242,26 @@ class FieldMappingTests(SimpleTestCase):
         self.assertEqual(mapped["codice_sconto"], "3")
         self.assertEqual(mapped["sconto"], "")
         self.assertEqual(mapped["scadenze"], ["2026-07-28", "2026-08-28", "2027-04-28"])
+
+    def test_normalize_datetime_makes_naive_values_aware(self):
+        from_string = normalize_datetime("15/09/2026")
+        self.assertIsNotNone(from_string)
+        assert from_string is not None
+        self.assertTrue(timezone.is_aware(from_string))
+        self.assertEqual(from_string.date().isoformat(), "2026-09-15")
+
+        from_naive = normalize_datetime(datetime(2019, 7, 15, 0, 0, 0))
+        self.assertIsNotNone(from_naive)
+        assert from_naive is not None
+        self.assertTrue(timezone.is_aware(from_naive))
+
+        from_date = normalize_datetime(date(2024, 2, 20))
+        self.assertIsNotNone(from_date)
+        assert from_date is not None
+        self.assertTrue(timezone.is_aware(from_date))
+
+        already = timezone.make_aware(datetime(2026, 1, 1, 12, 0, 0))
+        self.assertEqual(normalize_datetime(already), already)
 
     def test_map_header_codice_sconto_prefers_codicesconto(self):
         mapped = map_header_row(

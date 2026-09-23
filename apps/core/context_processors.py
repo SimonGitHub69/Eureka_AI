@@ -177,3 +177,11 @@ def ai_debug_flags(request):
         "eureka_prezzo_decimali": get_prezzo_decimali(),
         "eureka_prezzo_step": prezzo_input_step(),
     }
+
+
+def app_version(request):
+    from django.conf import settings
+
+    return {
+        "eureka_version": getattr(settings, "EUREKA_VERSION", ""),
+    }

@@ -113,7 +113,7 @@ class ArticoloForm(forms.ModelForm):
             "unita_misura": "Unità di misura",
             "codice_alternativo1": "Cod. art. fornitore",
             "codice_alternativo2": "Cod. alternativo 2",
-            "cod_breve_art": "Cod. breve",
+            "cod_breve_art": "Codice a lettura facilitata",
             "colli": "Numero colli",
             "descr_express": "Chiede descriz. in DDT",
             "scorta_min": "Scorta minima",
