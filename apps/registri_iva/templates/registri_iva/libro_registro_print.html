@@ -5,9 +5,85 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Registro IVA · {{ libro.registro_label|default:"Stampa" }}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=29">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    {% with azienda_nome=azienda_header.ragione_sociale|default:print_azienda_ragione_sociale %}
+    <style id="eureka-libro-page-start">
+    /*
+     * Stampa fiscale Registro IVA:
+     * - Ogni foglio intestato (masthead in thead di ogni tabella-pagina)
+     * - REGISTRO IVA + Pag. N sotto, allineati a destra alla ragione sociale
+     * - Numerazione progressiva via spezzatura JS (Chrome non supporta counter nel flusso)
+     * - Niente Pag. nel margine @page in cima
+     */
+    @media print {
+        html {
+            counter-reset: page {{ pagina_counter_reset|default:0 }};
+        }
+
+        body.eureka-print-body--libro-iva {
+            page: auto !important;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 8mm 6mm 8mm;
+            @top-right { content: none; }
+            @top-left { content: none; }
+            @bottom-right { content: none; }
+            @bottom-left { content: none; }
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-libro-masthead__date {
+            display: none !important;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-libro-masthead__doctype,
+        body.eureka-print-body--libro-iva .eureka-print-libro-masthead__page {
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-libro-masthead__page {
+            margin-top: 0.15rem !important;
+            font-size: 8.5pt !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-libro-riepilogo__head {
+            display: block !important;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-sheet {
+            margin-top: 0 !important;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-libro-page-break {
+            page-break-before: always !important;
+            break-before: page !important;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-table--libro-iva {
+            page-break-inside: avoid !important;
+        }
+    }
+    </style>
+    {% endwith %}
 </head>
-<body class="eureka-print-body eureka-print-body--libro-iva">
+<body class="eureka-print-body eureka-print-body--libro-iva{% if libro.mostra_competenza %} eureka-print-body--libro-iva-acquisto{% endif %}"
+      data-conferma-url="{{ conferma_url }}"
+      data-stato-url="{% url 'registri_iva:stampa_stato_suggerimenti' %}"
+      data-csrf="{{ csrf_token }}"
+      data-registro="{{ registro }}"
+      data-data-finale="{{ data_a }}"
+      data-max-protocollo="{{ libro.max_protocollo|default_if_none:'' }}"
+      data-pagina-da="{{ pagina_da }}"
+      data-stima-pagine="{{ stima_pagine }}"
+      data-sovrappone="{% if stampa_sovrappone %}1{% else %}0{% endif %}"
+      data-azienda-nome="{{ azienda_header.ragione_sociale|default:print_azienda_ragione_sociale|default:''|cut:'"' }}"
+      data-registro-label="{{ libro.registro_label|default:''|cut:'"' }}"
+      data-print-date="{{ print_date|date:'d/m/Y' }}">
 <div class="eureka-print-toolbar d-print-none">
     <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
         <div class="eureka-print-toolbar__head">
@@ -21,13 +97,20 @@
                 {% else %}
                 <span class="eureka-print-toolbar__hint">Seleziona registro e periodo, poi genera l'anteprima</span>
                 {% endif %}
+                <span class="eureka-print-toolbar__summary" data-stampa-stato="1" title="Ultima stampa definitiva"{% if not stampa_stato.data_finale %} hidden{% endif %}>
+                    {% if stampa_stato.data_finale %}
+                    Ultima definitiva: {{ stampa_stato.data_finale|date:"d/m/Y" }}
+                    · prot. {{ stampa_stato.ultimo_protocollo|default:"—" }}
+                    · pag. {{ stampa_stato.ultima_pagina|default:0 }}
+                    {% endif %}
+                </span>
             </div>
         </div>
 
         <div class="eureka-print-toolbar__panel">
-            <form method="get" class="eureka-print-filters" action="{{ request.path }}">
+                            <form method="get" class="eureka-print-filters" action="{{ request.path }}" autocomplete="off">
                 {% for key, value in request.GET.items %}
-                    {% if key != "data_da" and key != "data_a" and key != "registro" and key != "anteprima" %}
+                    {% if key != "data_da" and key != "data_a" and key != "registro" and key != "anteprima" and key != "pagina_da" and key != "incl_reg_succ" %}
                     <input type="hidden" name="{{ key }}" value="{{ value }}">
                     {% endif %}
                 {% endfor %}
@@ -37,7 +120,9 @@
                         <div class="eureka-print-filters__row">
                             <label class="eureka-print-field eureka-print-field--grow">
                                 <span class="eureka-print-field__label">Registro</span>
-                                <select class="eureka-print-input" name="registro" required>
+                                <select class="eureka-print-input" name="registro" id="id_registro_stampa" required
+                                        onchange="if(this.value){var p=new URLSearchParams();p.set('registro',this.value);var i=document.getElementById('id_incl_reg_succ');p.set('incl_reg_succ',(i&&i.checked)?'1':'0');location.assign(location.pathname+'?'+p.toString());}">
+                                    <option value="" disabled{% if not registro %} selected{% endif %}>— Seleziona registro —</option>
                                     {% for value, label in registri_choices %}
                                     <option value="{{ value }}"{% if registro == value %} selected{% endif %}>{{ label }}</option>
                                     {% endfor %}
@@ -45,12 +130,33 @@
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">Da data</span>
-                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                                {% include "base/partials/date_input.html" with name="data_da" id="id_data_da" value=data_da %}
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">A data</span>
-                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                                {% include "base/partials/date_input.html" with name="data_a" id="id_data_a" value=data_a %}
                             </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Pagina da</span>
+                                <input type="number" class="eureka-print-input" name="pagina_da" id="id_pagina_da" min="1" step="1" value="{{ pagina_da }}">
+                            </label>
+                        </div>
+                        <div class="eureka-print-filters__row eureka-print-filters__row--toggles">
+                            <div class="eureka-print-field eureka-print-field--toggles">
+                                <span class="eureka-print-field__label">Opzioni stampa</span>
+                                <div class="eureka-print-toggles eureka-print-toggles--single" role="group" aria-label="Opzioni stampa registro IVA">
+                                    {# hidden+checkbox: unchecked invia 0 #}
+                                    <input type="hidden" name="incl_reg_succ" value="0">
+                                    <label class="eureka-print-toggle{% if includi_reg_succ %} eureka-print-toggle--on{% endif %}" id="toggleInclRegSucc">
+                                        <input type="checkbox" name="incl_reg_succ" id="id_incl_reg_succ" value="1"{% if includi_reg_succ %} checked{% else %}{% endif %} autocomplete="off">
+                                        <span class="eureka-print-toggle__mark" aria-hidden="true"></span>
+                                        <span class="eureka-print-toggle__text">
+                                            <span class="eureka-print-toggle__title">Reg. mese successivo</span>
+                                            <span class="eureka-print-toggle__hint">Solo corpo registro (gen–nov). A dicembre non si include gennaio. I riepiloghi restano per competenza.</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </fieldset>
                     <div class="eureka-print-filters__submit">
@@ -64,23 +170,62 @@
             <div class="eureka-print-toolbar__actions">
                 {% if print_preview_ready %}
                 {% include "base/partials/print_zoom_controls.html" %}
-                <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">Stampa</button>
+                <button type="button" class="eureka-print-btn eureka-print-btn--primary" id="btnStampaBozza">Stampa bozza</button>
+                <button type="button" class="eureka-print-btn eureka-print-btn--accent" id="btnStampaDefinitiva"{% if not registro %} disabled title="Seleziona un registro"{% endif %}>Stampa definitiva</button>
                 {% endif %}
                 <button type="button" class="eureka-print-btn" data-print-close>Chiudi</button>
             </div>
         </div>
+        {% if print_preview_ready %}
+        <p class="eureka-print-toolbar__hint d-print-none" style="margin:0.35rem 0 0;font-size:12px;color:#64748b;">
+            <strong>Bozza</strong>: stampa con numerazione pagine, senza aggiornare lo stato del registro.
+            <strong>Definitiva</strong>: memorizza data finale / protocollo / ultima pagina, poi stampa.
+            Numerazione fiscale: <strong>Pag. {{ pagina_da|default:1 }}</strong>, {{ pagina_da|default:1|add:1 }}, … sotto «Registro IVA» su ogni foglio intestato.
+            Disattiva «Intestazioni e piè di pagina» del browser.
+        </p>
+        {% endif %}
     </div>
 </div>
+
+<dialog id="dlgStampaDefinitiva" class="eureka-print-dialog d-print-none">
+    <form method="dialog" id="formStampaDefinitiva">
+        <h3 class="eureka-print-dialog__title">Conferma stampa definitiva</h3>
+        <p class="eureka-print-dialog__text">Verranno memorizzati data finale, ultimo protocollo e ultima pagina stampata.</p>
+        <p id="dlgWarningSovrappone" class="eureka-print-dialog__warn" hidden>Attenzione: il periodo si sovrappone a una stampa definitiva già registrata. Puoi procedere per correggere.</p>
+        <div class="eureka-print-dialog__grid">
+            <label>Data finale
+                {% include "base/partials/date_input.html" with name="data_finale" id="dlgDataFinale" value="" required=True %}
+            </label>
+            <label>Ultimo protocollo
+                <input type="number" name="ultimo_protocollo" id="dlgUltimoProt" step="1" min="0">
+            </label>
+            <label>Pagina da
+                <input type="number" name="pagina_da" id="dlgPaginaDa" step="1" min="1" required>
+            </label>
+            <label>N. pagine stampate
+                <input type="number" name="num_pagine" id="dlgNumPagine" step="1" min="1" required>
+            </label>
+            <label>Ultima pagina (calcolata)
+                <input type="number" name="ultima_pagina" id="dlgUltimaPagina" step="1" min="0" required>
+            </label>
+        </div>
+        <div class="eureka-print-dialog__actions">
+            <button type="submit" value="cancel" class="eureka-print-btn">Annulla</button>
+            <button type="button" value="confirm" id="btnConfermaDefinitiva" class="eureka-print-btn eureka-print-btn--primary">Stampa e salva</button>
+        </div>
+    </form>
+</dialog>
 
 {% if print_preview_ready %}
 <div class="eureka-print-preview-stage">
 <div class="eureka-print-preview-scaler">
 <article class="eureka-print-sheet eureka-print-sheet--libro-iva">
     <div class="eureka-print-table-wrap">
-        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact">
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact{% if libro.mostra_competenza %} eureka-print-table--libro-iva-acquisto{% endif %}">
             <colgroup>
                 <col class="eureka-print-col--prot">
                 <col class="eureka-print-col--data">
+                {% if libro.mostra_competenza %}<col class="eureka-print-col--data eureka-print-col--competenza">{% endif %}
                 <col class="eureka-print-col--ragione">
                 <col class="eureka-print-col--ndoc">
                 <col class="eureka-print-col--data">
@@ -92,13 +237,14 @@
             </colgroup>
             <thead>
                 <tr class="eureka-print-libro-banner">
-                    <th colspan="10">
+                    <th colspan="{{ libro.col_count }}">
                         {% include "registri_iva/partials/libro_registro_masthead.html" %}
                     </th>
                 </tr>
                 <tr>
                     <th class="eureka-print-align-end">Prot.</th>
                     <th>Data</th>
+                    {% if libro.mostra_competenza %}<th>Competenza</th>{% endif %}
                     <th>Rag. Sociale</th>
                     <th>N.Doc.</th>
                     <th>del</th>
@@ -117,29 +263,51 @@
                     {% endfor %}
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="10" class="eureka-print-empty">Nessuna registrazione nel periodo selezionato</td>
+                <tr class="eureka-print-row--libro-vuoto">
+                    <td colspan="{{ libro.col_count }}" class="eureka-print-libro-vuoto">
+                        <div class="eureka-print-libro-vuoto__frame" aria-hidden="true">
+                            <svg class="eureka-print-libro-vuoto__slash" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">
+                                <line x1="2" y1="98" x2="98" y2="2" />
+                            </svg>
+                        </div>
+                        <span class="eureka-print-libro-vuoto__note d-print-none">Nessuna registrazione nel periodo — in stampa compare la barra obliqua (registro vuoto).</span>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
-            {% if libro.righe %}
             <tfoot>
                 <tr class="eureka-print-row--totale">
-                    <td colspan="6" class="eureka-print-align-end"><strong>Totali generali</strong></td>
-                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile|euro }}</strong></td>
+                    <td colspan="{{ libro.label_colspan }}" class="eureka-print-align-end"><strong>Totali generali</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile_stampa|euro }}</strong></td>
                     <td></td>
-                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_stampa|euro }}</strong></td>
                     <td class="eureka-print-align-end"><strong>{{ libro.totale_documento|euro }}</strong></td>
                 </tr>
             </tfoot>
-            {% endif %}
         </table>
     </div>
 
-    {% if libro.riepilogo %}
+    {% if libro.riepilogo or libro.mostra_riepilogo_competenza %}
     <section class="eureka-print-libro-riepilogo">
+        <div class="eureka-print-libro-riepilogo__head">
+            {% include "registri_iva/partials/libro_registro_masthead.html" %}
+        </div>
+
+        {% if libro.mostra_riepilogo_competenza %}
+        <h2 class="eureka-print-libro-riepilogo__title">
+            Riepilogo 1 — Registrazioni effettuate nel mese di {{ libro.mese_iva_label }}
+        </h2>
+        <div class="eureka-print-libro-riepilogo__subtitle">{{ libro.registro_label }}</div>
+        <p class="eureka-print-libro-riepilogo__note">
+            Movimenti materialmente registrati in {{ libro.mese_iva_label }} (per data di registrazione).
+            Include anche le registrazioni con competenza già conteggiata nel mese precedente
+            (sezione «Da detrarre», con segno negativo, escluse dal totale di competenza).
+        </p>
+        {% else %}
         <h2 class="eureka-print-libro-riepilogo__title">Riepilogo{% if libro.periodo_label %} : {{ libro.periodo_label }}{% endif %}</h2>
         <div class="eureka-print-libro-riepilogo__subtitle">{{ libro.registro_label }}</div>
+        {% endif %}
+
         <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact eureka-print-table--riepilogo">
             <colgroup>
                 <col class="eureka-print-col--ragione">
@@ -160,8 +328,12 @@
                 <tr>
                     <td>{{ voce.descrizione }}</td>
                     <td class="eureka-print-align-end">{{ voce.imponibile|euro }}</td>
-                    <td class="eureka-print-align-end">{{ voce.iva|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_deducibile|euro }}</td>
                     <td class="eureka-print-align-end">{{ voce.iva_indeducibile|euro }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="eureka-print-empty">Nessuna registrazione nel mese</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -169,11 +341,165 @@
                 <tr class="eureka-print-row--totale">
                     <td><strong>TOTALI</strong></td>
                     <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile|euro }}</strong></td>
-                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva|euro }}</strong></td>
-                    <td class="eureka-print-align-end"><strong>0,00</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_deducibile|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_indeducibile|euro }}</strong></td>
                 </tr>
             </tfoot>
         </table>
+
+        {% if libro.mostra_riepilogo_gia_conteggiate %}
+        <h2 class="eureka-print-libro-riepilogo__title eureka-print-libro-riepilogo__title--second">
+            Da detrarre — già conteggiate in {{ libro.mese_precedente_label }}
+        </h2>
+        <div class="eureka-print-libro-riepilogo__subtitle">{{ libro.registro_label }}</div>
+        <p class="eureka-print-libro-riepilogo__note">
+            Registrazioni di {{ libro.mese_iva_label }} con competenza IVA {{ libro.mese_precedente_label }}
+            (o precedente): già incluse nel riepilogo 2 / totale competenza di {{ libro.mese_precedente_label }}.
+            Si detraggono (segno negativo) dal riepilogo 1 per evitare la doppia detrazione in {{ libro.mese_iva_label }}.
+            {% if libro.protocolli_gia_conteggiate %}
+            Protocolli: {{ libro.protocolli_gia_conteggiate|join:", " }}.
+            {% endif %}
+        </p>
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact eureka-print-table--riepilogo">
+            <colgroup>
+                <col class="eureka-print-col--ragione">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Descrizione</th>
+                    <th class="eureka-print-align-end">Impon.</th>
+                    <th class="eureka-print-align-end">Iva Ded.</th>
+                    <th class="eureka-print-align-end">Iva Inded.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for voce in libro.riepilogo_gia_conteggiate %}
+                <tr>
+                    <td>{{ voce.descrizione }}</td>
+                    <td class="eureka-print-align-end">{{ voce.imponibile|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_deducibile|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_indeducibile|euro }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="eureka-print-row--totale">
+                    <td><strong>TOTALI</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile_gia_conteggiate|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_deducibile_gia_conteggiate|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_indeducibile_gia_conteggiate|euro }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% endif %}
+
+        {% if libro.mostra_riepilogo_2 %}
+        <h2 class="eureka-print-libro-riepilogo__title eureka-print-libro-riepilogo__title--second">
+            Riepilogo 2 — Registrazioni effettuate a {{ libro.mese_successivo_label }} con competenza IVA {{ libro.mese_iva_label }}
+        </h2>
+        <div class="eureka-print-libro-riepilogo__subtitle">{{ libro.registro_label }}</div>
+        <p class="eureka-print-libro-riepilogo__note">
+            Movimenti registrati in {{ libro.mese_successivo_label }} ma con competenza IVA {{ libro.mese_iva_label }}.
+            Integrano il registro e la liquidazione IVA di {{ libro.mese_iva_label }}, pur avendo data di registrazione successiva.
+            {% if libro.protocolli_altra_competenza %}
+            Protocolli: {{ libro.protocolli_altra_competenza|join:", " }}.
+            {% endif %}
+        </p>
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact eureka-print-table--riepilogo">
+            <colgroup>
+                <col class="eureka-print-col--ragione">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Descrizione</th>
+                    <th class="eureka-print-align-end">Impon.</th>
+                    <th class="eureka-print-align-end">Iva Ded.</th>
+                    <th class="eureka-print-align-end">Iva Inded.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for voce in libro.riepilogo_competenza %}
+                <tr>
+                    <td>{{ voce.descrizione }}</td>
+                    <td class="eureka-print-align-end">{{ voce.imponibile|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_deducibile|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_indeducibile|euro }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="eureka-print-empty">Nessuna registrazione successiva con competenza in {{ libro.mese_iva_label }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="eureka-print-row--totale">
+                    <td><strong>TOTALI</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile_competenza|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_deducibile_competenza|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_indeducibile_competenza|euro }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% endif %}
+
+        {% if libro.mostra_riepilogo_competenza %}
+        <h2 class="eureka-print-libro-riepilogo__title eureka-print-libro-riepilogo__title--second">
+            Totale complessivo di competenza IVA {{ libro.mese_iva_label }}
+        </h2>
+        <p class="eureka-print-libro-riepilogo__note">
+            {% if libro.mostra_riepilogo_2 %}
+            IVA di competenza {{ libro.mese_iva_label }} =
+            riepilogo 1{% if libro.mostra_riepilogo_gia_conteggiate %} + da detrarre{% endif %} + riepilogo 2
+            = {{ libro.totale_iva|euro }}{% if libro.mostra_riepilogo_gia_conteggiate %} + ({{ libro.totale_iva_gia_conteggiate|euro }}){% endif %}
+            + {{ libro.totale_iva_competenza|euro }}.
+            {% else %}
+            Dicembre: niente registrazioni di gennaio dell'anno successivo.
+            IVA di competenza {{ libro.mese_iva_label }} =
+            riepilogo 1{% if libro.mostra_riepilogo_gia_conteggiate %} + da detrarre (competenza {{ libro.mese_precedente_label }}){% endif %}
+            = {{ libro.totale_iva|euro }}{% if libro.mostra_riepilogo_gia_conteggiate %} + ({{ libro.totale_iva_gia_conteggiate|euro }}){% endif %}.
+            {% endif %}
+        </p>
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact eureka-print-table--riepilogo">
+            <colgroup>
+                <col class="eureka-print-col--ragione">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--importo">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Descrizione</th>
+                    <th class="eureka-print-align-end">Impon.</th>
+                    <th class="eureka-print-align-end">Iva Ded.</th>
+                    <th class="eureka-print-align-end">Iva Inded.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for voce in libro.riepilogo_totale_competenza %}
+                <tr>
+                    <td>{{ voce.descrizione }}</td>
+                    <td class="eureka-print-align-end">{{ voce.imponibile|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_deducibile|euro }}</td>
+                    <td class="eureka-print-align-end">{{ voce.iva_indeducibile|euro }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="eureka-print-row--totale">
+                    <td><strong>TOTALE COMPETENZA</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile_competenza_mese|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_deducibile_competenza_mese|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_indeducibile_competenza_mese|euro }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% endif %}
     </section>
     {% endif %}
 </article>
@@ -188,5 +514,29 @@
 </div>
 {% endif %}
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
+<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
+<script>
+(function () {
+    if (window.EurekaDateIT) window.EurekaDateIT.boot(document);
+})();
+</script>
+<script src="{% static 'eureka/js/libro-iva-stampa-definitiva.js' %}?v=42"></script>
+<script>
+(function () {
+    var input = document.getElementById("id_incl_reg_succ");
+    if (!input) return;
+    var label = document.getElementById("toggleInclRegSucc") || input.closest(".eureka-print-toggle");
+    // All'apertura: attivo SOLO se l'URL ha esplicitamente incl_reg_succ=1
+    // (evita ripristino browser / stato precedente che lasciava il flag acceso).
+    var values = new URLSearchParams(window.location.search).getAll("incl_reg_succ");
+    var explicitOn = values.indexOf("1") !== -1;
+    input.checked = explicitOn;
+    function sync() {
+        if (label) label.classList.toggle("eureka-print-toggle--on", input.checked);
+    }
+    input.addEventListener("change", sync);
+    sync();
+})();
+</script>
 </body>
 </html>

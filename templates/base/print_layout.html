@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ print_title }} · Stampa lista{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=26">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
 </head>
 <body class="eureka-print-body{% if print_orientation == 'landscape' %} eureka-print-body--landscape{% endif %}">
 <div class="eureka-print-toolbar d-print-none">
@@ -39,11 +40,11 @@
                         <div class="eureka-print-filters__row">
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">Da data</span>
-                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                                {% include "base/partials/date_input.html" with name="data_da" value=data_da %}
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">A data</span>
-                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                                {% include "base/partials/date_input.html" with name="data_a" value=data_a %}
                             </label>
                             {% if inventario_preset_urls %}
                             <div class="eureka-print-field eureka-print-field--presets">
@@ -72,11 +73,11 @@
                         <div class="eureka-print-filters__row">
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">Da data</span>
-                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                                {% include "base/partials/date_input.html" with name="data_da" value=data_da %}
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">A data</span>
-                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                                {% include "base/partials/date_input.html" with name="data_a" value=data_a %}
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">Tipo</span>
@@ -114,11 +115,11 @@
                         <div class="eureka-print-filters__row">
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">Da data</span>
-                                <input type="date" class="eureka-print-input" name="data_da" value="{{ data_da }}">
+                                {% include "base/partials/date_input.html" with name="data_da" value=data_da %}
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">A data</span>
-                                <input type="date" class="eureka-print-input" name="data_a" value="{{ data_a }}">
+                                {% include "base/partials/date_input.html" with name="data_a" value=data_a %}
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">Tipo registro</span>
@@ -368,6 +369,7 @@
     </div>
 </div>
 {% endif %}
+<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
 {% if print_inventario_options %}
 <script>

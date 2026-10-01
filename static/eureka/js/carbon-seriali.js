@@ -67,8 +67,12 @@ function getFilters() {
         operatore: document.getElementById('filter-operatore').value,
         stato: document.getElementById('filter-stato').value,
         stampo: document.getElementById('filter-stampo').value,
-        da: document.getElementById('filter-da').value,
-        a: document.getElementById('filter-a').value,
+        da: window.EurekaDateIT
+            ? window.EurekaDateIT.getIso(document.getElementById('filter-da'))
+            : document.getElementById('filter-da').value,
+        a: window.EurekaDateIT
+            ? window.EurekaDateIT.getIso(document.getElementById('filter-a'))
+            : document.getElementById('filter-a').value,
     };
 }
 
@@ -367,8 +371,15 @@ function todayInputValue() {
 
 function initDefaultDates() {
     const today = todayInputValue();
-    document.getElementById('filter-da').value = today;
-    document.getElementById('filter-a').value = today;
+    const da = document.getElementById('filter-da');
+    const a = document.getElementById('filter-a');
+    if (window.EurekaDateIT) {
+        window.EurekaDateIT.setFromIso(da, today);
+        window.EurekaDateIT.setFromIso(a, today);
+    } else {
+        da.value = today;
+        a.value = today;
+    }
 }
 
 document.getElementById('btn-apply').addEventListener('click', refreshAll);

@@ -1,0 +1,24 @@
+{# Widget data Eureka: gg/mm/aaaa + icona calendario (stesso oggetto ovunque). #}
+{# Parametri: name, value (ISO o gg/mm/aaaa), id="", required=False, input_class="eureka-print-input" #}
+<div class="eureka-date-it">
+    <input
+        type="text"
+        class="{{ input_class|default:'eureka-print-input' }} eureka-date-it__input eureka-print-input--date"
+        name="{{ name }}"
+        {% if id %}id="{{ id }}"{% endif %}
+        value="{{ value|default:'' }}"
+        data-eureka-date-it
+        placeholder="gg/mm/aaaa"
+        inputmode="numeric"
+        autocomplete="off"
+        maxlength="10"
+        spellcheck="false"
+        {% if required %}required{% endif %}
+    >
+    <button type="button" class="eureka-date-it__cal" aria-label="Apri calendario" tabindex="-1">
+        <svg viewBox="0 0 24 24" width="16" height="16" focusable="false" aria-hidden="true">
+            <path fill="currentColor" d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1zm12 8H5v10h14V10zM8 12h2v2H8v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/>
+        </svg>
+    </button>
+    <input type="date" class="eureka-date-it__native" tabindex="-1" aria-hidden="true">
+</div>

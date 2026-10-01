@@ -11,6 +11,7 @@
 
         return (
             path.includes("/login") ||
+            path.includes("/login") ||
             path.includes("/admin/login") ||
             action.includes("/login") ||
             form.id === "login-form"
@@ -22,7 +23,21 @@
             return true;
         }
 
+        // Date Eureka (gg/mm/aaaa): non offuscare name e non applicare readonly
+        if (
+            field.classList.contains("eureka-date-it__input") ||
+            field.classList.contains("eureka-date-it__native") ||
+            field.hasAttribute("data-eureka-date-it") ||
+            field.closest(".eureka-date-it")
+        ) {
+            return true;
+        }
+
         const type = (field.getAttribute("type") || "").toLowerCase();
+
+        if (type === "date") {
+            return true;
+        }
 
         if (type === "password" && isLoginForm(field)) {
             return true;

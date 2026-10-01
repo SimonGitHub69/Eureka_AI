@@ -1,0 +1,306 @@
+{% load static format_tags %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Liquidazione Periodica IVA{% if liq.periodo_label %} · {{ liq.periodo_label }}{% endif %}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    {% with azienda_nome=azienda_header.ragione_sociale|default:print_azienda_ragione_sociale %}
+    <style id="eureka-libro-page-start">
+    /*
+     * Solo regole @page / print (il JS definitiva può riscrivere questo blocco).
+     * Layout liquidazione: classi .eureka-liq-* in print-list.css
+     * counter-reset su html (non @page :first) — vedi libro_registro_print.html
+     */
+    @media print {
+        {% if pagina_counter_reset and pagina_counter_reset > 0 %}
+        html {
+            counter-reset: page {{ pagina_counter_reset }};
+        }
+        {% endif %}
+
+        body.eureka-print-body--libro-iva {
+            page: auto !important;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 10mm 6mm 10mm;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-libro-masthead__date {
+            display: none !important;
+        }
+
+        body.eureka-print-body--libro-iva .eureka-print-libro-masthead__page {
+            display: block !important;
+            visibility: visible !important;
+        }
+    }
+    </style>
+    {% endwith %}
+</head>
+<body class="eureka-print-body eureka-print-body--libro-iva"
+      data-conferma-url="{{ conferma_url }}"
+      data-csrf="{{ csrf_token }}"
+      data-registro="{{ registro }}"
+      data-registro-label="Liquidazione Periodica IVA"
+      data-azienda-nome="{{ azienda_header.ragione_sociale|default:print_azienda_ragione_sociale|default:''|cut:'"' }}"
+      data-data-finale="{{ data_a }}"
+      data-max-protocollo=""
+      data-pagina-da="{{ pagina_da }}"
+      data-stima-pagine="{{ stima_pagine }}"
+      data-sync-periodo-liquidazione="1"
+      data-sovrappone="{% if stampa_sovrappone %}1{% else %}0{% endif %}">
+<div class="eureka-print-toolbar d-print-none">
+    <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
+        <div class="eureka-print-toolbar__bar">
+            <div class="eureka-print-toolbar__title">Liquidazione Periodica IVA</div>
+            <div class="eureka-print-toolbar__meta">
+                {% if print_preview_ready and liq.periodo_label %}
+                <span class="eureka-print-toolbar__summary">{{ liq.periodo_label }}</span>
+                {% else %}
+                <span class="eureka-print-toolbar__hint">Seleziona registro e periodo, poi genera l'anteprima</span>
+                {% endif %}
+                {% if registro and stampa_stato_registro %}
+                <span class="eureka-print-toolbar__summary" title="Stato numerazione del registro collegato">
+                    Registro {{ registro }} · ultima pag. {{ stampa_stato_registro.ultima_pagina|default:0 }}
+                    {% if stampa_stato_registro.data_finale %}· definitiva reg. {{ stampa_stato_registro.data_finale|date:"d/m/Y" }}{% endif %}
+                </span>
+                {% endif %}
+                {% if stampa_stato.data_finale %}
+                <span class="eureka-print-toolbar__summary" title="Ultima stampa definitiva liquidazione">
+                    Ultima liq.: {{ stampa_stato.data_finale|date:"d/m/Y" }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="eureka-print-toolbar__panel">
+            <form method="get" class="eureka-print-filters" action="{{ request.path }}">
+                {% for key, value in request.GET.items %}
+                    {% if key != "anno" and key != "mese" and key != "credito_prec" and key != "pagina_da" and key != "anteprima" and key != "data_da" and key != "data_a" and key != "registro" %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+                <div class="eureka-print-filters__grid">
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Registro e periodo</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Registro (numerazione pagine)</span>
+                                <select class="eureka-print-input" name="registro" id="id_registro_liq" required
+                                        onchange="if(this.value){var p=new URLSearchParams(window.location.search);p.set('registro',this.value);p.delete('anteprima');p.delete('pagina_da');location.assign(location.pathname+'?'+p.toString());}">
+                                    <option value="" disabled{% if not registro %} selected{% endif %}>— Seleziona registro —</option>
+                                    {% for value, label in registri_choices %}
+                                    {% if value %}
+                                    <option value="{{ value }}"{% if registro == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Anno</span>
+                                <input type="number" class="eureka-print-input" name="anno" min="1990" max="2100" step="1" value="{{ anno }}" required>
+                            </label>
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Mese</span>
+                                <select class="eureka-print-input" name="mese" required>
+                                    {% for value, label in mese_choices %}
+                                    <option value="{{ value }}"{% if mese == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Credito periodo prec.</span>
+                                <input type="text" class="eureka-print-input" name="credito_prec" value="{{ credito_prec }}" placeholder="0,00" inputmode="decimal">
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Pagina da</span>
+                                <input type="number" class="eureka-print-input" name="pagina_da" id="id_pagina_da" min="1" step="1" value="{{ pagina_da }}">
+                            </label>
+                        </div>
+                    </fieldset>
+                    <div class="eureka-print-filters__submit">
+                        <input type="hidden" name="anteprima" value="1">
+                        <button type="submit" class="eureka-print-btn eureka-print-btn--apply">
+                            {% if print_preview_ready %}Applica filtri{% else %}Genera anteprima{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="eureka-print-toolbar__actions">
+                {% if print_preview_ready %}
+                {% include "base/partials/print_zoom_controls.html" %}
+                <button type="button" class="eureka-print-btn eureka-print-btn--primary" id="btnStampaBozza">Stampa bozza</button>
+                <button type="button" class="eureka-print-btn eureka-print-btn--accent" id="btnStampaDefinitiva"{% if not registro or not data_a or not liq.ready %} disabled title="Serve registro collegato, periodo e anteprima"{% endif %}>Stampa definitiva</button>
+                {% endif %}
+                <button type="button" class="eureka-print-btn" data-print-close>Chiudi</button>
+            </div>
+        </div>
+        {% if print_preview_ready %}
+        <p class="eureka-print-toolbar__hint d-print-none" style="margin:0.35rem 0 0;font-size:12px;color:#64748b;">
+            Numerazione su registro <strong>{{ registro }}</strong>: <strong>Pag. {{ pagina_da|default:1 }}</strong>, …
+            In definitiva l'ultima pagina viene salvata su quel registro.
+            Disattiva «Intestazioni e piè di pagina» del browser.
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<dialog id="dlgStampaDefinitiva" class="eureka-print-dialog d-print-none">
+    <form method="dialog" id="formStampaDefinitiva">
+        <h3 class="eureka-print-dialog__title">Conferma stampa definitiva</h3>
+        <p class="eureka-print-dialog__text">Verranno aggiornati data finale e <strong>ultima pagina sul registro {{ registro }}</strong> (numerazione liquidazione).</p>
+        <p id="dlgWarningSovrappone" class="eureka-print-dialog__warn" hidden>Attenzione: il periodo si sovrappone a una stampa definitiva già registrata. Puoi procedere per correggere.</p>
+        <div class="eureka-print-dialog__grid">
+            <label>Data finale
+                {% include "base/partials/date_input.html" with name="data_finale" id="dlgDataFinale" value="" required=True %}
+            </label>
+            <label hidden>Ultimo protocollo
+                <input type="number" name="ultimo_protocollo" id="dlgUltimoProt" step="1" min="0" value="">
+            </label>
+            <label>Pagina da
+                <input type="number" name="pagina_da" id="dlgPaginaDa" step="1" min="1" required>
+            </label>
+            <label>N. pagine stampate
+                <input type="number" name="num_pagine" id="dlgNumPagine" step="1" min="1" required>
+            </label>
+            <label>Ultima pagina (calcolata)
+                <input type="number" name="ultima_pagina" id="dlgUltimaPagina" step="1" min="0" required>
+            </label>
+        </div>
+        <div class="eureka-print-dialog__actions">
+            <button type="submit" value="cancel" class="eureka-print-btn">Annulla</button>
+            <button type="button" value="confirm" id="btnConfermaDefinitiva" class="eureka-print-btn eureka-print-btn--primary">Stampa e salva</button>
+        </div>
+    </form>
+</dialog>
+
+{% if print_preview_ready and liq.ready %}
+<div class="eureka-print-preview-stage">
+<article class="eureka-print-sheet eureka-print-sheet--libro-iva">
+    {# Stessa intestazione fiscale dei Registri IVA (riga banner in tabella) #}
+    <div class="eureka-print-table-wrap">
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact">
+            <thead>
+                <tr class="eureka-print-libro-banner">
+                    <th>
+                        {% include "registri_iva/partials/libro_registro_masthead.html" %}
+                    </th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+
+    <div class="eureka-liq-grid-2" style="margin-top:0.75rem;">
+        <section class="eureka-liq-section">
+            <h2 class="eureka-liq-section__title">IVA a debito — Vendite / Corrispettivi</h2>
+            <table class="eureka-liq-kv">
+                <tbody>
+                    {% for v in liq.vendite %}
+                    <tr>
+                        <th>{{ v.codice }} — {{ v.label }} <span style="font-weight:400;color:#64748b;">({{ v.documenti }} doc.)</span></th>
+                        <td>{{ v.iva|euro }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><th colspan="2" style="font-weight:400;color:#64748b;">Nessun registro vendite</th></tr>
+                    {% endfor %}
+                    <tr class="eureka-liq-kv--tot">
+                        <th>Totale IVA a debito</th>
+                        <td>{{ liq.totale_iva_debito|euro }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="eureka-liq-section">
+            <h2 class="eureka-liq-section__title">IVA a credito — Acquisti (competenza)</h2>
+            <table class="eureka-liq-kv">
+                <tbody>
+                    {% for v in liq.acquisti %}
+                    <tr>
+                        <th>{{ v.codice }} — {{ v.label }} <span style="font-weight:400;color:#64748b;">({{ v.documenti }} doc.)</span></th>
+                        <td>{{ v.iva_deducibile|euro }}</td>
+                    </tr>
+                    {% if v.iva_indeducibile %}
+                    <tr>
+                        <th style="font-weight:400;padding-left:1rem;color:#64748b;">di cui indeducibile</th>
+                        <td style="color:#64748b;">{{ v.iva_indeducibile|euro }}</td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr><th colspan="2" style="font-weight:400;color:#64748b;">Nessun registro acquisti</th></tr>
+                    {% endfor %}
+                    <tr class="eureka-liq-kv--tot">
+                        <th>Totale IVA a credito (detraibile)</th>
+                        <td>{{ liq.totale_iva_credito|euro }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <section class="eureka-liq-section">
+        <h2 class="eureka-liq-section__title">Riepilogo liquidazione</h2>
+        <table class="eureka-liq-kv" style="max-width:28rem;">
+            <tbody>
+                <tr>
+                    <th>IVA a debito</th>
+                    <td>{{ liq.totale_iva_debito|euro }}</td>
+                </tr>
+                <tr>
+                    <th>IVA a credito (detraibile)</th>
+                    <td>{{ liq.totale_iva_credito|euro }}</td>
+                </tr>
+                <tr>
+                    <th>Differenza (debito − credito)</th>
+                    <td>{{ liq.differenza|euro }}</td>
+                </tr>
+                <tr>
+                    <th>Credito periodo precedente</th>
+                    <td>{{ liq.credito_periodo_precedente|euro }}</td>
+                </tr>
+                <tr class="eureka-liq-kv--saldo">
+                    {% if liq.iva_da_versare %}
+                    <th>IVA da versare</th>
+                    <td>{{ liq.iva_da_versare|euro }}</td>
+                    {% elif liq.iva_a_credito %}
+                    <th>IVA a credito (da riportare)</th>
+                    <td>{{ liq.iva_a_credito|euro }}</td>
+                    {% else %}
+                    <th>Saldo</th>
+                    <td>0,00</td>
+                    {% endif %}
+                </tr>
+            </tbody>
+        </table>
+        {% if liq.note %}
+        <p class="eureka-liq-note">{{ liq.note }}</p>
+        {% endif %}
+    </section>
+</article>
+</div>
+{% else %}
+<div class="eureka-print-preview-stage eureka-print-preview-stage--idle d-print-none">
+    <div class="eureka-print-preview-idle">
+        <i class="ti ti-calculator" aria-hidden="true"></i>
+        <p>Seleziona il <strong>registro</strong> (per la numerazione pagine), <strong>anno</strong> e <strong>mese</strong>, eventualmente il credito del periodo precedente, poi clicca <strong>Genera anteprima</strong>.</p>
+    </div>
+</div>
+{% endif %}
+<script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
+<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
+<script src="{% static 'eureka/js/libro-iva-stampa-definitiva.js' %}?v=42"></script>
+<script>
+(function () {
+    document.querySelectorAll("[data-print-close]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            window.close();
+        });
+    });
+})();
+</script>
+</body>
+</html>

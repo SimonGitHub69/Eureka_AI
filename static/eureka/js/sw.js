@@ -1,5 +1,5 @@
 /* Service worker Eureka: shell offline + fallback navigazione. */
-const CACHE = "eureka-offline-v4";
+const CACHE = "eureka-offline-v5";
 const OFFLINE_URL = "/offline/";
 
 const PRECACHE = [
@@ -121,8 +121,31 @@ self.addEventListener("fetch", function (event) {
         return;
     }
 
-    // Static / offline assets: cache-first
+    // Static / offline assets: cache-first, MA non i CSS/JS di stampa (cambiano spesso)
     if (!isStatic && !isOfflinePage) {
+        return;
+    }
+
+    const isPrintAsset =
+        url.pathname.indexOf("/static/eureka/css/print-list.css") === 0
+        || url.pathname.indexOf("/static/eureka/css/date-it.css") === 0
+        || url.pathname.indexOf("/static/eureka/js/libro-iva-stampa-definitiva.js") === 0
+        || url.pathname.indexOf("/static/eureka/js/date-it.js") === 0
+        || url.pathname.indexOf("/static/eureka/js/print-date-it.js") === 0
+        || url.pathname.indexOf("/static/eureka/js/print-preview-zoom.js") === 0;
+
+    if (isPrintAsset) {
+        event.respondWith(
+            fetch(req)
+                .then(function (res) {
+                    return res;
+                })
+                .catch(function () {
+                    return caches.match(req).then(function (cached) {
+                        return cached || Response.error();
+                    });
+                })
+        );
         return;
     }
 

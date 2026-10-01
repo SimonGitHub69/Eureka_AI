@@ -19,11 +19,18 @@
     return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
   }
 
+  function dateVal(el) {
+    if (!el) return "";
+    if (window.EurekaDateIT) return window.EurekaDateIT.getIso(el);
+    return isoDate(el.value);
+  }
+
   function inputs() {
     return Array.from(list.querySelectorAll('input[name="scadenza"]'));
   }
 
   function formatDateIT(iso) {
+    if (window.EurekaDateIT) return window.EurekaDateIT.isoToIt(iso);
     const m = String(iso || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (!m) return String(iso || "").trim();
     return m[3] + "/" + m[2] + "/" + m[1];
@@ -32,9 +39,7 @@
   function updateSummary() {
     const badge = document.getElementById("scadenzeCountBadge");
     const slots = list.querySelectorAll(".eureka-doc-scadenze__slot");
-    const dates = inputs()
-      .map((el) => (el.value || "").trim())
-      .filter(Boolean);
+    const dates = inputs().map((el) => dateVal(el)).filter(Boolean);
     if (badge) {
       badge.textContent = String(slots.length);
       badge.title = "Numero scadenze";
@@ -100,7 +105,10 @@
     const slots = list.querySelectorAll(".eureka-doc-scadenze__slot");
     if (slots.length <= 1) {
       const input = slot.querySelector('input[name="scadenza"]');
-      if (input) input.value = "";
+      if (input) {
+        if (window.EurekaDateIT) window.EurekaDateIT.setFromIso(input, "");
+        else input.value = "";
+      }
       updateSummary();
       return;
     }
@@ -112,11 +120,12 @@
     const rows = values && values.length ? values : [""];
     list.innerHTML = "";
     rows.forEach((value) => list.appendChild(makeSlot(value)));
+    if (window.EurekaDateIT) window.EurekaDateIT.boot(list);
     renumber();
   }
 
   function apply(rows, overwrite) {
-    const current = inputs().map((el) => (el.value || "").trim());
+    const current = inputs().map((el) => dateVal(el));
     const filled = current.some(Boolean);
     if (!overwrite && filled) return;
     const values = (rows || [])
@@ -128,7 +137,7 @@
   function recalc(overwrite) {
     if (!url) return;
     const codice = ((pay && pay.value) || "").trim();
-    const data = isoDate(dataEl && dataEl.value);
+    const data = dateVal(dataEl) || isoDate(dataEl && dataEl.value);
     if (!codice || !data) return;
     const qs =
       "?codice=" + encodeURIComponent(codice.trim()) +
@@ -147,7 +156,9 @@
 
   if (addBtn) {
     addBtn.addEventListener("click", () => {
-      list.appendChild(makeSlot(""));
+      const slot = makeSlot("");
+      list.appendChild(slot);
+      if (window.EurekaDateIT) window.EurekaDateIT.boot(slot);
       renumber();
       const last = inputs().pop();
       if (last) last.focus();

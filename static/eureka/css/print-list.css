@@ -120,10 +120,18 @@ body.eureka-print-body {
 
 /* Libro registro IVA — layout compatto A4 verticale */
 body.eureka-print-body--libro-iva {
-    --eureka-libro-importo-ch: 16ch; /* -999.999.999,99 */
-    --eureka-libro-ragione-ch: 11ch;
+    --eureka-libro-importo-ch: 10ch; /* 999.999,99 */
+    --eureka-libro-ragione-ch: 24%;
+    --eureka-libro-ndoc-ch: 16ch;
+    --eureka-libro-descr-ch: 11ch;
     font-size: 7pt;
-    line-height: 1.1;
+    line-height: 1.15;
+}
+
+body.eureka-print-body--libro-iva-acquisto {
+    --eureka-libro-ragione-ch: 20%;
+    --eureka-libro-ndoc-ch: 15ch;
+    --eureka-libro-descr-ch: 10ch;
 }
 
 body.eureka-print-body--libro-iva .eureka-print-preview-stage {
@@ -139,12 +147,92 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     max-width: 210mm;
 }
 
+/* —— Liquidazione Periodica IVA (layout schermo/stampa; fuori da #eureka-libro-page-start) —— */
+.eureka-liq-section {
+    margin: 0 0 1.1rem;
+}
+
+.eureka-liq-section__title {
+    margin: 0 0 0.35rem;
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1e3a8a;
+    border-bottom: 1.5pt solid #1e3a8a;
+    padding-bottom: 0.2rem;
+}
+
+.eureka-liq-kv {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+}
+
+.eureka-liq-kv th,
+.eureka-liq-kv td {
+    padding: 0.28rem 0.4rem;
+    border-bottom: 0.5pt solid #cbd5e1;
+    vertical-align: top;
+}
+
+.eureka-liq-kv th {
+    text-align: left;
+    font-weight: 600;
+    width: 55%;
+}
+
+.eureka-liq-kv td {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.eureka-liq-kv tr.eureka-liq-kv--tot th,
+.eureka-liq-kv tr.eureka-liq-kv--tot td {
+    border-top: 1.2pt solid #0f172a;
+    border-bottom: none;
+    font-weight: 700;
+    padding-top: 0.45rem;
+}
+
+.eureka-liq-kv tr.eureka-liq-kv--saldo th,
+.eureka-liq-kv tr.eureka-liq-kv--saldo td {
+    background: #eff6ff;
+    font-size: 11pt;
+    font-weight: 700;
+}
+
+.eureka-liq-note {
+    margin: 0.75rem 0 0;
+    font-size: 8pt;
+    color: #64748b;
+    line-height: 1.35;
+}
+
+.eureka-liq-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 900px) {
+    .eureka-liq-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    .eureka-liq-kv tr.eureka-liq-kv--saldo th,
+    .eureka-liq-kv tr.eureka-liq-kv--saldo td {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
 .eureka-print-libro-masthead {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 0.45rem 0.6rem;
+    gap: 0.35rem 0.55rem;
     align-items: start;
-    padding: 0.3rem 0 0.4rem;
+    padding: 0.2rem 0 0.35rem;
     border-bottom: 2px solid var(--eureka-print-blue);
     text-align: left;
     font-weight: normal;
@@ -152,9 +240,50 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
 
 .eureka-print-libro-masthead__brand {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     min-width: 22mm;
+    padding-top: 0;
+}
+
+.eureka-print-libro-masthead__meta {
+    text-align: right;
+    white-space: normal;
+    font-size: 6pt;
+    color: var(--eureka-print-muted);
+    line-height: 1.2;
+    overflow: visible;
+    align-self: start;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.eureka-print-libro-masthead__doctype {
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: var(--eureka-print-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.12rem;
+    line-height: 1.15;
+}
+
+.eureka-print-libro-masthead__page {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: var(--eureka-print-text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.eureka-print-libro-masthead__company {
+    font-size: 7.5pt;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--eureka-print-text);
+    margin: 0;
 }
 
 .eureka-print-libro-masthead__logo {
@@ -178,13 +307,6 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     font-weight: 700;
     font-size: 7pt;
     letter-spacing: 0.04em;
-}
-
-.eureka-print-libro-masthead__company {
-    font-size: 7.5pt;
-    font-weight: 700;
-    line-height: 1.15;
-    color: var(--eureka-print-text);
 }
 
 .eureka-print-libro-masthead__registro {
@@ -232,35 +354,23 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     margin-left: 0.5rem;
 }
 
-.eureka-print-libro-masthead__meta {
-    text-align: right;
-    white-space: nowrap;
-    font-size: 6pt;
-    color: var(--eureka-print-muted);
-    line-height: 1.2;
-}
-
-.eureka-print-libro-masthead__doctype {
-    font-size: 7pt;
-    font-weight: 700;
-    color: var(--eureka-print-blue);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.1rem;
-}
-
 .eureka-print-libro-masthead__date {
-    font-weight: 600;
+    font-size: 8pt;
+    font-weight: 700;
     color: var(--eureka-print-text);
+    letter-spacing: 0.02em;
 }
 
 .eureka-print-table--libro-iva .eureka-print-libro-banner th {
     padding: 0;
     border: none;
     background: transparent;
+    overflow: visible;
+    height: auto;
+    max-height: none;
 }
 
-.eureka-print-table--libro-iva thead tr:last-child th {
+.eureka-print-table--libro-iva thead tr:last-child:not(.eureka-print-libro-banner) th {
     border-top: 1px solid var(--eureka-print-border);
     border-bottom: 1px solid var(--eureka-print-border);
     padding: 0.1rem 0.12rem;
@@ -287,45 +397,134 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     font-size: 7pt;
 }
 
-.eureka-print-table--libro-iva th:nth-child(3),
-.eureka-print-table--libro-iva td:nth-child(3) {
-    width: var(--eureka-libro-ragione-ch);
-    max-width: var(--eureka-libro-ragione-ch);
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    hyphens: auto;
-    font-size: 6pt;
-    line-height: 1.08;
+/* Vendita / default: 1 Prot, 2 Data, 3 Ragione, 4 N.Doc, 5 del, 6 Descr, 7–10 importi */
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) th:nth-child(3),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) td:nth-child(3) {
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: manual;
+    font-size: 6.5pt;
+    line-height: 1.12;
 }
 
-.eureka-print-table--libro-iva th:nth-child(6),
-.eureka-print-table--libro-iva td:nth-child(6) {
-    word-break: break-word;
-    font-size: 6pt;
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) th:nth-child(4),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) td:nth-child(4) {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 6.5pt;
+    font-variant-numeric: tabular-nums;
+}
+
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) th:nth-child(6),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) td:nth-child(6) {
+    overflow-wrap: break-word;
+    word-break: normal;
+    font-size: 6.5pt;
+    line-height: 1.12;
+}
+
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td):nth-child(1),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td):nth-child(2),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td):nth-child(5) {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td).eureka-print-align-end,
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td):nth-child(7),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td):nth-child(8),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td):nth-child(9),
+.eureka-print-table--libro-iva:not(.eureka-print-table--libro-iva-acquisto) :is(th, td):nth-child(10) {
+    padding-left: 0.08rem;
+    padding-right: 0.08rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+}
+
+/* Acquisto: + Competenza dopo Data → 1 Prot, 2 Data, 3 Comp., 4 Ragione, 5 N.Doc, 6 del, 7 Descr, 8–11 importi */
+.eureka-print-table--libro-iva-acquisto th:nth-child(4),
+.eureka-print-table--libro-iva-acquisto td:nth-child(4) {
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: manual;
+    font-size: 6.5pt;
+    line-height: 1.12;
+}
+
+.eureka-print-table--libro-iva-acquisto th:nth-child(5),
+.eureka-print-table--libro-iva-acquisto td:nth-child(5) {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 6.5pt;
+    font-variant-numeric: tabular-nums;
+}
+
+.eureka-print-table--libro-iva-acquisto th:nth-child(7),
+.eureka-print-table--libro-iva-acquisto td:nth-child(7) {
+    overflow-wrap: break-word;
+    word-break: normal;
+    font-size: 6.5pt;
+    line-height: 1.12;
+}
+
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(1),
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(2),
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(3),
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(6) {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.eureka-print-table--libro-iva-acquisto :is(th, td).eureka-print-align-end,
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(8),
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(9),
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(10),
+.eureka-print-table--libro-iva-acquisto :is(th, td):nth-child(11) {
+    padding-left: 0.08rem;
+    padding-right: 0.08rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
 }
 
 .eureka-print-table--libro-iva tbody tr:nth-child(even) td {
+    background: #f1f5f9;
+}
+
+.eureka-print-table--libro-iva tbody tr.eureka-print-row--separator td,
+.eureka-print-table--libro-iva tbody tr.eureka-print-row--totale-doc td {
     background: transparent;
 }
 
+.eureka-print-table--libro-iva tbody tr.eureka-print-row--doc-end td {
+    border-bottom: 1px solid #cbd5e1;
+}
+
 .eureka-print-table--libro-iva col.eureka-print-col--prot {
-    width: 5ch;
+    width: 4%;
 }
 
 .eureka-print-table--libro-iva col.eureka-print-col--data {
-    width: 8ch;
+    width: 7%;
+}
+
+.eureka-print-table--libro-iva col.eureka-print-col--competenza {
+    width: 7%;
 }
 
 .eureka-print-table--libro-iva col.eureka-print-col--ndoc {
-    width: 6ch;
+    width: var(--eureka-libro-ndoc-ch);
 }
 
 .eureka-print-table--libro-iva col.eureka-print-col--descr {
-    width: auto;
+    width: var(--eureka-libro-descr-ch);
 }
 
 .eureka-print-table--libro-iva col.eureka-print-col--pct {
-    width: 3ch;
+    width: 3.5%;
 }
 
 .eureka-print-table--libro-iva col.eureka-print-col--importo,
@@ -335,23 +534,6 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
 
 .eureka-print-table--libro-iva col.eureka-print-col--ragione {
     width: var(--eureka-libro-ragione-ch);
-}
-
-.eureka-print-table--libro-iva :is(th, td):nth-child(1) {
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-.eureka-print-table--libro-iva :is(th, td).eureka-print-align-end,
-.eureka-print-table--libro-iva :is(th, td):nth-child(7),
-.eureka-print-table--libro-iva :is(th, td):nth-child(8),
-.eureka-print-table--libro-iva :is(th, td):nth-child(9),
-.eureka-print-table--libro-iva :is(th, td):nth-child(10) {
-    padding-left: 0.04rem;
-    padding-right: 0.04rem;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    letter-spacing: -0.02em;
 }
 
 .eureka-print-table--riepilogo :is(th, td).eureka-print-align-end,
@@ -370,15 +552,15 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
 }
 
 .eureka-print-row--separator td {
-    border-bottom: 1px dotted var(--eureka-print-muted);
-    height: 0.15rem;
+    border-bottom: 1px solid #e2e8f0;
+    height: 0.08rem;
     padding: 0;
     line-height: 0;
 }
 
 .eureka-print-table--libro-iva .eureka-print-row--totale-doc td {
-    padding-top: 0.02rem;
-    padding-bottom: 0.06rem;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .eureka-print-row--totale-doc td {
@@ -396,8 +578,18 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
 
 .eureka-print-libro-riepilogo {
     margin-top: 0.6rem;
+    /* In stampa il JS aggiunge page-break se serve un foglio riepilogo intestato */
     page-break-before: auto;
+    break-before: auto;
     padding-bottom: 4mm;
+}
+
+.eureka-print-libro-riepilogo__head {
+    margin-bottom: 0.45rem;
+}
+
+.eureka-print-libro-riepilogo__head .eureka-print-libro-masthead {
+    border-bottom-width: 1.5px;
 }
 
 .eureka-print-libro-riepilogo__title {
@@ -406,11 +598,47 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     line-height: 1.1;
 }
 
+.eureka-print-libro-riepilogo__title--second {
+    margin-top: 0.85rem;
+    padding-top: 0.45rem;
+    border-top: 1pt solid #0f172a;
+}
+
 .eureka-print-libro-riepilogo__subtitle {
     font-size: 6pt;
     color: var(--eureka-print-muted);
     margin-bottom: 0.25rem;
     line-height: 1.1;
+}
+
+.eureka-print-libro-riepilogo__note {
+    font-size: 6pt;
+    color: var(--eureka-print-muted);
+    margin: 0 0 0.35rem;
+    line-height: 1.25;
+    max-width: 100%;
+}
+
+.eureka-print-libro-riepilogo__delta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.1rem;
+    margin-top: 0.55rem;
+    padding-top: 0.35rem;
+    border-top: 0.7pt solid #0f172a;
+    font-size: 6.5pt;
+    line-height: 1.35;
+    color: var(--eureka-print-text);
+}
+
+/* Righe registrate nel mese successivo con competenza nel mese stampato */
+.eureka-print-table--libro-iva tbody tr.eureka-print-row--comp-successiva td {
+    background: #fff7ed !important;
+}
+
+/* Righe del mese con competenza già conteggiata nel mese precedente */
+.eureka-print-table--libro-iva tbody tr.eureka-print-row--comp-precedente td {
+    background: #f1f5f9 !important;
 }
 
 .eureka-print-table--riepilogo {
@@ -507,6 +735,13 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Prima dell'enhance JS: lascia il calendario nativo visibile */
+.eureka-print-input[type="date"] {
+    appearance: auto;
+    -webkit-appearance: auto;
+    padding-right: 0.35rem;
+}
+
 .eureka-print-input:hover {
     border-color: #94a3b8;
 }
@@ -515,6 +750,99 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     outline: none;
     border-color: var(--eureka-print-blue);
     box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+/* Date gg/mm/aaaa + icona calendario: stesso aspetto su Mac e Windows */
+.eureka-date-it {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    width: 9.6rem;
+    min-width: 9.6rem;
+    max-width: 10.5rem;
+    overflow: visible;
+}
+
+.eureka-date-it .eureka-print-input--date,
+.eureka-date-it .eureka-print-input[data-eureka-date-it],
+.eureka-date-it .eureka-date-it__input,
+.eureka-date-it .eureka-print-input {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding-right: 2.35rem !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.eureka-date-it__cal {
+    position: absolute;
+    top: 50%;
+    right: 0.2rem;
+    transform: translateY(-50%);
+    z-index: 5;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin: 0;
+    padding: 0;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    color: #1e293b !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px;
+    line-height: 1;
+    pointer-events: auto !important;
+    cursor: pointer;
+    visibility: visible !important;
+    opacity: 1 !important;
+    appearance: none;
+    -webkit-appearance: none;
+    box-shadow: none !important;
+}
+
+.eureka-date-it__cal:hover {
+    background: #e2e8f0 !important;
+}
+
+.eureka-date-it__cal svg {
+    display: block !important;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+}
+
+.eureka-date-it__native {
+    position: absolute;
+    top: 50%;
+    right: 0.2rem;
+    transform: translateY(-50%);
+    z-index: 1;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    background: transparent !important;
+    opacity: 0.02;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.eureka-date-it__icon {
+    display: none !important;
+}
+
+.eureka-print-input--date.is-invalid {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.eureka-print-dialog .eureka-date-it {
+    width: 100%;
+    max-width: none;
 }
 
 .eureka-print-pills {
@@ -588,6 +916,10 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.45rem;
+}
+
+.eureka-print-toggles--single {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .eureka-print-toggle {
@@ -950,6 +1282,86 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     filter: brightness(1.05);
 }
 
+.eureka-print-btn--accent {
+    background: #0f766e;
+    border-color: #0f766e;
+    color: #fff;
+}
+
+.eureka-print-btn--accent:hover:not(:disabled) {
+    background: #0d9488;
+    border-color: #0d9488;
+}
+
+.eureka-print-btn--accent:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.eureka-print-dialog {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    max-width: 28rem;
+    width: calc(100% - 2rem);
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+}
+
+.eureka-print-dialog::backdrop {
+    background: rgba(15, 23, 42, 0.35);
+}
+
+.eureka-print-dialog__title {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+}
+
+.eureka-print-dialog__text {
+    margin: 0 0 0.65rem;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.eureka-print-dialog__warn {
+    margin: 0 0 0.65rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 4px;
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    color: #9a3412;
+    font-size: 0.8rem;
+}
+
+.eureka-print-dialog__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem 0.65rem;
+    margin-bottom: 0.85rem;
+}
+
+.eureka-print-dialog__grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.eureka-print-dialog__grid input {
+    font-weight: 500;
+    font-size: 0.85rem;
+    padding: 0.28rem 0.4rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+}
+
+.eureka-print-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
 /* Foglio stampa */
 .eureka-print-sheet {
     max-width: 210mm;
@@ -1255,6 +1667,54 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     padding: 1.5rem !important;
 }
 
+/* Registro IVA senza movimenti: barra obliqua (annullamento foglio) */
+.eureka-print-row--libro-vuoto > td {
+    padding: 0 !important;
+    border-bottom: none !important;
+    background: transparent !important;
+}
+
+.eureka-print-libro-vuoto {
+    position: relative;
+    height: 210mm;
+    vertical-align: top;
+}
+
+.eureka-print-libro-vuoto__frame {
+    position: absolute;
+    inset: 2mm 1mm 4mm;
+    border: 1px solid #64748b;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.eureka-print-libro-vuoto__slash {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.eureka-print-libro-vuoto__slash line {
+    stroke: #0f172a;
+    stroke-width: 0.45;
+    vector-effect: non-scaling-stroke;
+}
+
+.eureka-print-libro-vuoto__note {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    max-width: 70%;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--eureka-print-muted);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 0.4rem 0.65rem;
+    border-radius: 0.25rem;
+}
+
 .eureka-print-footer {
     margin-top: 0.75rem;
     padding-top: 0.5rem;
@@ -1295,16 +1755,21 @@ body.eureka-print-body--landscape .eureka-print-table td {
      */
     @page eureka-print-portrait-compact {
         size: A4 portrait;
-        margin: 8mm 6mm 18mm;
+        margin: 10mm 6mm 10mm;
+
+        @top-right {
+            content: "Pag. " counter(page);
+            font-family: "Segoe UI", system-ui, sans-serif;
+            font-size: 7.5pt;
+            font-weight: 600;
+            color: #0f172a;
+            text-align: right;
+            vertical-align: bottom;
+            padding-bottom: 0.5mm;
+        }
 
         @bottom-right {
-            content: "Pagina " counter(page) " / " counter(pages);
-            font-family: "Segoe UI", system-ui, sans-serif;
-            font-size: 7pt;
-            color: #64748b;
-            vertical-align: top;
-            margin-bottom: 4mm;
-            margin-right: 1mm;
+            content: none;
         }
     }
 
@@ -1344,12 +1809,55 @@ body.eureka-print-body--landscape .eureka-print-table td {
     }
 
     body.eureka-print-body--libro-iva {
-        page: eureka-print-portrait-compact;
+        /* Solo masthead JS (Pag. N): niente named page con "Pag." in @top-right */
+        page: auto !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-masthead__doctype,
+    body.eureka-print-body--libro-iva .eureka-print-libro-masthead__page {
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-masthead__page {
+        font-size: 8.5pt !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-riepilogo__head {
+        display: block !important;
     }
 
     body.eureka-print-body--libro-iva .eureka-print-sheet {
         padding: 0 0 2mm;
-        margin: 0;
+        margin-top: 0 !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-page-break {
+        page-break-before: always !important;
+        break-before: page !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-vuoto {
+        height: 220mm;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-vuoto__frame {
+        border-color: #334155 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-vuoto__slash line {
+        stroke: #0f172a !important;
+        stroke-width: 0.55;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-table--libro-iva {
+        page-break-inside: avoid !important;
     }
 
     body.eureka-print-body--libro-iva .eureka-print-table-wrap {
@@ -1362,9 +1870,95 @@ body.eureka-print-body--landscape .eureka-print-table td {
         print-color-adjust: exact;
     }
 
+    /*
+     * Stampa definita (niente grigi chiari → niente dithering/puntinato in stampa).
+     * Griglia continua nera/antracite; niente sfondo zebrato.
+     */
+    body.eureka-print-body .eureka-print-table,
+    body.eureka-print-body .eureka-print-table th,
+    body.eureka-print-body .eureka-print-table td {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        border-style: solid !important;
+        border-color: #1e293b !important;
+    }
+
+    body.eureka-print-body .eureka-print-table th,
+    body.eureka-print-body .eureka-print-table td {
+        border-width: 0.6pt !important;
+    }
+
+    body.eureka-print-body .eureka-print-table {
+        border: 0.9pt solid #0f172a !important;
+    }
+
+    body.eureka-print-body .eureka-print-table thead tr:last-child th,
+    body.eureka-print-body .eureka-print-table thead th {
+        border-bottom-width: 1.1pt !important;
+        border-bottom-color: #0f172a !important;
+    }
+
+    body.eureka-print-body .eureka-print-table tbody tr:nth-child(even) td,
+    body.eureka-print-body .eureka-print-table--libro-iva tbody tr:nth-child(even) td {
+        background: transparent !important;
+    }
+
+    body.eureka-print-body .eureka-print-table--libro-iva tbody tr.eureka-print-row--comp-successiva td {
+        background: #fff7ed !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body.eureka-print-body .eureka-print-table--libro-iva tbody tr.eureka-print-row--comp-precedente td {
+        background: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body.eureka-print-body .eureka-print-table tbody tr.eureka-print-row--doc-end td {
+        border-bottom-width: 1pt !important;
+        border-bottom-color: #0f172a !important;
+    }
+
+    body.eureka-print-body .eureka-print-table tr.eureka-print-row--totale td,
+    body.eureka-print-body .eureka-print-table--libro-iva tr.eureka-print-row--totale td {
+        border-top-width: 1.2pt !important;
+        border-top-color: #0f172a !important;
+        background: transparent !important;
+    }
+
+    body.eureka-print-body .eureka-print-libro-masthead {
+        border-bottom: 1.5pt solid #1e3a8a !important;
+    }
+
     body.eureka-print-body--libro-iva .eureka-print-table th,
     body.eureka-print-body--libro-iva .eureka-print-table td {
-        border-color: #cbd5e1;
+        border-color: #1e293b !important;
+    }
+
+    /* Niente cornice intorno al masthead (logo/ditta/data) */
+    body.eureka-print-body--libro-iva .eureka-print-table {
+        border: none !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-table .eureka-print-libro-banner th,
+    body.eureka-print-body--libro-iva .eureka-print-libro-masthead {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-masthead {
+        border-bottom: 1.2pt solid #1e3a8a !important;
+    }
+
+    /* Intestazione colonne: contrasto pieno anche senza “grafica sfondo” stampante */
+    body.eureka-print-body--libro-iva .eureka-print-table thead tr:last-child:not(.eureka-print-libro-banner) th {
+        background: #1e3a8a !important;
+        color: #fff !important;
+        font-weight: 700 !important;
+        border-color: #0f172a !important;
     }
 
     .d-print-none,

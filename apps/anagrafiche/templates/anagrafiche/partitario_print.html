@@ -1,0 +1,402 @@
+{% load static format_tags %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Partitario{% if tutti %} · Tutti {{ subject.kind_label }}{% elif subject.codice %} · {{ subject.kind_label }} {{ subject.codice }}{% endif %}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    <style>
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 8mm 6mm 8mm;
+            @top-left {
+                content: "{{ azienda_header.ragione_sociale|default:print_azienda_ragione_sociale|default:''|cut:'"' }} — Partitario {{ subject.kind_label|cut:'"' }}{% if tutti %} (tutti){% endif %}";
+                font-family: "Segoe UI", system-ui, sans-serif;
+                font-size: 7pt;
+                font-weight: 700;
+                color: #1e3a8a;
+                vertical-align: bottom;
+                padding-bottom: 0.5mm;
+            }
+            @top-right {
+                content: "Pag. " counter(page);
+                font-family: "Segoe UI", system-ui, sans-serif;
+                font-size: 7.5pt;
+                font-weight: 600;
+                color: #0f172a;
+                text-align: right;
+                vertical-align: bottom;
+                padding-bottom: 0.5mm;
+            }
+        }
+        body.eureka-print-body--partitario {
+            page: auto !important;
+        }
+        .eureka-partitario-block {
+            page-break-after: always;
+            break-after: page;
+        }
+        .eureka-partitario-block:last-child {
+            page-break-after: auto;
+            break-after: auto;
+        }
+        .eureka-partitario-print-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7.5pt;
+        }
+        .eureka-partitario-print-table th,
+        .eureka-partitario-print-table td {
+            border-bottom: 0.3pt solid #cbd5e1;
+            padding: 1.5pt 2.5pt;
+            vertical-align: top;
+        }
+        .eureka-partitario-print-table thead th {
+            border-bottom: 0.8pt solid #1e3a8a;
+            font-size: 7pt;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: #1e3a8a;
+        }
+        .eureka-partitario-print-table .is-special {
+            font-weight: 700;
+            background: #f1f5f9;
+        }
+        .eureka-partitario-print-table .num {
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        .eureka-partitario-print-table .neg {
+            color: #b91c1c;
+        }
+    }
+    .eureka-partitario-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    .eureka-partitario-print-table th,
+    .eureka-partitario-print-table td {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 4px 6px;
+        vertical-align: top;
+    }
+    .eureka-partitario-print-table thead th {
+        border-bottom: 2px solid #1e3a8a;
+        font-size: 11px;
+        text-align: left;
+        color: #1e3a8a;
+    }
+    .eureka-partitario-print-table .is-special {
+        font-weight: 700;
+        background: #f8fafc;
+    }
+    .eureka-partitario-print-table .num {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .eureka-partitario-print-table .neg {
+        color: #b91c1c;
+    }
+    .eureka-partitario-subject {
+        margin: 0.4rem 0 0.75rem;
+        font-size: 13px;
+    }
+    .eureka-partitario-subject strong {
+        font-size: 15px;
+    }
+    .eureka-partitario-totals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin: 0.5rem 0 0.85rem;
+        font-size: 12px;
+    }
+    .eureka-partitario-totals span strong {
+        font-variant-numeric: tabular-nums;
+    }
+    .eureka-partitario-block {
+        margin-bottom: 1.5rem;
+    }
+    .eureka-print-error {
+        margin: 0.75rem 0;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+        color: #991b1b;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    .eureka-print-warn {
+        margin: 0.75rem 0;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid #fde68a;
+        background: #fffbeb;
+        color: #92400e;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    .eureka-print-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-top: 1.35rem;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    </style>
+</head>
+<body class="eureka-print-body eureka-print-body--landscape eureka-print-body--partitario">
+<div class="eureka-print-toolbar d-print-none">
+    <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
+        <div class="eureka-print-toolbar__head">
+            <div class="eureka-print-toolbar__title">Stampa Partitario</div>
+            <div class="eureka-print-toolbar__meta">
+                {% if print_preview_ready %}
+                <span class="eureka-print-toolbar__count"><strong>{{ soggetti_count }}</strong> soggetti{% if not riepilogo %} · <strong>{{ movimenti_count }}</strong> movimenti{% endif %}</span>
+                <span class="eureka-print-toolbar__summary">
+                    {% if tutti %}Tutti i {{ subject.kind_label|lower }}{% else %}{{ subject.kind_label }} {{ subject.codice }}{% endif %}
+                    {% if riepilogo %} · Riepilogo saldi{% endif %}
+                    · {{ periodo_label }}
+                    {% if filtro_saldo_label %} · {{ filtro_saldo_label }}{% endif %}
+                </span>
+                {% else %}
+                <span class="eureka-print-toolbar__hint">Scegli tipo, codice o «Tutti», filtro saldo e periodo, poi genera l'anteprima</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="eureka-print-toolbar__panel">
+            <form method="get" class="eureka-print-filters" action="{{ request.path }}" id="formPartitarioPrint">
+                <div class="eureka-print-filters__grid">
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Soggetto</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Tipo</span>
+                                <select class="eureka-print-input" name="kind" required>
+                                    {% for value, label in kind_choices %}
+                                    <option value="{{ value }}"{% if kind == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Codice</span>
+                                <input type="text" class="eureka-print-input" name="codice" id="id_codice" value="{{ codice }}" placeholder="Es. C0001 — lascia vuoto se Tutti" autocomplete="off"{% if tutti %} disabled{% endif %}>
+                            </label>
+                            <label class="eureka-print-check">
+                                <input type="checkbox" name="tutti" value="1" id="id_tutti"{% if tutti %} checked{% endif %}>
+                                Tutti
+                            </label>
+                            <label class="eureka-print-check" title="Una riga per soggetto: codice, dare, avere, saldo (senza movimenti)">
+                                <input type="checkbox" name="riepilogo" value="1" id="id_riepilogo"{% if riepilogo %} checked{% endif %}>
+                                Solo riepilogo
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Filtro saldo finale periodo</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Condizione</span>
+                                <select class="eureka-print-input" name="saldo_op">
+                                    {% for value, label in saldo_op_choices %}
+                                    <option value="{{ value }}"{% if saldo_op == value %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Importo</span>
+                                <input type="text" class="eureka-print-input" name="saldo_soglia" value="{{ saldo_soglia }}" placeholder="0,00" inputmode="decimal">
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Periodo</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Da data</span>
+                                {% include "base/partials/date_input.html" with name="data_da" value=data_da required=True %}
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">A data</span>
+                                {% include "base/partials/date_input.html" with name="data_a" value=data_a required=True %}
+                            </label>
+                        </div>
+                    </fieldset>
+                    <div class="eureka-print-filters__submit">
+                        <input type="hidden" name="anteprima" value="1">
+                        <button type="submit" class="eureka-print-btn eureka-print-btn--apply">
+                            {% if print_preview_ready %}Applica filtri{% else %}Genera anteprima{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="eureka-print-toolbar__actions">
+                {% if print_preview_ready %}
+                {% include "base/partials/print_zoom_controls.html" %}
+                <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">Stampa</button>
+                {% endif %}
+                <button type="button" class="eureka-print-btn" data-print-close>Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+<div class="eureka-print-error d-print-none">{{ error }}</div>
+{% endif %}
+{% if print_preview_ready and bundle.truncated %}
+<div class="eureka-print-warn d-print-none">
+    Anteprima limitata ai primi <strong>{{ max_partitari }}</strong> soggetti (su {{ bundle.matched }} che rispettano il filtro).
+    Restringi il filtro saldo o il periodo.
+</div>
+{% endif %}
+
+{% if print_preview_ready and bundle.blocks %}
+<div class="eureka-print-preview-stage">
+{% if riepilogo %}
+<article class="eureka-print-sheet">
+    <div class="eureka-print-table-wrap">
+        {% include "registri_iva/partials/libro_registro_masthead.html" with libro=partitario_masthead %}
+        <div class="eureka-partitario-subject">
+            <div><strong>Riepilogo saldi · {{ subject.kind_label }}</strong> · {{ periodo_label }}</div>
+            {% if filtro_saldo_label %}<div class="text-secondary">{{ filtro_saldo_label }}</div>{% endif %}
+        </div>
+        <table class="eureka-partitario-print-table">
+            <thead>
+                <tr>
+                    <th style="width:8%">Codice</th>
+                    <th>Descrizione</th>
+                    <th class="num" style="width:12%">Dare</th>
+                    <th class="num" style="width:12%">Avere</th>
+                    <th class="num" style="width:12%">Saldo</th>
+                    <th class="num" style="width:8%">Mov.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for block in bundle.blocks %}
+                <tr>
+                    <td>{{ block.subject.codice }}</td>
+                    <td>{{ block.subject.nome }}</td>
+                    <td class="num">{% if block.partitario.totale_dare %}{{ block.partitario.totale_dare|euro }}{% endif %}</td>
+                    <td class="num">{% if block.partitario.totale_avere %}{{ block.partitario.totale_avere|euro }}{% endif %}</td>
+                    <td class="num {% if block.partitario.saldo_finale < 0 %}neg{% endif %}">{{ block.partitario.saldo_finale|euro }}</td>
+                    <td class="num">{{ block.movimenti_count }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="is-special">
+                    <td colspan="2">Totale {{ soggetti_count }} soggetti</td>
+                    <td class="num">{{ riepilogo_tot_dare|euro }}</td>
+                    <td class="num">{{ riepilogo_tot_avere|euro }}</td>
+                    <td class="num {% if riepilogo_tot_saldo < 0 %}neg{% endif %}">{{ riepilogo_tot_saldo|euro }}</td>
+                    <td class="num">{{ movimenti_count }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</article>
+{% else %}
+{% for block in bundle.blocks %}
+<article class="eureka-print-sheet eureka-partitario-block">
+    <div class="eureka-print-table-wrap">
+        {% if forloop.first %}
+        {% include "registri_iva/partials/libro_registro_masthead.html" with libro=partitario_masthead %}
+        {% endif %}
+        <div class="eureka-partitario-subject">
+            <div><strong>Partitario {{ block.subject.kind_label }}</strong> · {{ periodo_label }}</div>
+            <div>{{ block.subject.codice }} — {{ block.subject.nome }}</div>
+        </div>
+        <div class="eureka-partitario-totals">
+            <span>Saldo prec.: <strong>{{ block.partitario.saldo_precedente|euro }}</strong></span>
+            <span>Tot. Dare: <strong>{{ block.partitario.totale_dare|euro }}</strong></span>
+            <span>Tot. Avere: <strong>{{ block.partitario.totale_avere|euro }}</strong></span>
+            <span>Saldo finale: <strong class="{% if block.partitario.saldo_finale < 0 %}neg{% endif %}">{{ block.partitario.saldo_finale|euro }}</strong></span>
+        </div>
+        <table class="eureka-partitario-print-table">
+            <thead>
+                <tr>
+                    <th>Rif.</th>
+                    <th>Dt Reg.</th>
+                    <th>Dt Comp.</th>
+                    <th>Causale</th>
+                    <th>Descrizione</th>
+                    <th>Pagamento</th>
+                    <th>C/Part.</th>
+                    <th>Prot.</th>
+                    <th>N. Doc.</th>
+                    <th>Dt Doc.</th>
+                    <th class="num">Dare</th>
+                    <th class="num">Avere</th>
+                    <th class="num">Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for riga in block.partitario.righe %}
+                <tr class="{% if riga.is_saldo_precedente or riga.is_totale %}is-special{% endif %}">
+                    <td>{% if riga.numero_reg %}{{ riga.numero_reg }}{% endif %}</td>
+                    <td>{% if riga.data_reg %}{{ riga.data_reg|date:"d/m/Y" }}{% endif %}</td>
+                    <td>{% if riga.data_comp %}{{ riga.data_comp|date:"d/m/Y" }}{% endif %}</td>
+                    <td>{% firstof riga.causale_descrizione riga.causale %}</td>
+                    <td>{{ riga.descrizione }}</td>
+                    <td>{% firstof riga.pagamento_descrizione riga.pagamento %}</td>
+                    <td>{{ riga.contro_codice }}</td>
+                    <td>{% if riga.numero_prot %}{{ riga.numero_prot }}{% endif %}</td>
+                    <td>{{ riga.numero_doc }}</td>
+                    <td>{% if riga.data_doc %}{{ riga.data_doc|date:"d/m/y" }}{% endif %}</td>
+                    <td class="num">{% if riga.dare %}{{ riga.dare|euro }}{% endif %}</td>
+                    <td class="num">{% if riga.avere %}{{ riga.avere|euro }}{% endif %}</td>
+                    <td class="num {% if riga.saldo < 0 %}neg{% endif %}">{{ riga.saldo|euro }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="13" style="text-align:center;padding:1rem;color:#64748b;">
+                        Nessun movimento nel periodo selezionato.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</article>
+{% endfor %}
+{% endif %}
+</div>
+{% endif %}
+
+<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
+<script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
+<script>
+(function () {
+    document.querySelectorAll("[data-print-close]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            window.close();
+        });
+    });
+    var tutti = document.getElementById("id_tutti");
+    var codice = document.getElementById("id_codice");
+    if (tutti && codice) {
+        function syncTutti() {
+            codice.disabled = tutti.checked;
+            if (tutti.checked) {
+                codice.removeAttribute("required");
+            }
+        }
+        tutti.addEventListener("change", syncTutti);
+        syncTutti();
+        document.getElementById("formPartitarioPrint").addEventListener("submit", function () {
+            if (tutti.checked) {
+                codice.disabled = false;
+                codice.value = "";
+            }
+        });
+    }
+})();
+</script>
+</body>
+</html>

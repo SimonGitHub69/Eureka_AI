@@ -1,0 +1,109 @@
+/* Date gg/mm/aaaa + icona calendario — stesso aspetto Mac / Windows */
+
+.eureka-date-it {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    width: 100%;
+    max-width: 11rem;
+    vertical-align: middle;
+    overflow: visible;
+}
+
+.eureka-date-it .eureka-date-it__input,
+.eureka-date-it .eureka-print-input--date,
+.eureka-date-it .eureka-print-input[data-eureka-date-it],
+.eureka-date-it .form-control,
+.eureka-date-it .eureka-print-input {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding-right: 2.35rem !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Bottone calendario — cliccabile, sempre sopra */
+.eureka-date-it__cal {
+    position: absolute;
+    top: 50%;
+    right: 0.2rem;
+    transform: translateY(-50%);
+    z-index: 5;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin: 0;
+    padding: 0;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    color: #1e293b !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px;
+    box-shadow: none !important;
+    line-height: 1;
+    pointer-events: auto !important;
+    cursor: pointer;
+    visibility: visible !important;
+    opacity: 1 !important;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.eureka-date-it__cal:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+.eureka-date-it__cal svg {
+    display: block !important;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+}
+
+/* Input date nativo: sotto il bottone, dimensione reale per showPicker */
+.eureka-date-it__native {
+    position: absolute;
+    top: 50%;
+    right: 0.2rem;
+    transform: translateY(-50%);
+    z-index: 1;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    background: transparent !important;
+    opacity: 0.02;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    color-scheme: light;
+}
+
+.eureka-date-it__input.is-invalid,
+.eureka-print-input--date.is-invalid {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.eureka-mask .eureka-date-it,
+.eureka-print-dialog .eureka-date-it,
+.card-body .eureka-date-it,
+.col .eureka-date-it,
+[class*="col-"] .eureka-date-it {
+    max-width: none;
+}
+
+.eureka-print-filters .eureka-date-it,
+.eureka-print-field .eureka-date-it {
+    width: 9.6rem;
+    min-width: 9.6rem;
+    max-width: 10.5rem;
+    flex-shrink: 0;
+}

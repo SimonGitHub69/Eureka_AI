@@ -36,6 +36,23 @@
             .replace(/"/g, "&quot;");
     }
 
+    function dateField(id) {
+        const el = document.getElementById(id);
+        if (!el) return "";
+        if (window.EurekaDateIT) return window.EurekaDateIT.getIso(el);
+        return (el.value || "").trim();
+    }
+
+    function setDateField(id, iso) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (window.EurekaDateIT) {
+            if (!window.EurekaDateIT.getIso(el)) window.EurekaDateIT.setFromIso(el, iso);
+        } else if (!el.value) {
+            el.value = iso;
+        }
+    }
+
     function ymd(d) {
         return (
             d.getFullYear()
@@ -257,8 +274,8 @@
         const DB = window.EurekaOfflineDB;
         const result = DB.listFatture({
             q: ($("#fat-q") || {}).value || "",
-            dataDa: ($("#fat-da") || {}).value || "",
-            dataA: ($("#fat-a") || {}).value || "",
+            dataDa: dateField("fat-da"),
+            dataA: dateField("fat-a"),
             page: state.fatPage,
             perPage: Number(($("#fat-per") || {}).value || 50),
         });
@@ -288,8 +305,8 @@
     function renderClassifica() {
         const DB = window.EurekaOfflineDB;
         const opts = {
-            dataDa: ($("#cls-da") || {}).value || "",
-            dataA: ($("#cls-a") || {}).value || "",
+            dataDa: dateField("cls-da"),
+            dataA: dateField("cls-a"),
             metrica: ($("#cls-metrica") || {}).value || "imponibile",
             topN: Number(($("#cls-top") || {}).value || 50),
             nc: ($("#cls-nc") || {}).value || "",
@@ -380,10 +397,10 @@
     function renderAnalisi() {
         const DB = window.EurekaOfflineDB;
         state.anData = DB.analisiFatturato({
-            rifDa: ($("#an-rif-da") || {}).value || "",
-            rifA: ($("#an-rif-a") || {}).value || "",
-            conDa: ($("#an-con-da") || {}).value || "",
-            conA: ($("#an-con-a") || {}).value || "",
+            rifDa: dateField("an-rif-da"),
+            rifA: dateField("an-rif-a"),
+            conDa: dateField("an-con-da"),
+            conA: dateField("an-con-a"),
             metrica: ($("#an-metrica") || {}).value || "imponibile",
             nc: "",
             listLimit: 50,
@@ -417,8 +434,8 @@
     function renderGeo() {
         const DB = window.EurekaOfflineDB;
         const opts = {
-            dataDa: ($("#geo-da") || {}).value || "",
-            dataA: ($("#geo-a") || {}).value || "",
+            dataDa: dateField("geo-da"),
+            dataA: dateField("geo-a"),
             metrica: ($("#geo-metrica") || {}).value || "imponibile",
             nc: "",
         };
@@ -565,8 +582,7 @@
             ["an-rif-da", an.rifDa], ["an-rif-a", an.rifA],
             ["an-con-da", an.conDa], ["an-con-a", an.conA],
         ].forEach(function (pair) {
-            const el = document.getElementById(pair[0]);
-            if (el && !el.value) el.value = pair[1];
+            setDateField(pair[0], pair[1]);
         });
 
         setOnlineBadge();
