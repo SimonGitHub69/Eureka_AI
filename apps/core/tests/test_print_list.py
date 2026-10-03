@@ -71,6 +71,7 @@ class PrintListUrlTests(SimpleTestCase):
         "set_articoli:print_list",
         "distinte_base:print_list",
         "movimenti:print_list",
+        "pdc:bilancio_verifica",
         "magazzini:print_list",
         "categorie:print_list",
         "gruppi_articoli:print_list",
@@ -100,7 +101,9 @@ class PrintListUrlTests(SimpleTestCase):
                 url = reverse(name)
                 path = url.rstrip("/")
                 self.assertTrue(
-                    path.endswith("/stampa") or path.endswith("/inventario"),
+                    path.endswith("/stampa")
+                    or path.endswith("/inventario")
+                    or path.endswith("/bilancio-verifica"),
                     msg=url,
                 )
 
@@ -109,4 +112,4 @@ class PrintListUrlTests(SimpleTestCase):
         request.user = AnonymousUser()
         response = MagazzinoPrintListView.as_view()(request)
         self.assertEqual(response.status_code, 302)
-        self.assertIn("/admin/login/", response.url)
+        self.assertIn("/login/", response.url)

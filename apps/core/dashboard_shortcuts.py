@@ -77,7 +77,10 @@ NAVBAR_SHORTCUT_CATALOG: tuple[dict[str, Any], ...] = (
     # --- Primanota · Stampe ---
     _sc("stampa_pdc", "Piano dei Conti", "Primanota · Stampe", "ti-report-money", "pdc:print_list", default=SHORTCUT_OFF, color="green", subtitle="Stampa elenco piano dei conti"),
     _sc("stampa_primanota", "Primanota", "Primanota · Stampe", "ti-notebook", "primanota:print_list", default=SHORTCUT_OFF, color="teal", subtitle="Stampa elenco registrazioni"),
-    _sc("stampa_registri_iva", "Registri IVA", "Primanota · Stampe", "ti-book-2", "registri_iva:print_list", default=SHORTCUT_OFF, color="teal", subtitle="Libro registro IVA per periodo"),
+    _sc("stampa_partitario", "Partitario", "Primanota · Stampe", "ti-report-analytics", "anagrafiche:partitario_print", default=SHORTCUT_OFF, color="cyan", subtitle="Stampa partitario clienti/fornitori/sottoconti"),
+    _sc("stampa_bilancio_verifica", "Bilancio di Verifica", "Primanota · Stampe", "ti-scale", "pdc:bilancio_verifica", default=SHORTCUT_OFF, color="indigo", subtitle="Totali Dare/Avere e saldi per sottoconto"),
+    _sc("stampa_registri_iva", "Stampe e Registri IVA", "Contabilità · Stampe", "ti-book-2", "registri_iva:print_list", default=SHORTCUT_OFF, color="teal", subtitle="Libro registro IVA per periodo"),
+    _sc("stampa_liquidazione_iva", "Liquidazione Periodica IVA", "Contabilità · Stampe", "ti-calculator", "registri_iva:liquidazione", default=SHORTCUT_OFF, color="teal", subtitle="Liquidazione IVA mensile"),
     _sc("stampa_causali_contabili", "Causali Contabili", "Primanota · Stampe", "ti-file-description", "causali_contabili:print_list", default=SHORTCUT_OFF, color="lime", subtitle="Stampa elenco causali contabili"),
     _sc("stampa_raggruppamento_conti", "Raggruppamento Conti", "Primanota · Stampe", "ti-category-2", "raggruppamento_conti:print_list", default=SHORTCUT_OFF, color="green", subtitle="Stampa raggruppamenti conti"),
     _sc("stampa_raggruppamento_clifor", "Raggr. Clienti-Fornitori", "Primanota · Stampe", "ti-users-group", "raggruppamento_clifor:print_list", default=SHORTCUT_OFF, color="azure", subtitle="Stampa raggruppamenti clienti/fornitori"),

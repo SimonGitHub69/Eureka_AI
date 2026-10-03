@@ -1,0 +1,249 @@
+{% load static format_tags %}
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{{ titolo_stampa|default:"Bilancio di Verifica" }}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=87">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=9">
+    <style>
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 8mm 6mm 8mm;
+            @top-left {
+                content: "{{ azienda_header.ragione_sociale|default:print_azienda_ragione_sociale|default:''|cut:'"' }} — {{ titolo_stampa|default:'Bilancio di Verifica'|cut:'"' }}";
+                font-family: "Segoe UI", system-ui, sans-serif;
+                font-size: 7pt;
+                font-weight: 700;
+                color: #1e3a8a;
+            }
+            @top-right {
+                content: "Pag. " counter(page);
+                font-family: "Segoe UI", system-ui, sans-serif;
+                font-size: 7pt;
+                color: #64748b;
+            }
+            @bottom-left { content: none; }
+            @bottom-right { content: none; }
+        }
+        body.eureka-print-body--bilancio .eureka-print-sheet {
+            margin: 0 !important;
+            padding: 4mm 5mm !important;
+            box-shadow: none !important;
+        }
+    }
+    .eureka-bilancio-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8.5pt;
+    }
+    .eureka-bilancio-print-table th,
+    .eureka-bilancio-print-table td {
+        border: 1px solid #cbd5e1;
+        padding: 3px 5px;
+        vertical-align: top;
+    }
+    .eureka-bilancio-print-table thead th {
+        background: #e2e8f0;
+        font-weight: 700;
+        text-align: left;
+    }
+    .eureka-bilancio-print-table .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .eureka-bilancio-print-table .neg { color: #b91c1c; }
+    .eureka-bilancio-print-table tr.is-total td {
+        background: #cbd5e1;
+        font-weight: 800;
+        border-top: 2px solid #475569;
+    }
+    .eureka-bilancio-print-table tr.is-riepilogo td {
+        background: #f8fafc;
+        font-weight: 700;
+    }
+    .eureka-bilancio-print-table tr.is-riepilogo-mastro td {
+        background: #e2e8f0;
+        font-weight: 700;
+    }
+    .eureka-bilancio-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 1.5rem;
+        margin: 0.4rem 0 0.7rem;
+        font-size: 9pt;
+    }
+    .eureka-bilancio-meta .warn { color: #b45309; font-weight: 600; }
+    </style>
+</head>
+<body class="eureka-print-body eureka-print-body--bilancio">
+<div class="eureka-print-toolbar d-print-none">
+    <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
+        <div class="eureka-print-toolbar__head">
+            <div class="eureka-print-toolbar__title">Stampa {{ titolo_stampa|default:"Bilancio di Verifica" }}</div>
+            <div class="eureka-print-toolbar__meta">
+                {% if print_preview_ready %}
+                <span class="eureka-print-toolbar__count"><strong>{{ bilancio.n_conti }}</strong> {{ count_label|default:"conti" }}</span>
+                <span class="eureka-print-toolbar__summary">{{ periodo_label }}</span>
+                {% else %}
+                <span class="eureka-print-toolbar__hint">Imposta il periodo e genera l'anteprima</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="eureka-print-toolbar__panel">
+            <form method="get" class="eureka-print-filters" action="{{ request.path }}" id="formBilancioVerifica">
+                <div class="eureka-print-filters__grid">
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Periodo</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">Da data</span>
+                                {% include "base/partials/date_input.html" with name="data_da" value=data_da required=True %}
+                            </label>
+                            <label class="eureka-print-field">
+                                <span class="eureka-print-field__label">A data</span>
+                                {% include "base/partials/date_input.html" with name="data_a" value=data_a required=True %}
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Tipo stampa</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-field eureka-print-field--grow">
+                                <span class="eureka-print-field__label">Situazione</span>
+                                <select name="modalita" class="eureka-print-input">
+                                    {% for key, label in modalita_choices.items %}
+                                    <option value="{{ key }}"{% if modalita == key %} selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset class="eureka-print-filters__group">
+                        <legend class="eureka-print-filters__legend">Opzioni</legend>
+                        <div class="eureka-print-filters__row">
+                            <label class="eureka-print-check" title="Nasconde le righe senza Dare/Avere nel periodo">
+                                <input type="checkbox" name="solo_movimenti" value="1"{% if solo_con_movimenti %} checked{% endif %}>
+                                Solo con movimenti nel periodo
+                            </label>
+                            <label class="eureka-print-check" title="Esclude le righe con saldo finale a zero">
+                                <input type="checkbox" name="escludi_zero" value="1"{% if escludi_saldo_zero %} checked{% endif %}>
+                                Escludi saldo zero
+                            </label>
+                            <label class="eureka-print-check" title="{% if modalita == 'clienti' %}Elenca tutti i clienti, anche senza movimenti{% elif modalita == 'fornitori' %}Elenca tutti i fornitori, anche senza movimenti{% else %}Elenca tutti i sottoconti del piano dei conti, anche senza movimenti{% endif %}">
+                                <input type="checkbox" name="tutti_sottoconti" value="1"{% if includi_tutti %} checked{% endif %}>
+                                {% if modalita == 'clienti' %}Tutti i clienti{% elif modalita == 'fornitori' %}Tutti i fornitori{% else %}Tutti i sottoconti PDC{% endif %}
+                            </label>
+                            <label class="eureka-print-check" title="Mostra colonne saldi precedenti al periodo">
+                                <input type="checkbox" name="mostra_prec" value="1"{% if mostra_precedenti %} checked{% endif %}>
+                                Colonne saldi precedenti
+                            </label>
+                        </div>
+                    </fieldset>
+                    <div class="eureka-print-filters__submit">
+                        <input type="hidden" name="anteprima" value="1">
+                        <button type="submit" class="eureka-print-btn eureka-print-btn--apply">
+                            {% if print_preview_ready %}Applica filtri{% else %}Genera anteprima{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="eureka-print-toolbar__actions">
+                {% if print_preview_ready %}
+                {% include "base/partials/print_zoom_controls.html" %}
+                <button type="button" class="eureka-print-btn eureka-print-btn--primary" onclick="window.print()">Stampa</button>
+                {% endif %}
+                <button type="button" class="eureka-print-btn" data-print-close>Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+<div class="eureka-print-error d-print-none">{{ error }}</div>
+{% endif %}
+
+{% if print_preview_ready and bilancio.righe %}
+<div class="eureka-print-preview-stage">
+<div class="eureka-print-preview-scaler">
+<article class="eureka-print-sheet">
+    <div class="eureka-print-table-wrap">
+        {% include "registri_iva/partials/libro_registro_masthead.html" with libro=bilancio_masthead pagina_da=1 %}
+        <div class="eureka-bilancio-meta">
+            <span>Periodo: <strong>{{ periodo_label }}</strong></span>
+            <span>{{ count_label|default:"Conti"|title }}: <strong>{{ bilancio.n_conti }}</strong></span>
+            <span>Tot. Dare periodo: <strong>{{ bilancio.totale_dare_periodo|euro }}</strong></span>
+            <span>Tot. Avere periodo: <strong>{{ bilancio.totale_avere_periodo|euro }}</strong></span>
+            <span>Tot. Saldo periodo: <strong>{{ bilancio.totale_saldo_periodo|euro }}</strong></span>
+            {% if bilancio.sbilancio_periodo %}
+            <span class="warn">Sbilancio periodo: {{ bilancio.sbilancio_periodo|euro }}</span>
+            {% endif %}
+        </div>
+        <table class="eureka-bilancio-print-table">
+            <thead>
+                <tr>
+                    <th style="width:9%">Codice</th>
+                    <th>Descrizione</th>
+                    {% if mostra_precedenti %}
+                    <th class="num" style="width:9%">Dare prec.</th>
+                    <th class="num" style="width:9%">Avere prec.</th>
+                    {% endif %}
+                    <th class="num" style="width:9%">Dare periodo</th>
+                    <th class="num" style="width:9%">Avere periodo</th>
+                    <th class="num" style="width:10%">Saldo periodo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for riga in bilancio.righe %}
+                <tr class="{% if riga.is_riepilogo %}{% if riga.livello == 0 %}is-riepilogo-mastro{% else %}is-riepilogo{% endif %}{% endif %}">
+                    <td>{{ riga.codice }}</td>
+                    <td>{{ riga.descrizione }}</td>
+                    {% if mostra_precedenti %}
+                    <td class="num">{{ riga.dare_precedente|default_if_none:0|euro }}</td>
+                    <td class="num">{{ riga.avere_precedente|default_if_none:0|euro }}</td>
+                    {% endif %}
+                    <td class="num">{{ riga.dare_periodo|default_if_none:0|euro }}</td>
+                    <td class="num">{{ riga.avere_periodo|default_if_none:0|euro }}</td>
+                    <td class="num{% if riga.saldo_periodo < 0 %} neg{% endif %}">{{ riga.saldo_periodo|default_if_none:0|euro }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="is-total">
+                    <td></td>
+                    <td>TOTALI</td>
+                    {% if mostra_precedenti %}
+                    <td class="num">{{ bilancio.totale_dare_precedente|euro }}</td>
+                    <td class="num">{{ bilancio.totale_avere_precedente|euro }}</td>
+                    {% endif %}
+                    <td class="num">{{ bilancio.totale_dare_periodo|euro }}</td>
+                    <td class="num">{{ bilancio.totale_avere_periodo|euro }}</td>
+                    <td class="num{% if bilancio.totale_saldo_periodo < 0 %} neg{% endif %}">{{ bilancio.totale_saldo_periodo|euro }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</article>
+</div>
+</div>
+{% endif %}
+
+<script src="{% static 'eureka/js/date-it.js' %}?v=10"></script>
+<script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
+<script>
+(function () {
+    document.querySelectorAll("[data-print-close]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            window.close();
+        });
+    });
+})();
+</script>
+{% if user.is_authenticated %}
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
+{% endif %}
+</body>
+</html>

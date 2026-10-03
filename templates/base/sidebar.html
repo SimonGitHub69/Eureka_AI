@@ -54,21 +54,21 @@
             </div>
         </div>
 
-        <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':11' == '/primanota/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' or '/pdc/stampa/' in request.path or '/primanota/stampa/' in request.path or '/causali-contabili/stampa/' in request.path or '/raggruppamento-conti/stampa/' in request.path or '/raggruppamento-clifor/stampa/' in request.path or '/registri-iva/stampa/' in request.path %}is-open{% endif %}" data-nav-section="primanota">
+        <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':11' == '/primanota/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' or '/pdc/stampa/' in request.path or '/pdc/bilancio-verifica/' in request.path or '/primanota/stampa/' in request.path or '/partitario/stampa/' in request.path or '/causali-contabili/stampa/' in request.path or '/raggruppamento-conti/stampa/' in request.path or '/raggruppamento-clifor/stampa/' in request.path or '/registri-iva/stampa/' in request.path or '/registri-iva/liquidazione/' in request.path %}is-open{% endif %}" data-nav-section="contabilita">
             <button type="button" class="st-nav-section-toggle" aria-expanded="true" data-nav-toggle>
-                <span class="st-nav-section-label">Primanota</span>
+                <span class="st-nav-section-label">Contabilità</span>
                 <span class="st-nav-section-rule" aria-hidden="true"></span>
                 <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
             </button>
             <div class="st-nav-collapse-body" data-nav-body>
-                <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':11' == '/primanota/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' %}is-open{% endif %}" data-nav-section="primanota-gestione">
+                <div class="st-nav-collapse {% if request.path|slice:':5' == '/pdc/' or request.path|slice:':11' == '/primanota/' or request.path|slice:':19' == '/causali-contabili/' or request.path|slice:':22' == '/raggruppamento-conti/' or request.path|slice:':22' == '/raggruppamento-clifor/' %}is-open{% endif %}" data-nav-section="contabilita-gestione">
                     <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
                         <span class="st-nav-section-label">Gestione</span>
                         <span class="st-nav-section-rule" aria-hidden="true"></span>
                         <i class="ti ti-chevron-down st-nav-section-chevron" aria-hidden="true"></i>
                     </button>
                     <div class="st-nav-collapse-body" data-nav-body>
-                        <a class="st-nav-link {% if request.path|slice:':5' == '/pdc/' and '/pdc/stampa/' not in request.path %}active{% endif %}" href="{% url 'pdc:list' %}">
+                        <a class="st-nav-link {% if request.path|slice:':5' == '/pdc/' and '/pdc/stampa/' not in request.path and '/pdc/bilancio-verifica/' not in request.path %}active{% endif %}" href="{% url 'pdc:list' %}">
                             <span class="st-nav-icon"><i class="ti ti-report-money"></i></span>
                             <span class="st-nav-label">Piano dei Conti</span>
                         </a>
@@ -94,7 +94,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="st-nav-collapse {% if '/pdc/stampa/' in request.path or '/primanota/stampa/' in request.path or '/causali-contabili/stampa/' in request.path or '/raggruppamento-conti/stampa/' in request.path or '/raggruppamento-clifor/stampa/' in request.path or '/registri-iva/stampa/' in request.path %}is-open{% endif %}" data-nav-section="primanota-stampe">
+                <div class="st-nav-collapse {% if '/pdc/stampa/' in request.path or '/pdc/bilancio-verifica/' in request.path or '/primanota/stampa/' in request.path or '/partitario/stampa/' in request.path or '/causali-contabili/stampa/' in request.path or '/raggruppamento-conti/stampa/' in request.path or '/raggruppamento-clifor/stampa/' in request.path or '/registri-iva/stampa/' in request.path or '/registri-iva/liquidazione/' in request.path %}is-open{% endif %}" data-nav-section="contabilita-stampe">
                     <button type="button" class="st-nav-section-toggle" aria-expanded="false" data-nav-toggle>
                         <span class="st-nav-section-label">Stampe</span>
                         <span class="st-nav-section-rule" aria-hidden="true"></span>
@@ -109,9 +109,21 @@
                             <span class="st-nav-icon"><i class="ti ti-notebook"></i></span>
                             <span class="st-nav-label">Primanota</span>
                         </a>
+                        <a class="st-nav-link {% if '/partitario/stampa/' in request.path %}active{% endif %}" href="{% url 'anagrafiche:partitario_print' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-report-analytics"></i></span>
+                            <span class="st-nav-label">Partitario</span>
+                        </a>
+                        <a class="st-nav-link {% if '/pdc/bilancio-verifica/' in request.path %}active{% endif %}" href="{% url 'pdc:bilancio_verifica' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-scale"></i></span>
+                            <span class="st-nav-label">Bilancio di Verifica</span>
+                        </a>
                         <a class="st-nav-link {% if '/registri-iva/stampa/' in request.path %}active{% endif %}" href="{% url 'registri_iva:print_list' %}" target="_blank" rel="opener">
                             <span class="st-nav-icon"><i class="ti ti-book-2"></i></span>
-                            <span class="st-nav-label">Registri IVA</span>
+                            <span class="st-nav-label">Stampe e Registri IVA</span>
+                        </a>
+                        <a class="st-nav-link {% if '/registri-iva/liquidazione/' in request.path %}active{% endif %}" href="{% url 'registri_iva:liquidazione' %}" target="_blank" rel="opener">
+                            <span class="st-nav-icon"><i class="ti ti-calculator"></i></span>
+                            <span class="st-nav-label">Liquidazione Periodica IVA</span>
                         </a>
                         <a class="st-nav-link {% if '/causali-contabili/stampa/' in request.path %}active{% endif %}" href="{% url 'causali_contabili:print_list' %}" target="_blank" rel="opener">
                             <span class="st-nav-icon"><i class="ti ti-file-description"></i></span>

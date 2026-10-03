@@ -735,11 +735,53 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Prima dell'enhance JS: lascia il calendario nativo visibile */
+/* Date native stampa: classe dedicata, SENZA appearance:none */
+.eureka-print-date {
+    box-sizing: border-box;
+    width: 11.5rem;
+    min-width: 11.5rem;
+    min-height: 2rem;
+    margin: 0;
+    border: 1px solid var(--eureka-print-border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--eureka-print-text);
+    padding: 0.35rem 0.45rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color-scheme: light;
+}
+
+.eureka-print-date:hover {
+    border-color: #94a3b8;
+}
+
+.eureka-print-date:focus {
+    outline: none;
+    border-color: var(--eureka-print-blue);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+.eureka-print-date::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 1;
+}
+
+/* Date native: ripristina calendario OS (appearance:none lo toglieva) */
 .eureka-print-input[type="date"] {
-    appearance: auto;
-    -webkit-appearance: auto;
-    padding-right: 0.35rem;
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+    min-width: 11rem;
+    color-scheme: light;
+}
+
+.eureka-print-input[type="date"]::-webkit-calendar-picker-indicator {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    cursor: pointer !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
 }
 
 .eureka-print-input:hover {
@@ -775,7 +817,8 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     letter-spacing: 0.02em;
 }
 
-.eureka-date-it__cal {
+.eureka-date-it__cal,
+.eureka-date-cal-btn {
     position: absolute;
     top: 50%;
     right: 0.2rem;
@@ -802,11 +845,13 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     box-shadow: none !important;
 }
 
-.eureka-date-it__cal:hover {
+.eureka-date-it__cal:hover,
+.eureka-date-cal-btn:hover {
     background: #e2e8f0 !important;
 }
 
-.eureka-date-it__cal svg {
+.eureka-date-it__cal svg,
+.eureka-date-cal-btn svg {
     display: block !important;
     width: 14px;
     height: 14px;
@@ -1830,13 +1875,31 @@ body.eureka-print-body--landscape .eureka-print-table td {
     }
 
     body.eureka-print-body--libro-iva .eureka-print-sheet {
-        padding: 0 0 2mm;
-        margin-top: 0 !important;
+        padding: 5mm 6mm 4mm !important;
+        margin: 0 !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-page {
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid-page !important;
+    }
+
+    body.eureka-print-body--libro-iva .eureka-print-libro-page:last-of-type {
+        page-break-after: auto !important;
+        break-after: auto !important;
     }
 
     body.eureka-print-body--libro-iva .eureka-print-libro-page-break {
         page-break-before: always !important;
         break-before: page !important;
+    }
+
+    /* I blocchi-pagina usano già break-after: evita doppio salto. */
+    body.eureka-print-body--libro-iva .eureka-print-libro-page.eureka-print-libro-page-break {
+        page-break-before: auto !important;
+        break-before: auto !important;
     }
 
     body.eureka-print-body--libro-iva .eureka-print-libro-vuoto {
@@ -2002,4 +2065,135 @@ body.eureka-print-body--landscape .eureka-print-table td {
     .eureka-print-footer__pages {
         display: none;
     }
+}
+
+/* Lookup facilitato codice (partitario: clienti / fornitori / conti) */
+.eureka-linked-field--print {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    width: 100%;
+}
+.eureka-linked-field--print.is-disabled {
+    opacity: 0.55;
+}
+.eureka-linked-field--print .eureka-linked-field__control {
+    position: relative;
+}
+.eureka-linked-field--print .eureka-combo {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+.eureka-linked-field--print .eureka-combo > .eureka-print-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    padding-right: 2.1rem;
+}
+.eureka-linked-field--print[data-lookup-tipo="cliente"] .eureka-combo > .eureka-print-input,
+.eureka-linked-field--print[data-lookup-tipo="fornitore"] .eureka-combo > .eureka-print-input {
+    text-transform: uppercase;
+}
+.eureka-linked-field--print .eureka-combo__toggle {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    width: 2rem;
+    border: 0;
+    border-radius: 0 7px 7px 0;
+    background: transparent;
+    color: var(--eureka-print-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+}
+.eureka-linked-field--print .eureka-combo__toggle:hover:not(:disabled) {
+    color: var(--eureka-print-blue);
+    background: rgba(30, 64, 175, 0.06);
+}
+.eureka-linked-field--print .eureka-combo__toggle:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+.eureka-linked-field--print .eureka-combo__menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    z-index: 40;
+    max-height: 260px;
+    overflow: auto;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+    border: 1px solid var(--eureka-print-border);
+    border-radius: 0.5rem;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+.eureka-linked-field--print .eureka-combo__menu.is-portaled {
+    position: fixed;
+    z-index: 1060;
+}
+.eureka-linked-field--print .eureka-combo__menu[hidden] {
+    display: none !important;
+}
+.eureka-linked-field--print .eureka-combo__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    width: 100%;
+    border: 0;
+    border-radius: 0.35rem;
+    background: transparent;
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+}
+.eureka-linked-field--print .eureka-combo__item:hover,
+.eureka-linked-field--print .eureka-combo__item.is-active {
+    background: rgba(30, 64, 175, 0.1);
+}
+.eureka-linked-field--print .eureka-combo__item-code {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--eureka-print-blue);
+}
+.eureka-linked-field--print .eureka-combo__item-desc {
+    font-size: 0.8rem;
+    color: var(--eureka-print-text);
+}
+.eureka-linked-field--print .eureka-combo__loading,
+.eureka-linked-field--print .eureka-combo__empty {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.8rem;
+    color: var(--eureka-print-muted);
+}
+.eureka-linked-field--print .eureka-linked-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    color: var(--eureka-print-muted);
+    min-height: 1.1rem;
+}
+.eureka-linked-field--print .eureka-linked-label[hidden] {
+    display: none !important;
+}
+.eureka-linked-field--print .eureka-linked-label__icon {
+    font-size: 0.9rem;
+    opacity: 0.75;
+}
+.eureka-linked-field--print .eureka-linked-label__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

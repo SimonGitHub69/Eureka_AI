@@ -60,8 +60,22 @@ STAMPE_PRIMANOTA = (
         "subtitle": "Elenco registrazioni",
     },
     {
+        "key": "partitario",
+        "label": "Partitario",
+        "icon": "ti-report-analytics",
+        "url_name": "anagrafiche:partitario_print",
+        "subtitle": "Clienti, fornitori e sottoconti",
+    },
+    {
+        "key": "bilancio_verifica",
+        "label": "Bilancio di Verifica",
+        "icon": "ti-scale",
+        "url_name": "pdc:bilancio_verifica",
+        "subtitle": "Totali Dare/Avere e saldi per sottoconto",
+    },
+    {
         "key": "registri_iva",
-        "label": "Registri IVA",
+        "label": "Stampe e Registri IVA",
         "icon": "ti-book-2",
         "url_name": "registri_iva:print_list",
         "subtitle": "Libro registro IVA per periodo",

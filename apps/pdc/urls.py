@@ -10,11 +10,17 @@ from apps.pdc.views import (
     PdcUpdateView,
     SyncPdcView,
 )
+from apps.pdc.views_bilancio_verifica import BilancioVerificaPrintView
 
 app_name = "pdc"
 urlpatterns = [
     path("pdc/", PdcListView.as_view(), name="list"),
     path("pdc/stampa/", PdcPrintListView.as_view(), name="print_list"),
+    path(
+        "pdc/bilancio-verifica/",
+        BilancioVerificaPrintView.as_view(),
+        name="bilancio_verifica",
+    ),
     path("pdc/nuovo/", PdcCreateView.as_view(), name="create"),
     path("pdc/<path:codice>/modifica/", PdcUpdateView.as_view(), name="edit"),
     path("pdc/<path:codice>/elimina/", PdcDeleteView.as_view(), name="delete"),

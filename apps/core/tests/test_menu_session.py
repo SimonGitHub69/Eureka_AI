@@ -28,6 +28,7 @@ MENU_URL_NAMES = (
     "pdc:print_list",
     "primanota:print_list",
     "anagrafiche:partitario_print",
+    "pdc:bilancio_verifica",
     "registri_iva:print_list",
     "registri_iva:liquidazione",
     "causali_contabili:print_list",

@@ -23,12 +23,18 @@ from apps.anagrafiche.views import (
     FornitoreUpdateView,
     FornitoreViesCheckView,
 )
+from apps.anagrafiche.views_partitario_print import PartitarioPrintView
 
 app_name = "anagrafiche"
 
 urlpatterns = [
     path("vies/", ViesCheckApiView.as_view(), name="vies_check"),
     path("cf/", CfCheckApiView.as_view(), name="cf_check"),
+    path(
+        "partitario/stampa/",
+        PartitarioPrintView.as_view(),
+        name="partitario_print",
+    ),
     path("clienti/", ClienteListView.as_view(), name="clienti_list"),
     path("clienti/nuovo/", ClienteCreateView.as_view(), name="cliente_create"),
     path("clienti/<path:codice>/modifica/", ClienteUpdateView.as_view(), name="cliente_edit"),

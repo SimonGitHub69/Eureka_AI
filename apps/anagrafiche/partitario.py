@@ -126,8 +126,9 @@ def _fetch_movimenti_clifor(codice: str):
     IVA / Autofattura con CodicePartita + Generico / Corrispettivi con
     ContoDare/ContoAvere = codice (Primanota Tipo 1–4).
 
-    IVA (2) e Iva con Autofattura (4): una riga per registrazione; importi
-    positivi (avere+IVA) e negativi (abbuoni) come in 4D.
+    IVA (2) e Iva con Autofattura (4): una riga per registrazione con importo
+    firmato (avere+IVA) come in 4D — fatture positive, note di credito
+    negative — in Dare per i clienti (Avere per i fornitori).
     Generico (1) e Corrispettivi (3): una riga per ogni dettaglio coinvolto.
     """
     code = _norm_code(codice)
@@ -150,18 +151,12 @@ def _fetch_movimenti_clifor(codice: str):
             data_doc,
             numero_prot,
             alfa_prot,
-            SUM(
-                CASE WHEN (avere + importo_iva) > 0
-                     THEN avere + importo_iva ELSE 0 END
-            ) AS importo_pos,
-            SUM(
-                CASE WHEN (avere + importo_iva) < 0
-                     THEN -(avere + importo_iva) ELSE 0 END
-            ) AS importo_neg,
+            -- Firmato come 4D: NC clienti → Dare negativo (non Avere positivo).
+            SUM(avere + importo_iva) AS importo_signed,
             (ARRAY_AGG(conto_avere ORDER BY pos, id_riga)
                 FILTER (
                     WHERE conto_avere <> ''
-                      AND (avere + importo_iva) > 0
+                      AND (avere + importo_iva) <> 0
                 ))[1] AS contro,
             COALESCE(
                 (ARRAY_AGG(descrizione ORDER BY pos, id_riga)
@@ -212,8 +207,8 @@ def _fetch_movimenti_clifor(codice: str):
         data_doc,
         numero_prot,
         alfa_prot,
-        importo_pos AS dare_amt,
-        importo_neg AS avere_amt,
+        importo_signed AS dare_amt,
+        0::float8 AS avere_amt,
         contro AS contro_codice,
         descrizione,
         0 AS pos,
@@ -574,17 +569,20 @@ def _batch_pagamenti(codes: set[str]) -> dict[str, str]:
 
 def _signed_amounts(kind: Kind, fonte: str, dare_amt: float, avere_amt: float) -> tuple[float, float]:
     """
-    Cliente IVA: positivi → Dare, negativi (abbuoni) → Avere (come 4D).
-    Fornitore IVA: invertito.
+    Cliente IVA: importo firmato tutto in Dare (NC → Dare negativo), come 4D.
+    Fornitore IVA: stesso importo firmato tutto in Avere.
     Generico e sottoconto PDC: rispetta il lato dove compare il codice.
     """
-    pos = _f(dare_amt)
-    neg = _f(avere_amt)
+    dare = _f(dare_amt)
+    avere = _f(avere_amt)
     if fonte == "iva" and kind in {"C", "F"}:
+        # dare_amt porta il netto firmato; avere_amt resta 0 dalla query.
+        # Retrocompatibilità se ancora arriva lo split pos/neg legacy.
+        signed = dare - avere if abs(avere) > 0.00001 else dare
         if kind == "C":
-            return pos, neg
-        return neg, pos
-    return pos, neg
+            return signed, 0.0
+        return 0.0, signed
+    return dare, avere
 
 
 def _empty_riga(**kwargs) -> PartitarioRiga:

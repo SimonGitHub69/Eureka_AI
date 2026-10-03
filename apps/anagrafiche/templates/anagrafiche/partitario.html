@@ -27,6 +27,15 @@
         </div>
     </div>
     <div class="eureka-mask-hero__actions">
+        <a
+            href="{% url 'anagrafiche:partitario_print' %}?kind={{ kind }}&amp;codice={{ subject.codice|urlencode }}&amp;data_da={{ data_da }}&amp;data_a={{ data_a }}&amp;saldo_op=any&amp;anteprima=1"
+            class="btn btn-primary btn-sm"
+            target="_blank"
+            rel="opener"
+            title="Stampa partitario"
+        >
+            <i class="ti ti-printer"></i> Stampa
+        </a>
         <a href="{% url detail_url_name subject.codice %}" class="btn btn-outline-secondary btn-sm">
             <i class="ti ti-arrow-left"></i> {{ subject_detail_label|default:"Anagrafica" }}
         </a>
@@ -59,6 +68,15 @@
                     title="Da inizio anno a oggi"
                 >
                     <i class="ti ti-calendar"></i> Anno corrente
+                </a>
+                <a
+                    class="btn btn-outline-primary"
+                    href="{% url 'anagrafiche:partitario_print' %}?kind={{ kind }}&amp;codice={{ subject.codice|urlencode }}&amp;data_da={{ data_da }}&amp;data_a={{ data_a }}&amp;saldo_op=any&amp;anteprima=1"
+                    target="_blank"
+                    rel="opener"
+                    title="Apri stampa partitario"
+                >
+                    <i class="ti ti-printer"></i> Stampa
                 </a>
             </div>
         </form>

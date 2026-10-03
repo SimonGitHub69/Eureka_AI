@@ -48,6 +48,8 @@ class DashboardShortcutSidebarAlignmentTests(SimpleTestCase):
         expected = {
             "pdc": "stampa_pdc",
             "primanota": "stampa_primanota",
+            "partitario": "stampa_partitario",
+            "bilancio_verifica": "stampa_bilancio_verifica",
             "registri_iva": "stampa_registri_iva",
             "causali_contabili": "stampa_causali_contabili",
             "raggruppamento_conti": "stampa_raggruppamento_conti",
@@ -58,7 +60,11 @@ class DashboardShortcutSidebarAlignmentTests(SimpleTestCase):
             self.assertIn(key, by_key)
             self.assertEqual(by_key[key]["label"], spec["label"])
             self.assertEqual(by_key[key]["url_name"], spec["url_name"])
-            self.assertEqual(by_key[key]["section"], "Primanota · Stampe")
+            # Registri IVA / liquidazione usano sezione Contabilità · Stampe in sidebar
+            if key in ("stampa_registri_iva", "stampa_liquidazione_iva"):
+                self.assertEqual(by_key[key]["section"], "Contabilità · Stampe")
+            else:
+                self.assertEqual(by_key[key]["section"], "Primanota · Stampe")
 
     def test_parametri_include_pc_and_sync(self):
         by_key = {item["key"]: item for item in NAVBAR_SHORTCUT_CATALOG}

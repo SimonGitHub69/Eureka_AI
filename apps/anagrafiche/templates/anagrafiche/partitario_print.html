@@ -6,8 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Partitario{% if tutti %} · Tutti {{ subject.kind_label }}{% elif subject.codice %} · {{ subject.kind_label }} {{ subject.codice }}{% endif %}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=84">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=88">
     <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=9">
+    <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
     <style>
     @media print {
         @page {
@@ -186,10 +187,46 @@
                                     {% endfor %}
                                 </select>
                             </label>
-                            <label class="eureka-print-field eureka-print-field--grow">
-                                <span class="eureka-print-field__label">Codice</span>
-                                <input type="text" class="eureka-print-input" name="codice" id="id_codice" value="{{ codice }}" placeholder="Es. C0001 — lascia vuoto se Tutti" autocomplete="off"{% if tutti %} disabled{% endif %}>
-                            </label>
+                            <div class="eureka-print-field eureka-print-field--grow"
+                                 data-linked-lookups
+                                 data-lookup-url="{{ lookup_url }}">
+                                <div class="eureka-linked-field eureka-linked-field--print{% if codice_label %} is-resolved{% endif %}"
+                                     data-linked-field
+                                     data-lookup-tipo="{{ lookup_tipo|default:'cliente' }}">
+                                    <span class="eureka-print-field__label">Codice</span>
+                                    <div class="eureka-linked-field__control">
+                                        <div class="eureka-combo">
+                                            <input type="text"
+                                                   class="eureka-print-input"
+                                                   name="codice"
+                                                   id="id_codice"
+                                                   value="{{ codice }}"
+                                                   placeholder="Codice o ragione sociale…"
+                                                   autocomplete="off"
+                                                   data-autocomplete="on"
+                                                   {% if tutti %}disabled{% endif %}>
+                                            <button type="button"
+                                                    class="eureka-combo__toggle"
+                                                    data-combo-toggle
+                                                    tabindex="-1"
+                                                    title="Seleziona dalla lista"
+                                                    aria-label="Seleziona dalla lista"
+                                                    {% if tutti %}disabled{% endif %}>
+                                                <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                                            </button>
+                                            <div class="eureka-combo__menu" data-combo-menu hidden role="listbox"></div>
+                                        </div>
+                                        <div class="eureka-linked-label"
+                                             data-linked-label
+                                             data-lookup-tipo="{{ lookup_tipo|default:'cliente' }}"
+                                             data-for-input="id_codice"
+                                             {% if not codice_label %}hidden{% endif %}>
+                                            <i class="ti ti-link eureka-linked-label__icon" aria-hidden="true"></i>
+                                            <span class="eureka-linked-label__text">{{ codice_label|default:"" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <label class="eureka-print-check">
                                 <input type="checkbox" name="tutti" value="1" id="id_tutti"{% if tutti %} checked{% endif %}>
                                 Tutti
@@ -372,6 +409,7 @@
 
 <script src="{% static 'eureka/js/date-it.js' %}?v=10"></script>
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=29"></script>
 <script>
 (function () {
     document.querySelectorAll("[data-print-close]").forEach(function (btn) {
@@ -379,24 +417,61 @@
             window.close();
         });
     });
+    var form = document.getElementById("formPartitarioPrint");
     var tutti = document.getElementById("id_tutti");
     var codice = document.getElementById("id_codice");
-    if (tutti && codice) {
-        function syncTutti() {
-            codice.disabled = tutti.checked;
-            if (tutti.checked) {
-                codice.removeAttribute("required");
-            }
+    var kindSel = form ? form.querySelector('select[name="kind"]') : null;
+    var linkedField = form ? form.querySelector("[data-linked-field]") : null;
+    var linkedLabel = linkedField ? linkedField.querySelector("[data-linked-label]") : null;
+    var comboToggle = linkedField ? linkedField.querySelector("[data-combo-toggle]") : null;
+    var kindMap = { C: "cliente", F: "fornitore", P: "pdc" };
+
+    function syncKindLookup() {
+        if (!kindSel || !linkedField) return;
+        var tipo = kindMap[kindSel.value] || "cliente";
+        linkedField.dataset.lookupTipo = tipo;
+        if (linkedLabel) linkedLabel.dataset.lookupTipo = tipo;
+        if (codice && !codice.disabled) {
+            codice.dispatchEvent(new Event("change", { bubbles: true }));
         }
+    }
+
+    function syncTutti() {
+        if (!tutti || !codice) return;
+        var off = tutti.checked;
+        codice.disabled = off;
+        if (comboToggle) comboToggle.disabled = off;
+        if (linkedField) linkedField.classList.toggle("is-disabled", off);
+        if (off) {
+            codice.removeAttribute("required");
+            if (linkedLabel) {
+                var text = linkedLabel.querySelector(".eureka-linked-label__text");
+                if (text) text.textContent = "";
+                linkedLabel.hidden = true;
+            }
+            if (linkedField) linkedField.classList.remove("is-resolved");
+        }
+    }
+
+    if (kindSel) {
+        kindSel.addEventListener("change", function () {
+            if (codice && !tutti.checked) {
+                codice.value = "";
+            }
+            syncKindLookup();
+        });
+    }
+    if (tutti && codice) {
         tutti.addEventListener("change", syncTutti);
         syncTutti();
-        document.getElementById("formPartitarioPrint").addEventListener("submit", function () {
+        form.addEventListener("submit", function () {
             if (tutti.checked) {
                 codice.disabled = false;
                 codice.value = "";
             }
         });
     }
+    syncKindLookup();
 })();
 </script>
 {% if user.is_authenticated %}

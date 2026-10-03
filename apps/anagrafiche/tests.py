@@ -19,6 +19,12 @@ VALID_CF_NUMERICO = "01154930471"
 INVALID_CF_NUMERICO = "01154930470"
 
 
+class AnagraficheNazioneIsoMappingTests(SimpleTestCase):
+    def test_cod_nazione_maps_to_codice_iso(self):
+        self.assertEqual(Cliente._meta.get_field("cod_nazione").db_column, "CodiceISO")
+        self.assertEqual(Fornitore._meta.get_field("cod_nazione").db_column, "CodiceISO")
+
+
 class CodiceFiscaleValidationTest(SimpleTestCase):
     def test_empty_cf_is_allowed(self):
         result = validate_codice_fiscale("", cod_nazione="IT")
@@ -208,6 +214,19 @@ class AnagraficheViewsTest(TestCase):
         self.assertEqual(reverse("anagrafiche:cf_check"), "/cf/")
 
 
+class PartitarioIvaNotaCreditoTests(SimpleTestCase):
+    def test_cliente_nc_in_dare_negativo(self):
+        from apps.anagrafiche.partitario import _signed_amounts
+
+        # Importo firmato (NC) tutto in Dare, Avere a zero — come maschera 4D.
+        self.assertEqual(_signed_amounts("C", "iva", -806.0, 0.0), (-806.0, 0.0))
+        self.assertEqual(_signed_amounts("C", "iva", 1000.0, 0.0), (1000.0, 0.0))
+        # Fornitore: stesso importo firmato in Avere.
+        self.assertEqual(_signed_amounts("F", "iva", -100.0, 0.0), (0.0, -100.0))
+        # Legacy pos/neg ancora convertito in Dare firmato.
+        self.assertEqual(_signed_amounts("C", "iva", 0.0, 806.0), (-806.0, 0.0))
+
+
 class PartitarioPdcCassaCorrispettiviTests(SimpleTestCase):
     def test_fetch_pdc_merges_cassa_corrispettivi_rows(self):
         from datetime import date
@@ -310,4 +329,195 @@ class AnagraficaLinkedLabelsTests(SimpleTestCase):
         self.assertEqual(labels["agente"], "ROSSI MARIO")
         self.assertEqual(labels["agente2"], "BIANCHI LUCA")
         self.assertEqual(labels["cond_paga"], "B.B. A RICEVIMENTO FATTURA")
+
+
+class PartitarioPrintTests(SimpleTestCase):
+    def test_print_url_resolves(self):
+        self.assertEqual(reverse("anagrafiche:partitario_print"), "/partitario/stampa/")
+
+    def test_resolve_subject_requires_code(self):
+        from apps.anagrafiche.views_partitario_print import resolve_partitario_subject
+
+        info = resolve_partitario_subject("C", "")
+        self.assertTrue(info.error)
+        self.assertEqual(info.kind, "C")
+
+    def test_resolve_cliente_ok(self):
+        from unittest.mock import MagicMock, patch
+
+        from apps.anagrafiche.views_partitario_print import resolve_partitario_subject
+
+        cliente = MagicMock(codice="C1", ragione_sociale="ACME SRL")
+        with patch(
+            "apps.anagrafiche.views_partitario_print.get_by_codice",
+            return_value=cliente,
+        ):
+            info = resolve_partitario_subject("C", "C1")
+        self.assertEqual(info.error, "")
+        self.assertEqual(info.codice, "C1")
+        self.assertEqual(info.nome, "ACME SRL")
+        self.assertEqual(info.kind_label, "Cliente")
+
+    def test_resolve_sottoconto_rejects_non_contropartita(self):
+        from unittest.mock import MagicMock, patch
+
+        from apps.anagrafiche.views_partitario_print import resolve_partitario_subject
+
+        conto = MagicMock(codice="1", descrizione="ATTIVO")
+        with (
+            patch(
+                "apps.anagrafiche.views_partitario_print.PianoConti.objects.get",
+                return_value=conto,
+            ),
+            patch(
+                "apps.anagrafiche.views_partitario_print.pdc_is_contropartita",
+                return_value=False,
+            ),
+        ):
+            info = resolve_partitario_subject("P", "1")
+        self.assertIn("sottoconti", info.error.lower())
+
+    def test_parse_importo_it(self):
+        from apps.anagrafiche.views_partitario_print import parse_importo_it
+
+        self.assertEqual(parse_importo_it("1.234,56"), 1234.56)
+        self.assertEqual(parse_importo_it("1234,56"), 1234.56)
+        self.assertEqual(parse_importo_it("100"), 100.0)
+        self.assertIsNone(parse_importo_it(""))
+        self.assertIsNone(parse_importo_it("abc"))
+
+    def test_saldo_filter_skipped_for_single_subject(self):
+        from apps.anagrafiche.views_partitario_print import saldo_filter_for_request
+
+        self.assertEqual(saldo_filter_for_request("ne", tutti=False), "any")
+        self.assertEqual(saldo_filter_for_request("gt", tutti=False), "any")
+        self.assertEqual(saldo_filter_for_request("ne", tutti=True), "ne")
+        self.assertEqual(saldo_filter_for_request("gt", tutti=True), "gt")
+        self.assertEqual(saldo_filter_for_request("nope", tutti=True), "ne")
+
+    def test_saldo_matches_ops(self):
+        from apps.anagrafiche.views_partitario_print import saldo_matches
+
+        self.assertTrue(saldo_matches(10, "gt", 5))
+        self.assertFalse(saldo_matches(5, "gt", 5))
+        self.assertTrue(saldo_matches(5, "gte", 5))
+        self.assertTrue(saldo_matches(3, "lt", 5))
+        self.assertTrue(saldo_matches(5, "lte", 5))
+        self.assertTrue(saldo_matches(1, "ne", 0))
+        self.assertFalse(saldo_matches(0, "ne", 0))
+        self.assertTrue(saldo_matches(0, "eq", 0))
+        self.assertTrue(saldo_matches(99, "any", 0))
+
+    def test_lookup_tipo_per_kind(self):
+        from apps.anagrafiche.views_partitario_print import LOOKUP_TIPO_BY_KIND
+
+        self.assertEqual(LOOKUP_TIPO_BY_KIND["C"], "cliente")
+        self.assertEqual(LOOKUP_TIPO_BY_KIND["F"], "fornitore")
+        self.assertEqual(LOOKUP_TIPO_BY_KIND["P"], "pdc")
+
+    def test_print_view_espone_lookup_facilitato(self):
+        from unittest.mock import patch
+
+        from django.contrib.auth import get_user_model
+        from django.http import HttpResponse
+        from django.test import RequestFactory
+
+        from apps.anagrafiche.views_partitario_print import PartitarioPrintView
+
+        request = RequestFactory().get("/partitario/stampa/", {"kind": "F"})
+        request.user = get_user_model()(username="t", is_staff=True)
+        fake = HttpResponse("ok")
+        with (
+            patch(
+                "apps.anagrafiche.views_partitario_print.render",
+                return_value=fake,
+            ) as mocked_render,
+            patch(
+                "apps.anagrafiche.views_partitario_print.resolve_print_azienda_context",
+                return_value={},
+            ),
+            patch(
+                "apps.anagrafiche.views_partitario_print._resolve_azienda_header",
+                return_value={},
+            ),
+        ):
+            response = PartitarioPrintView.as_view()(request)
+        self.assertEqual(response.status_code, 200)
+        ctx = mocked_render.call_args.args[2]
+        self.assertEqual(ctx["lookup_tipo"], "fornitore")
+        self.assertEqual(ctx["lookup_url"], "/articoli/lookup-codice/")
+
+    def test_build_print_bundle_filters_by_saldo(self):
+        from datetime import date
+        from unittest.mock import patch
+
+        from apps.anagrafiche.partitario import PartitarioResult
+        from apps.anagrafiche.views_partitario_print import (
+            PartitarioSubjectInfo,
+            build_print_bundle,
+        )
+
+        subjects = [
+            PartitarioSubjectInfo("A", "A", "Alpha", "C", "Cliente"),
+            PartitarioSubjectInfo("B", "B", "Beta", "C", "Cliente"),
+            PartitarioSubjectInfo("C", "C", "Gamma", "C", "Cliente"),
+        ]
+
+        def fake_build(codice, *, kind, data_da, data_a):
+            saldi = {"A": 100.0, "B": 0.0, "C": -20.0}
+            return PartitarioResult(
+                codice=codice,
+                kind=kind,
+                data_da=data_da,
+                data_a=data_a,
+                saldo_precedente=0.0,
+                righe=[],
+                totale_dare=saldi[codice] if saldi[codice] > 0 else 0.0,
+                totale_avere=-saldi[codice] if saldi[codice] < 0 else 0.0,
+                saldo_finale=saldi[codice],
+            )
+
+        with (
+            patch(
+                "apps.anagrafiche.views_partitario_print.list_partitario_candidates",
+                return_value=subjects,
+            ),
+            patch(
+                "apps.anagrafiche.views_partitario_print.build_partitario",
+                side_effect=fake_build,
+            ),
+        ):
+            bundle, err = build_print_bundle(
+                kind="C",
+                codice="",
+                tutti=True,
+                data_da=date(2026, 1, 1),
+                data_a=date(2026, 9, 28),
+                saldo_op="gt",
+                saldo_soglia=0.0,
+            )
+        self.assertEqual(err, "")
+        self.assertEqual([b.subject.codice for b in bundle.blocks], ["A"])
+
+        with (
+            patch(
+                "apps.anagrafiche.views_partitario_print.list_partitario_candidates",
+                return_value=subjects,
+            ),
+            patch(
+                "apps.anagrafiche.views_partitario_print.build_partitario",
+                side_effect=fake_build,
+            ),
+        ):
+            bundle_ne, err_ne = build_print_bundle(
+                kind="C",
+                codice="",
+                tutti=True,
+                data_da=date(2026, 1, 1),
+                data_a=date(2026, 9, 28),
+                saldo_op="ne",
+                saldo_soglia=0.0,
+            )
+        self.assertEqual(err_ne, "")
+        self.assertEqual([b.subject.codice for b in bundle_ne.blocks], ["A", "C"])
 
