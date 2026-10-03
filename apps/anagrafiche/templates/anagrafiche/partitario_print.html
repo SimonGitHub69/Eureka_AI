@@ -4,9 +4,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Partitario{% if tutti %} · Tutti {{ subject.kind_label }}{% elif subject.codice %} · {{ subject.kind_label }} {{ subject.codice }}{% endif %}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
-    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=84">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=9">
     <style>
     @media print {
         @page {
@@ -369,7 +370,7 @@
 </div>
 {% endif %}
 
-<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
+<script src="{% static 'eureka/js/date-it.js' %}?v=10"></script>
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
 <script>
 (function () {
@@ -398,5 +399,8 @@
     }
 })();
 </script>
+{% if user.is_authenticated %}
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
+{% endif %}
 </body>
 </html>

@@ -4,9 +4,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{{ print_title }} · Stampa lista{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
-    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=81">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=8">
 </head>
 <body class="eureka-print-body{% if print_orientation == 'landscape' %} eureka-print-body--landscape{% endif %}">
 <div class="eureka-print-toolbar d-print-none">
@@ -369,7 +370,7 @@
     </div>
 </div>
 {% endif %}
-<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
+<script src="{% static 'eureka/js/date-it.js' %}?v=9"></script>
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
 {% if print_inventario_options %}
 <script>
@@ -406,6 +407,9 @@
     syncAll();
 })();
 </script>
+{% endif %}
+{% if user.is_authenticated %}
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
 {% endif %}
 </body>
 </html>

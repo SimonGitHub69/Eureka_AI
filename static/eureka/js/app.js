@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     applyTheme(getCurrentTheme());
 
-    // ID stabile del dispositivo (necessario su iPad: non c'è COMPUTERNAME)
+    // ID stabile del dispositivo (necessario su iPad: non c'Ã¨ COMPUTERNAME)
     try {
         ensureEurekaDeviceId();
         syncEurekaDeviceToServer();
@@ -96,7 +96,7 @@ function getCookieValue(name) {
 
 /**
  * Su iPad: ID stabile IPAD-XXXX (il browser non ha COMPUTERNAME).
- * Su PC desktop: non toccare il cookie — il server usa il nome Windows reale.
+ * Su PC desktop: non toccare il cookie â€” il server usa il nome Windows reale.
  */
 function ensureEurekaDeviceId() {
     if (!isTabletLikeDevice()) {
@@ -155,6 +155,9 @@ function syncEurekaDeviceToServer() {
 
     params.set("pc", id);
     const qs = params.toString();
+    if (typeof window.__eurekaMarkNavigating === "function") {
+        window.__eurekaMarkNavigating();
+    }
     window.location.replace(path + (qs ? ("?" + qs) : ""));
 }
 
@@ -601,8 +604,8 @@ window.EurekaFileHelper = (function () {
 
 /**
  * Export CSV/XLSX: foglio con due azioni
- * 1) Scarica → fetch Blob + <a download> (salva in File, Eureka resta)
- * 2) Apri in Numbers → inline (?open=1), anteprima di sistema
+ * 1) Scarica â†’ fetch Blob + <a download> (salva in File, Eureka resta)
+ * 2) Apri in Numbers â†’ inline (?open=1), anteprima di sistema
  */
 document.addEventListener("DOMContentLoaded", function () {
     function isShareExportAnchor(anchor) {
@@ -798,8 +801,8 @@ document.addEventListener("DOMContentLoaded", function () {
         overlay.querySelector("#eureka-export-title").textContent = "Esporta " + label;
         const hint = overlay.querySelector("[data-export-hint]");
         hint.textContent = isTouchApple()
-            ? "Scarica salva il file (File / Download). Apri in Numbers mostra l’anteprima di sistema."
-            : "Scarica salva il file sul computer. Apri apre l’anteprima nel browser.";
+            ? "Scarica salva il file (File / Download). Apri in Numbers mostra lâ€™anteprima di sistema."
+            : "Scarica salva il file sul computer. Apri apre lâ€™anteprima nel browser.";
         overlay.querySelector("[data-export-download-label]").textContent =
             "Scarica " + label;
         overlay.querySelector("[data-export-open-label]").textContent = isTouchApple()
@@ -845,6 +848,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 const openUrl = buildExportUrl(activeAnchor, true);
                 closeExportSheet();
                 // Navigazione diretta: maschera Numbers di sistema
+                if (typeof window.__eurekaMarkNavigating === "function") {
+                    window.__eurekaMarkNavigating();
+                }
                 window.location.assign(openUrl.href);
                 return;
             }
@@ -852,7 +858,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (action === "download") {
                 const downloadUrl = buildExportUrl(activeAnchor, false);
                 const label = exportFormatLabel(downloadUrl);
-                setSheetBusy(true, "Preparazione file…");
+                setSheetBusy(true, "Preparazione fileâ€¦");
                 downloadViaBlob(downloadUrl, label)
                     .then(function (result) {
                         if (result === "cancelled") {
@@ -864,7 +870,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             result === "shared"
                                 ? "Condivisione aperta. Puoi salvare in File."
                                 : (isTouchApple()
-                                    ? "Download avviato. Se compare l’anteprima: Condividi → Salva su File."
+                                    ? "Download avviato. Se compare lâ€™anteprima: Condividi â†’ Salva su File."
                                     : "Download avviato. Controlla la cartella Download.")
                         );
                         window.setTimeout(closeExportSheet, 1200);
@@ -929,7 +935,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /**
- * Offline: senza rete solo «Dati offline» funziona (SQLite locale).
+ * Offline: senza rete solo Â«Dati offlineÂ» funziona (SQLite locale).
  * Blocca i link al server e registra il service worker su HTTPS.
  */
 document.addEventListener("DOMContentLoaded", function () {
@@ -1002,11 +1008,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 event.preventDefault();
                 event.stopPropagation();
                 window.alert(
-                    "Sei senza Wi‑Fi.\n\n"
-                    + "Funziona solo «Dati offline» (statistiche sul dispositivo).\n"
+                    "Sei senza Wiâ€‘Fi.\n\n"
+                    + "Funziona solo Â«Dati offlineÂ» (statistiche sul dispositivo).\n"
                     + "Le altre pagine richiedono la connessione al PC."
                 );
                 if (window.location.pathname.indexOf("/offline") !== 0) {
+                    if (typeof window.__eurekaMarkNavigating === "function") {
+                        window.__eurekaMarkNavigating();
+                    }
                     window.location.assign("/offline/");
                 }
             } catch (e) { /* ignore */ }

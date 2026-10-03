@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-3">
     <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-19">
     <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-48">
-    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=8">
     {% if user.is_authenticated and eureka_voice_enabled %}
     <link rel="stylesheet" href="{% static 'eureka/css/voice-assistant.css' %}">
     {% endif %}
@@ -240,11 +240,11 @@
 <script defer src="{% static 'vendor/alpinejs/cdn.min.js' %}"></script>
 <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
 <script src="{% static 'eureka/js/disable-autocomplete.js' %}?v=3"></script>
-<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
+<script src="{% static 'eureka/js/date-it.js' %}?v=9"></script>
 <script>window.EUREKA_SW_URL = "{% url 'core:service_worker' %}";</script>
 <script src="{% static 'eureka/js/app.js' %}?v=sidebar-scroll-14"></script>
 {% if user.is_authenticated and not request.is_embed %}
-<script src="{% static 'eureka/js/logout-on-close.js' %}?v=1"></script>
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
 {% endif %}
 {% if request.is_embed %}
 <script src="{% static 'eureka/js/embed.js' %}?v=1"></script>
