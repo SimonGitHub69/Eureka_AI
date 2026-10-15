@@ -184,4 +184,58 @@ def app_version(request):
 
     return {
         "eureka_version": getattr(settings, "EUREKA_VERSION", ""),
+        "eureka_logout_on_close": bool(
+            getattr(settings, "EUREKA_LOGOUT_ON_CLOSE", False)
+        ),
+    }
+
+
+def sync_prompt(request):
+    """Prompt post-login: ultimo aggiornamento 4D e scelta sync / dati esistenti."""
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return {
+            "show_sync_prompt": False,
+            "ultima_sincronizzazione": None,
+            "can_start_sync_4d": False,
+        }
+
+    path = getattr(request, "path", "") or ""
+    if path.startswith("/admin/") or getattr(request, "is_embed", False):
+        return {
+            "show_sync_prompt": False,
+            "ultima_sincronizzazione": None,
+            "can_start_sync_4d": False,
+        }
+
+    if request.session.get("sync_prompt_dismissed"):
+        return {
+            "show_sync_prompt": False,
+            "ultima_sincronizzazione": None,
+            "can_start_sync_4d": False,
+        }
+
+    show = bool(request.session.get("show_sync_prompt"))
+    if not show:
+        show = True
+        request.session["show_sync_prompt"] = True
+        request.session.modified = True
+
+    ultima = None
+    try:
+        from apps.core.models import Configurazione4D
+
+        ultima = Configurazione4D.get_solo().ultima_sincronizzazione
+    except Exception:
+        ultima = None
+
+    can_sync = bool(
+        user.is_superuser
+        or user.is_staff
+        or user.has_perm("core.access_parametri_4d")
+    )
+    return {
+        "show_sync_prompt": show,
+        "ultima_sincronizzazione": ultima,
+        "can_start_sync_4d": can_sync,
     }

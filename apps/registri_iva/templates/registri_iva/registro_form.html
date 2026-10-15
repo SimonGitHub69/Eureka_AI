@@ -28,6 +28,7 @@
 <form method="post" autocomplete="off">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>{% endif %}
+    {% if stampa_form and stampa_form.non_field_errors %}<div class="alert alert-danger py-2">{{ stampa_form.non_field_errors }}</div>{% endif %}
 
     <div class="card eureka-mask-card">
         <div class="card-body py-3">
@@ -43,14 +44,31 @@
                 {% include "partials/mask_field.html" with field=form.disattivato col="col-sm-4" %}
             </div>
         </div>
-        <div class="card-footer d-flex justify-content-end gap-2 py-2">
-            {% if is_create %}
-            <a href="{% url 'registri_iva:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
-            {% else %}
-            <a href="{% url 'registri_iva:detail' registro.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
-            {% endif %}
-            <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
+    </div>
+
+    {% if stampa_form %}
+    <div class="card eureka-mask-card mt-2">
+        <div class="card-header py-2">
+            <h3 class="card-title mb-0">Ultima stampa definitiva</h3>
         </div>
+        <div class="card-body py-3">
+            <p class="text-secondary small mb-2">Modifica questi valori se devi rifare la stampa definitiva (es. abbassando la data finale).</p>
+            <div class="row g-compact">
+                {% include "partials/mask_field.html" with field=stampa_form.data_finale col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=stampa_form.ultimo_protocollo col="col-sm-4" %}
+                {% include "partials/mask_field.html" with field=stampa_form.ultima_pagina col="col-sm-4" %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-end gap-2 py-2 mt-2">
+        {% if is_create %}
+        <a href="{% url 'registri_iva:list' %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% else %}
+        <a href="{% url 'registri_iva:detail' registro.codice %}" class="btn btn-outline-secondary btn-sm">Annulla</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-device-floppy"></i> Salva</button>
     </div>
 </form>
 

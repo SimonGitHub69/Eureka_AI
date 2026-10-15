@@ -93,6 +93,31 @@
     </div>
 </div>
 
+<div class="card eureka-mask-card mt-2">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+        <h3 class="card-title mb-0">Ultima stampa definitiva</h3>
+        <a href="{% url 'registri_iva:edit' registro.codice %}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-pencil"></i> Modifica
+        </a>
+    </div>
+    <div class="card-body py-3">
+        <div class="eureka-mask-grid eureka-mask-grid--3">
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Data finale</div>
+                <div class="eureka-mask-field__value">{% if stampa_stato.data_finale %}{{ stampa_stato.data_finale|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultimo protocollo</div>
+                <div class="eureka-mask-field__value">{{ stampa_stato.ultimo_protocollo|default:"—" }}</div>
+            </div>
+            <div class="eureka-mask-field">
+                <div class="eureka-mask-field__label">Ultima pagina</div>
+                <div class="eureka-mask-field__value">{{ stampa_stato.ultima_pagina|default:"0" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="eureka-mask-delete" id="eliminaRegistroWrap">
     <button type="button" class="btn btn-outline-danger btn-sm" id="btnApriEliminaRegistro">
         <i class="ti ti-trash"></i> Elimina

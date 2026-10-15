@@ -4,9 +4,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Liquidazione Periodica IVA{% if liq.periodo_label %} · {{ liq.periodo_label }}{% endif %}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
-    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=81">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=8">
     {% with azienda_nome=azienda_header.ragione_sociale|default:print_azienda_ragione_sociale %}
     <style id="eureka-libro-page-start">
     /*
@@ -27,7 +28,16 @@
 
         @page {
             size: A4 portrait;
-            margin: 10mm 6mm 10mm;
+            margin: 0;
+            @top-right { content: none; }
+            @top-left { content: none; }
+            @bottom-right { content: none; }
+            @bottom-left { content: none; }
+        }
+        body.eureka-print-body--libro-iva .eureka-print-sheet {
+            margin: 0 !important;
+            padding: 5mm 6mm 4mm !important;
+            box-shadow: none !important;
         }
 
         body.eureka-print-body--libro-iva .eureka-print-libro-masthead__date {
@@ -180,6 +190,7 @@
 
 {% if print_preview_ready and liq.ready %}
 <div class="eureka-print-preview-stage">
+<div class="eureka-print-preview-scaler">
 <article class="eureka-print-sheet eureka-print-sheet--libro-iva">
     {# Stessa intestazione fiscale dei Registri IVA (riga banner in tabella) #}
     <div class="eureka-print-table-wrap">
@@ -282,6 +293,7 @@
     </section>
 </article>
 </div>
+</div>
 {% else %}
 <div class="eureka-print-preview-stage eureka-print-preview-stage--idle d-print-none">
     <div class="eureka-print-preview-idle">
@@ -291,8 +303,8 @@
 </div>
 {% endif %}
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
-<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
-<script src="{% static 'eureka/js/libro-iva-stampa-definitiva.js' %}?v=42"></script>
+<script src="{% static 'eureka/js/date-it.js' %}?v=9"></script>
+<script src="{% static 'eureka/js/libro-iva-stampa-definitiva.js' %}?v=51"></script>
 <script>
 (function () {
     document.querySelectorAll("[data-print-close]").forEach(function (btn) {
@@ -302,5 +314,8 @@
     });
 })();
 </script>
+{% if user.is_authenticated %}
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
+{% endif %}
 </body>
 </html>

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.registri_iva.views import (
+    LiquidazionePeriodicaIvaPrintView,
     RegistroIvaCreateView,
     RegistroIvaDeleteView,
     RegistroIvaDetailView,
@@ -8,7 +9,11 @@ from apps.registri_iva.views import (
     RegistroIvaListView,
     RegistroIvaUpdateView,
     SyncRegistriIvaView,
+    conferma_stampa_definitiva,
+    registro_iva_libro_pdf,
+    registro_iva_libro_pdf_stima,
     registro_iva_print_dispatch,
+    stampa_stato_suggerimenti,
 )
 
 app_name = "registri_iva"
@@ -16,6 +21,27 @@ app_name = "registri_iva"
 urlpatterns = [
     path("registri-iva/", RegistroIvaListView.as_view(), name="list"),
     path("registri-iva/stampa/", registro_iva_print_dispatch, name="print_list"),
+    path("registri-iva/stampa/pdf/", registro_iva_libro_pdf, name="libro_pdf"),
+    path(
+        "registri-iva/stampa/pdf/stima/",
+        registro_iva_libro_pdf_stima,
+        name="libro_pdf_stima",
+    ),
+    path(
+        "registri-iva/liquidazione/",
+        LiquidazionePeriodicaIvaPrintView.as_view(),
+        name="liquidazione",
+    ),
+    path(
+        "registri-iva/stampa/conferma-definitiva/",
+        conferma_stampa_definitiva,
+        name="conferma_definitiva",
+    ),
+    path(
+        "registri-iva/stampa/stato-suggerimenti/",
+        stampa_stato_suggerimenti,
+        name="stampa_stato_suggerimenti",
+    ),
     path("registri-iva/export/", RegistroIvaExportListView.as_view(), name="export_list"),
     path("registri-iva/nuovo/", RegistroIvaCreateView.as_view(), name="create"),
     path("registri-iva/<path:codice>/modifica/", RegistroIvaUpdateView.as_view(), name="edit"),

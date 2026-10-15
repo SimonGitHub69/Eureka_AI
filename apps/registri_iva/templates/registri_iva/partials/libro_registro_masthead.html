@@ -32,7 +32,10 @@
         {% endif %}
     </div>
     <div class="eureka-print-libro-masthead__meta">
-        <div class="eureka-print-libro-masthead__doctype">Registro IVA</div>
+        <div class="eureka-print-libro-masthead__doctype">{% firstof libro.doctype "Registro IVA" %}</div>
+        <div class="eureka-print-libro-masthead__page">Pag. {% firstof pagina_corrente pagina_da 1 %}</div>
+        {% if mostra_data_stampa is not False %}
         <div class="eureka-print-libro-masthead__date">{{ print_date|date:"d/m/Y" }}</div>
+        {% endif %}
     </div>
 </div>

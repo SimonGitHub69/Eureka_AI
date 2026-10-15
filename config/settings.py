@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import socket
 import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,7 +14,90 @@ environ.Env.read_env(BASE_DIR / ".env")
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
+
+
+def _csrf_origins_from_hosts(hosts: list[str]) -> list[str]:
+    """Origini CSRF tipiche per accesso locale/LAN (Django 4+ richiede lo schema)."""
+    ports = ("8000", "8443")
+    out: list[str] = []
+    seen: set[str] = set()
+    for host in hosts:
+        h = (host or "").strip().strip("[]")
+        if not h or h == "*":
+            continue
+        for scheme in ("http", "https"):
+            for port in ports:
+                origin = f"{scheme}://{h}:{port}"
+                if origin not in seen:
+                    seen.add(origin)
+                    out.append(origin)
+    return out
+
+
+def _discover_lan_hosts() -> list[str]:
+    """Hostname .local + IP LAN attuali (DHCP: ricalcolati a ogni avvio del processo)."""
+    found: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: str) -> None:
+        h = (value or "").strip().strip("[]")
+        if not h or h in seen or h == "*":
+            return
+        seen.add(h)
+        found.append(h)
+
+    try:
+        short = socket.gethostname().split(".")[0].strip()
+        if short:
+            add(short)
+            add(f"{short}.local")
+    except Exception:
+        pass
+
+    try:
+        # Non invia traffico: rivela l'IP della rotta di default (tipico Wi‑Fi LAN).
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            ip = sock.getsockname()[0]
+        if ip and not ip.startswith("127."):
+            add(ip)
+    except Exception:
+        pass
+
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if ip and not ip.startswith("127."):
+                add(ip)
+    except Exception:
+        pass
+
+    return found
+
+
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+if not CSRF_TRUSTED_ORIGINS:
+    # Server Mac / installazioni minime: senza questa lista i POST falliscono (403 CSRF).
+    CSRF_TRUSTED_ORIGINS = _csrf_origins_from_hosts(ALLOWED_HOSTS)
+
+# Token CSRF in sessione (non in cookie separato): evita 403 "CSRF cookie not set"
+# su Safari / client Mac quando il cookie csrftoken non viene accettato.
+CSRF_USE_SESSIONS = True
+
+# LAN / DHCP: a ogni avvio Waitress aggiunge IP e nome.local correnti
+# (altrimenti i client Mac vedono Bad Request 400 / 403 CSRF quando l'IP Wi‑Fi cambia).
+# Anche con ALLOWED_HOSTS=* bisogna aggiornare CSRF_TRUSTED_ORIGINS: Django 4+
+# richiede l'origine esatta (schema+host+porta), il wildcard non basta.
+if env.bool("EUREKA_AUTO_LAN_HOSTS", default=True):
+    _lan = _discover_lan_hosts()
+    if "*" not in ALLOWED_HOSTS:
+        for _h in _lan:
+            if _h not in ALLOWED_HOSTS:
+                ALLOWED_HOSTS.append(_h)
+    for _origin in _csrf_origins_from_hosts(_lan):
+        if _origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_origin)
+
 
 
 def _read_app_version() -> str:
@@ -25,10 +109,14 @@ def _read_app_version() -> str:
             return ver
     except Exception:
         pass
-    return "1.0.4"
+    return "1.0.45"
 
 
 EUREKA_VERSION = env("EUREKA_VERSION", default=_read_app_version())
+# Logout automatico alla chiusura finestra: OFF di default.
+# Su Mac (Chrome --app / Safari) pagehide scatta anche al cambio menu e
+# invalidava la sessione. Attivare solo se serve davvero: EUREKA_LOGOUT_ON_CLOSE=1
+EUREKA_LOGOUT_ON_CLOSE = env.bool("EUREKA_LOGOUT_ON_CLOSE", default=False)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -37,7 +125,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "apps.core",
+    "apps.core.apps.CoreConfig",
     "apps.dashboard",
     "apps.fatture",
     "apps.documenti",
@@ -89,6 +177,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.middleware.PreserveEmbedMiddleware",
     "apps.core.middleware.BindClientPcMiddleware",
+    "apps.core.middleware.PostLoginAppRedirectMiddleware",
 ]
 
 # Consenti iframe same-origin (multi-finestra)
@@ -112,6 +201,7 @@ TEMPLATES = [
                 "apps.core.context_processors.ai_debug_flags",
                 "apps.core.context_processors.list_back",
                 "apps.core.context_processors.app_version",
+                "apps.core.context_processors.sync_prompt",
             ],
         },
     },
@@ -178,9 +268,9 @@ GROQ_MAX_TOKENS = env("GROQ_MAX_TOKENS", default=550)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_URL = "/admin/login/"
+LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/admin/login/"
+LOGOUT_REDIRECT_URL = "/uscita/"
 
 from django.contrib.messages import constants as message_constants
 
@@ -196,4 +286,6 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     SESSION_COOKIE_HTTPONLY = True
-    CSRF_COOKIE_HTTPONLY = True
+    # Con CSRF_USE_SESSIONS il cookie csrftoken non è usato per la verifica;
+    # resta leggibile da JS dove serve (meta/header), senza bloccare il login.
+    CSRF_COOKIE_HTTPONLY = False

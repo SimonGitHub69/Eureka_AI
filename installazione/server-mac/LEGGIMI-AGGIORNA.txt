@@ -1,0 +1,25 @@
+Eureka AI — Aggiornamento server Mac (cliente)
+==============================================
+
+Questo ZIP aggiorna Eureka AI gia installato in ~/Eureka_AI.
+NON sovrascrive il file .env ne la cartella .venv.
+
+IMPORTANTE
+----------
+Decomprimi lo ZIP in Download o Scrivania e lancia
+Installa-Eureka-Mac-Server.command DA QUELLA CARTELLA
+(non da dentro ~/Eureka_AI).
+
+AGGIORNA A 1.0.45
+-----------------
+1. Copia EurekaAI_ServerMac_1.0.45.zip → decomprimi fuori da ~/Eureka_AI
+2. Doppio clic Installa-Eureka-Mac-Server.command
+   (se blocca: tasto destro → Apri → Apri)
+3. Al termine: sidebar v1.0.45 + Cmd+Shift+R sulle stampe
+
+STAMPA SU SAFARI
+----------------
+Nel dialogo Stampa di Safari disattiva:
+  «Intestazioni e piè di pagina»
+
+VERIFICA: package.json e EUREKA_VERSION = 1.0.45

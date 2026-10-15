@@ -4,18 +4,65 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Registro IVA · {{ libro.registro_label|default:"Stampa" }}{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=80">
-    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=7">
+    {% if pdf_mode %}
+    <style>{{ print_css_inline|safe }}</style>
+    {% else %}
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=86">
+    <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=9">
+    {% endif %}
     {% with azienda_nome=azienda_header.ragione_sociale|default:print_azienda_ragione_sociale %}
     <style id="eureka-libro-page-start">
     /*
      * Stampa fiscale Registro IVA:
      * - Ogni foglio intestato (masthead in thead di ogni tabella-pagina)
      * - REGISTRO IVA + Pag. N sotto, allineati a destra alla ragione sociale
-     * - Numerazione progressiva via spezzatura JS (Chrome non supporta counter nel flusso)
+     * - PDF server: paginazione Python; browser: spezzatura JS
      * - Niente Pag. nel margine @page in cima
      */
+    {% if pdf_mode %}
+    /* PDF headless: margini reali + niente chrome browser */
+    @page {
+        size: A4 portrait;
+        margin: 8mm 6mm 6mm;
+    }
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+    body.eureka-print-body--libro-iva .eureka-print-toolbar,
+    .d-print-none {
+        display: none !important;
+    }
+    body.eureka-print-body--libro-iva .eureka-print-sheet {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        max-width: none !important;
+    }
+    body.eureka-print-body--libro-iva .eureka-print-libro-page {
+        page-break-after: always;
+        break-after: page;
+    }
+    body.eureka-print-body--libro-iva .eureka-print-libro-page:last-of-type {
+        page-break-after: auto;
+        break-after: auto;
+    }
+    body.eureka-print-body--libro-iva .eureka-print-libro-page-break {
+        page-break-before: always;
+        break-before: page;
+    }
+    body.eureka-print-body--libro-iva .eureka-print-libro-masthead__date { display: none !important; }
+    body.eureka-print-body--libro-iva .eureka-print-libro-masthead__page {
+        display: block !important;
+        visibility: visible !important;
+        font-size: 8.5pt !important;
+        font-weight: 700 !important;
+    }
+    body.eureka-print-body--libro-iva .eureka-print-libro-riepilogo__head { display: block !important; }
+    {% else %}
     @media print {
         html {
             counter-reset: page {{ pagina_counter_reset|default:0 }};
@@ -27,11 +74,16 @@
 
         @page {
             size: A4 portrait;
-            margin: 8mm 6mm 8mm;
+            margin: 0;
             @top-right { content: none; }
             @top-left { content: none; }
             @bottom-right { content: none; }
             @bottom-left { content: none; }
+        }
+        body.eureka-print-body--libro-iva .eureka-print-sheet {
+            margin: 0 !important;
+            padding: 5mm 6mm 4mm !important;
+            box-shadow: none !important;
         }
 
         body.eureka-print-body--libro-iva .eureka-print-libro-masthead__date {
@@ -68,22 +120,27 @@
             page-break-inside: avoid !important;
         }
     }
+    {% endif %}
     </style>
     {% endwith %}
 </head>
-<body class="eureka-print-body eureka-print-body--libro-iva{% if libro.mostra_competenza %} eureka-print-body--libro-iva-acquisto{% endif %}"
+<body class="eureka-print-body eureka-print-body--libro-iva{% if libro.mostra_competenza %} eureka-print-body--libro-iva-acquisto{% endif %}{% if pdf_mode %} eureka-print-body--pdf{% endif %}"
       data-conferma-url="{{ conferma_url }}"
       data-stato-url="{% url 'registri_iva:stampa_stato_suggerimenti' %}"
+      data-pdf-url="{% url 'registri_iva:libro_pdf' %}"
+      data-pdf-stima-url="{% url 'registri_iva:libro_pdf_stima' %}"
       data-csrf="{{ csrf_token }}"
       data-registro="{{ registro }}"
       data-data-finale="{{ data_a }}"
       data-max-protocollo="{{ libro.max_protocollo|default_if_none:'' }}"
       data-pagina-da="{{ pagina_da }}"
       data-stima-pagine="{{ stima_pagine }}"
+      data-ultima-pagina-prevista="{{ ultima_pagina_prevista }}"
       data-sovrappone="{% if stampa_sovrappone %}1{% else %}0{% endif %}"
       data-azienda-nome="{{ azienda_header.ragione_sociale|default:print_azienda_ragione_sociale|default:''|cut:'"' }}"
       data-registro-label="{{ libro.registro_label|default:''|cut:'"' }}"
       data-print-date="{{ print_date|date:'d/m/Y' }}">
+{% if not pdf_mode %}
 <div class="eureka-print-toolbar d-print-none">
     <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
         <div class="eureka-print-toolbar__head">
@@ -181,7 +238,8 @@
             <strong>Bozza</strong>: stampa con numerazione pagine, senza aggiornare lo stato del registro.
             <strong>Definitiva</strong>: memorizza data finale / protocollo / ultima pagina, poi stampa.
             Numerazione fiscale: <strong>Pag. {{ pagina_da|default:1 }}</strong>, {{ pagina_da|default:1|add:1 }}, … sotto «Registro IVA» su ogni foglio intestato.
-            Disattiva «Intestazioni e piè di pagina» del browser.
+            <strong style="color:#0f766e;">PDF professionale</strong>: Bozza/Definitiva generano un PDF nativo
+            (ReportLab) identico su Windows e Mac — senza dialogo stampa del browser.
         </p>
         {% endif %}
     </div>
@@ -215,12 +273,84 @@
         </div>
     </form>
 </dialog>
+{% endif %}
 
 {% if print_preview_ready %}
-<div class="eureka-print-preview-stage">
+<div class="eureka-print-preview-stage{% if pdf_mode %} eureka-print-preview-stage--pdf{% endif %}">
 <div class="eureka-print-preview-scaler">
 <article class="eureka-print-sheet eureka-print-sheet--libro-iva">
     <div class="eureka-print-table-wrap">
+        {% if pdf_mode and libro_pagine %}
+        {% for page in libro_pagine %}
+        <div class="eureka-print-libro-page{% if not forloop.first %} eureka-print-libro-page-break{% endif %}">
+        <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact eureka-print-libro-page-table{% if libro.mostra_competenza %} eureka-print-table--libro-iva-acquisto{% endif %}">
+            <colgroup>
+                <col class="eureka-print-col--prot">
+                <col class="eureka-print-col--data">
+                {% if libro.mostra_competenza %}<col class="eureka-print-col--data eureka-print-col--competenza">{% endif %}
+                <col class="eureka-print-col--ragione">
+                <col class="eureka-print-col--ndoc">
+                <col class="eureka-print-col--data">
+                <col class="eureka-print-col--descr">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--pct">
+                <col class="eureka-print-col--importo">
+                <col class="eureka-print-col--totale">
+            </colgroup>
+            <thead>
+                <tr class="eureka-print-libro-banner">
+                    <th colspan="{{ libro.col_count }}">
+                        {% include "registri_iva/partials/libro_registro_masthead.html" with pagina_corrente=page.numero %}
+                    </th>
+                </tr>
+                <tr>
+                    <th class="eureka-print-align-end">Prot.</th>
+                    <th>Data</th>
+                    {% if libro.mostra_competenza %}<th>Competenza</th>{% endif %}
+                    <th>Rag. Sociale</th>
+                    <th>N.Doc.</th>
+                    <th>del</th>
+                    <th>Descr. Iva</th>
+                    <th class="eureka-print-align-end">Impon.</th>
+                    <th class="eureka-print-align-end">%</th>
+                    <th class="eureka-print-align-end">Imp. Iva</th>
+                    <th class="eureka-print-align-end">Tot. Doc.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in page.righe %}
+                <tr{% if row.row_class %} class="{{ row.row_class }}"{% endif %}>
+                    {% for cell in row.cells %}
+                    <td{% if cell.align == "end" or cell.cell_class %} class="{% if cell.align == "end" %}eureka-print-align-end{% endif %}{% if cell.cell_class %} {{ cell.cell_class }}{% endif %}"{% endif %}{% if cell.colspan > 1 %} colspan="{{ cell.colspan }}"{% endif %}>{{ cell.text }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr class="eureka-print-row--libro-vuoto">
+                    <td colspan="{{ libro.col_count }}" class="eureka-print-libro-vuoto">
+                        <div class="eureka-print-libro-vuoto__frame" aria-hidden="true">
+                            <svg class="eureka-print-libro-vuoto__slash" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">
+                                <line x1="2" y1="98" x2="98" y2="2" />
+                            </svg>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if page.is_last %}
+            <tfoot>
+                <tr class="eureka-print-row--totale">
+                    <td colspan="{{ libro.label_colspan }}" class="eureka-print-align-end"><strong>Totali generali</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_imponibile_stampa|euro }}</strong></td>
+                    <td></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_iva_stampa|euro }}</strong></td>
+                    <td class="eureka-print-align-end"><strong>{{ libro.totale_documento|euro }}</strong></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+        </div>
+        {% endfor %}
+        {% else %}
         <table class="eureka-print-table eureka-print-table--libro-iva eureka-print-table--compact{% if libro.mostra_competenza %} eureka-print-table--libro-iva-acquisto{% endif %}">
             <colgroup>
                 <col class="eureka-print-col--prot">
@@ -285,12 +415,13 @@
                 </tr>
             </tfoot>
         </table>
+        {% endif %}
     </div>
 
     {% if libro.riepilogo or libro.mostra_riepilogo_competenza %}
-    <section class="eureka-print-libro-riepilogo">
+    <section class="eureka-print-libro-riepilogo{% if pdf_mode %} eureka-print-libro-page-break{% endif %}">
         <div class="eureka-print-libro-riepilogo__head">
-            {% include "registri_iva/partials/libro_registro_masthead.html" %}
+            {% include "registri_iva/partials/libro_registro_masthead.html" with pagina_corrente=pagina_riepilogo|default:pagina_da %}
         </div>
 
         {% if libro.mostra_riepilogo_competenza %}
@@ -513,14 +644,11 @@
     </div>
 </div>
 {% endif %}
+{% if not pdf_mode %}
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
-<script src="{% static 'eureka/js/date-it.js' %}?v=8"></script>
-<script>
-(function () {
-    if (window.EurekaDateIT) window.EurekaDateIT.boot(document);
-})();
-</script>
-<script src="{% static 'eureka/js/libro-iva-stampa-definitiva.js' %}?v=42"></script>
+<script src="{% static 'eureka/js/date-it.js' %}?v=10"></script>
+<script src="{% static 'eureka/js/libro-iva-stampa-definitiva.js' %}?v=58"></script>
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
 <script>
 (function () {
     var input = document.getElementById("id_incl_reg_succ");
@@ -538,5 +666,6 @@
     sync();
 })();
 </script>
+{% endif %}
 </body>
 </html>

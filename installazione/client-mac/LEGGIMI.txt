@@ -1,0 +1,61 @@
+Eureka AI — Client Mac (Applicazioni / Dock)
+============================================
+
+Eureka AI sul Mac si collega al server Eureka in rete
+(Windows o Mac Server).
+
+INDIRIZZO SERVER (importante con Wi‑Fi / DHCP)
+---------------------------------------------
+Preferisci il nome Bonjour del Mac server (non cambia se l'IP cambia):
+
+  http://NomeMac.local:8000
+
+Sul Mac server: Preferenze di Sistema → Condivisione / Informazioni
+→ nome computer, oppure in Terminale: scutil --get LocalHostName
+
+Esempio: se il computer si chiama "ufficio-server" usa
+  http://ufficio-server.local:8000
+
+L'IP (es. 192.168.1.17) funziona ma con DHCP puo cambiare:
+in quel caso reinstalla il client o fai una prenotazione DHCP
+sul router.
+
+INSTALLAZIONE
+-------------
+1. Copia EurekaAI_ClientMac_*.zip sul Mac e decomprimilo.
+2. Doppio clic: Installa-Eureka-Mac.command
+   (se blocca: tasto destro → Apri → Apri)
+3. Inserisci URL server (meglio .local) e nome postazione (MAC-...).
+4. Quando chiede la password Mac → inseriscila (serve per
+   scrivere in /Applicazioni).
+
+BARRA INDIRIZZI (macOS Monterey)
+--------------------------------
+Safari su Monterey NON puo nascondere la barra URL.
+
+Per una finestra senza barra indirizzi:
+1. Installa Google Chrome sul Mac
+2. Reinstalla / rilancia «Eureka AI» da Applicazioni
+
+L'app apre Chrome in modalita --app (come un programma, senza
+barra indirizzi). Se Chrome non c'e, usa Safari (con barra).
+
+DOPO L'INSTALLAZIONE
+--------------------
+L'app compare in Finder → Applicazioni come «Eureka AI».
+- Se chiede password e la annulli: l'app finisce sulla SCRIVANIA.
+  Trascinala tu in Applicazioni.
+- Per il Dock: trascina «Eureka AI» dal Finder sul Dock.
+
+SE COMPARE "privilegi di accesso"
+---------------------------------
+Nel Terminale, cartella decompressa:
+
+  chmod +x Installa-Eureka-Mac.command
+  ./Installa-Eureka-Mac.command
+
+DISINSTALLA
+-----------
+Finder → Applicazioni → cestina «Eureka AI»
+(+ Rimuovi dal Dock se presente).
+Poi reinstalla con questo ZIP per rimetterla.

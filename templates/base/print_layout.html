@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=81">
     <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=8">
 </head>
-<body class="eureka-print-body{% if print_orientation == 'landscape' %} eureka-print-body--landscape{% endif %}">
+<body class="eureka-print-body{% if print_orientation == 'landscape' %} eureka-print-body--landscape{% endif %}"{% if eureka_logout_on_close %} data-logout-on-close="1"{% endif %}>
 <div class="eureka-print-toolbar d-print-none">
     <div class="eureka-print-toolbar__inner eureka-print-toolbar__inner--wide">
         <div class="eureka-print-toolbar__head">
@@ -409,7 +409,7 @@
 </script>
 {% endif %}
 {% if user.is_authenticated %}
-<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=4"></script>
 {% endif %}
 </body>
 </html>

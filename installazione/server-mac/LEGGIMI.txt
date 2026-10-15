@@ -1,0 +1,82 @@
+Eureka AI — Server Mac (prima installazione)
+============================================
+
+Questo pacchetto installa Eureka AI completo su macOS:
+  - Homebrew (se mancante)
+  - PostgreSQL 16
+  - Python 3.12 + ambiente virtuale
+  - applicazione in ~/Eureka_AI
+  - servizio automatico (launchd / Waitress)
+
+Non e il client thin (che si collega a un server Windows).
+Per il solo collegamento a un server gia esistente usa il pacchetto Client Mac.
+
+REQUISITI
+---------
+- macOS 10.15+ (consigliato Monterey o successivo)
+- Connessione Internet (download Homebrew / PostgreSQL / Python)
+- Password amministratore Mac (obbligatoria se Homebrew non e presente:
+  nella finestra Terminale digita la password quando richiesto;
+  i caratteri non si vedono — e normale — poi Invio)
+
+INSTALLAZIONE
+-------------
+1. Copia EurekaAI_ServerMac_*.zip sul Mac e decomprimilo.
+2. Doppio clic: Installa-Eureka-Mac-Server.command
+   (se blocca: tasto destro → Apri → Apri)
+3. Conferma porta (default 8000) e Avvia installazione.
+4. Attendi qualche minuto (PostgreSQL + pip).
+5. Al termine si apre http://127.0.0.1:8000/
+
+SE COMPARE "privilegi di accesso"
+---------------------------------
+Nel Terminale, cartella decompressa:
+
+  chmod +x Installa-Eureka-Mac-Server.command
+  ./Installa-Eureka-Mac-Server.command
+
+DOPO L'INSTALLAZIONE
+--------------------
+- App: ~/Eureka_AI
+- Config: ~/Eureka_AI/.env  (DATABASE_URL, SECRET_KEY, ALLOWED_HOSTS)
+- Log servizio: ~/Eureka_AI/logs/waitress.*.log
+- Avvio manuale: cd ~/Eureka_AI && ./scripts/prod_start.sh
+- Stop servizio: cd ~/Eureka_AI && ./scripts/install_service_launchd.sh --unload
+- Riavvio: cd ~/Eureka_AI && ./scripts/install_service_launchd.sh
+
+RETE LOCALE (Wi‑Fi / DHCP)
+--------------------------
+All'avvio il server aggiunge automaticamente IP LAN correnti e
+hostname.local (anche se il DHCP cambia l'IP dopo un riavvio).
+
+Sui CLIENT preferisci sempre:
+
+  http://<LocalHostName>.local:8000
+
+(non l'IP). Sul server: scutil --get LocalHostName
+
+Se il client Mac mostra "Bad Request (400)":
+  1) prova http://<LocalHostName>.local:8000
+  2) oppure riavvia il servizio sul server (ricalcola l'IP):
+       cd ~/Eureka_AI && ./scripts/install_service_launchd.sh
+  3) oppure in ~/Eureka_AI/.env:
+       ALLOWED_HOSTS=127.0.0.1,localhost,<IP-del-Mac>
+       CSRF_TRUSTED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000,http://<IP-del-Mac>:8000
+
+Se compare "Proibito (403) / Verifica CSRF fallita":
+  manca CSRF_TRUSTED_ORIGINS per l'URL che usi nel browser
+  (stesso schema+host+porta della barra indirizzi).
+
+DISINSTALLA
+-----------
+  cd ~/Eureka_AI
+  ./scripts/install_service_launchd.sh --unload
+  brew services stop postgresql@16   # opzionale
+  # poi elimina la cartella ~/Eureka_AI se vuoi
+
+AGGIORNAMENTO
+-------------
+Decomprimi una nuova versione dello ZIP e riesegui
+Installa-Eureka-Mac-Server.command: i file vengono aggiornati
+senza sovrascrivere .env esistente.
+Dettagli versione / note cliente: vedi LEGGIMI-AGGIORNA.txt

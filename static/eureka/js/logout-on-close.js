@@ -1,16 +1,18 @@
 /**
- * Logout automatico solo alla chiusura reale dell'ultima finestra Eureka.
+ * Logout automatico alla chiusura dell'ultima finestra Eureka.
  *
- * Non deve mai scattare su:
+ * DISATTIVATO DI DEFAULT: su Mac (Chrome --app / Safari / WebKit) pagehide
+ * scatta anche cambiando voce di menu → la sessione veniva invalidata e
+ * l'utente tornava al login. Riattivabile solo con data-logout-on-close="1"
+ * (env EUREKA_LOGOUT_ON_CLOSE=1).
+ *
+ * Quando attivo, non deve mai scattare su:
  * - navigazione interna tra maschere
  * - voci menu Stampe / link target=_blank
  * - Ctrl/Cmd/Shift+click (nuova scheda)
  * - reload (F5 / Ctrl+R)
  * - ripristino bfcache
  * - aperture di finestre secondarie mentre l'app resta aperta
- *
- * Altrimenti l'utente, già autenticato, viene rimandato al login
- * selezionando una funzionalità e rimane spiazzato.
  */
 (function () {
     "use strict";
@@ -21,10 +23,12 @@
     window.__eurekaLogoutOnCloseBound = true;
 
     var TAB_STORE = "eureka_auth_tabs";
+    var NAV_GUARD_KEY = "eureka_nav_guard";
     // TTL lungo: schede in background vengono throttlate; 5 minuti era troppo aggressivo.
     var TAB_TTL_MS = 30 * 60 * 1000;
     // Copre la race opener→figlio su WebView/client quando si apre target=_blank.
     var CHILD_GRACE_MS = 90 * 1000;
+    var NAV_GUARD_MS = 20 * 1000;
     var tabId =
         "t" +
         Date.now().toString(36) +
@@ -32,6 +36,17 @@
     var navigating = false;
     var logoutSent = false;
     var suppressLogoutUntil = 0;
+
+    function logoutOnCloseEnabled() {
+        var body = document.body;
+        if (!body) {
+            return false;
+        }
+        return (
+            body.getAttribute("data-logout-on-close") === "1" ||
+            body.dataset.logoutOnClose === "1"
+        );
+    }
 
     function nowMs() {
         return Date.now();
@@ -113,17 +128,44 @@
 
     function markNavigating() {
         navigating = true;
-        suppressLogoutUntil = Math.max(suppressLogoutUntil, nowMs() + 8000);
+        var ts = nowMs();
+        suppressLogoutUntil = Math.max(suppressLogoutUntil, ts + 8000);
+        try {
+            sessionStorage.setItem(NAV_GUARD_KEY, String(ts));
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function isNavGuarded() {
+        if (navigating) {
+            return true;
+        }
+        if (nowMs() < suppressLogoutUntil) {
+            return true;
+        }
+        try {
+            var t = parseInt(sessionStorage.getItem(NAV_GUARD_KEY) || "0", 10);
+            if (t && nowMs() - t < NAV_GUARD_MS) {
+                return true;
+            }
+        } catch (e) {
+            /* ignore */
+        }
+        return false;
     }
 
     // Usato da app.js per location.assign/replace e altre navigazioni programmatiche.
     window.__eurekaMarkNavigating = markNavigating;
 
     function sendLogout() {
+        if (!logoutOnCloseEnabled()) {
+            return;
+        }
         if (logoutSent) {
             return;
         }
-        if (nowMs() < suppressLogoutUntil) {
+        if (isNavGuarded()) {
             return;
         }
         logoutSent = true;
@@ -166,7 +208,7 @@
     }
 
     function onPageHide(event) {
-        if (navigating) {
+        if (isNavGuarded()) {
             return;
         }
         if (event && event.persisted) {
@@ -316,6 +358,15 @@
         registerTab();
         if (event.persisted) {
             logoutSent = false;
+        }
+        try {
+            // Dopo navigazione riuscita il guard può scadere da solo (TTL).
+            var t = parseInt(sessionStorage.getItem(NAV_GUARD_KEY) || "0", 10);
+            if (t && nowMs() - t > NAV_GUARD_MS) {
+                sessionStorage.removeItem(NAV_GUARD_KEY);
+            }
+        } catch (e) {
+            /* ignore */
         }
     });
 

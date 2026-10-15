@@ -29,6 +29,7 @@ MENU_URL_NAMES = (
     "primanota:print_list",
     "anagrafiche:partitario_print",
     "pdc:bilancio_verifica",
+    "pdc:bilancio_sezioni",
     "registri_iva:print_list",
     "registri_iva:liquidazione",
     "causali_contabili:print_list",
@@ -192,6 +193,10 @@ class LogoutOnCloseScriptGuardsTests(SimpleTestCase):
         self.assertIn("__eurekaMarkNavigating", script)
         self.assertIn("suppressLogoutUntil", script)
         self.assertIn('CHILD_GRACE_MS', script)
+        # Di default non deve fare logout su pagehide (Mac Chrome --app / Safari).
+        self.assertIn("logoutOnCloseEnabled", script)
+        self.assertIn("data-logout-on-close", script)
+        self.assertIn("eureka_nav_guard", script)
         # unload era troppo aggressivo e contribuiva ai logout spurii.
         self.assertNotIn('addEventListener("unload"', script)
         self.assertNotIn("addEventListener('unload'", script)

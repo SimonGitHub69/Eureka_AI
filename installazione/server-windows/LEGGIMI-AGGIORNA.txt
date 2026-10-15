@@ -1,0 +1,15 @@
+Eureka AI — Aggiornamento server cliente
+========================================
+
+Aggiorna Eureka AI gia installato (default C:\Eureka_AI).
+NON sovrascrive .env / .venv.
+
+1. Decomprimi ZIP → Aggiorna.cmd (Amministratore)
+2. Login → sidebar v1.0.45
+
+COSA INCLUDE (1.0.45)
+--------------------
+- Registri IVA: conteggio pagine sui fogli PDF reali (riepilogo incluso)
+- Fix numerazione definitiva allineata alla stampa
+
+NOTE: .\Aggiorna-EurekaAI-Server.ps1 -InstallRoot "D:\Eureka_AI"

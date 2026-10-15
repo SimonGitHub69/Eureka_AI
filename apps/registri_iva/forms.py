@@ -1,7 +1,7 @@
 from django import forms
 
 from apps.core.mirror_crud import apply_control_widgets, clean_unique_pk
-from apps.registri_iva.models import RegistroIva
+from apps.registri_iva.models import RegistroIva, RegistroIvaStampaStato
 
 TIPO_REGISTRO_CHOICES = [
     ("", "—"),
@@ -84,3 +84,32 @@ class RegistroIvaForm(forms.ModelForm):
 
     def clean_codice(self):
         return clean_unique_pk(self)
+
+
+class RegistroIvaStampaStatoForm(forms.ModelForm):
+    """Campi editabili ultima stampa definitiva (correzione ristampe)."""
+
+    class Meta:
+        model = RegistroIvaStampaStato
+        fields = ("data_finale", "ultimo_protocollo", "ultima_pagina")
+        labels = {
+            "data_finale": "Data finale stampata",
+            "ultimo_protocollo": "Ultimo protocollo stampato",
+            "ultima_pagina": "Ultima pagina stampata",
+        }
+        widgets = {
+            # format ISO obbligatorio per <input type="date"> (altrimenti il value non compare)
+            "data_finale": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"type": "date"},
+            ),
+            "ultimo_protocollo": forms.NumberInput(attrs={"step": "1", "min": "0"}),
+            "ultima_pagina": forms.NumberInput(attrs={"step": "1", "min": "0"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in self.fields:
+            self.fields[name].required = False
+        self.fields["data_finale"].input_formats = ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"]
+        apply_control_widgets(self)

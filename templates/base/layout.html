@@ -43,7 +43,7 @@
     <link rel="stylesheet" href="{% static 'eureka/css/sidebar.css' %}?v=compact-10">
     <link rel="stylesheet" href="{% static 'eureka/css/navbar.css' %}?v=bar-11">
     <link rel="stylesheet" href="{% static 'eureka/css/style.css' %}?v=presenze-3">
-    <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-19">
+    <link rel="stylesheet" href="{% static 'eureka/css/table-list.css' %}?v=tabelle-20">
     <link rel="stylesheet" href="{% static 'eureka/css/table-mask.css' %}?v=tabelle-48">
     <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=8">
     {% if user.is_authenticated and eureka_voice_enabled %}
@@ -55,7 +55,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body class="{% if request.is_embed %}st-embed{% endif %}{% if eureka_navbar_fissa %} st-navbar-fixed{% endif %}{% if eureka_liste_fisse %} st-liste-fisse{% endif %}"{% if back_url %} data-back-url="{{ back_url }}" data-back-label="{{ back_label }}"{% endif %}>
+<body class="{% if request.is_embed %}st-embed{% endif %}{% if eureka_navbar_fissa %} st-navbar-fixed{% endif %}{% if eureka_liste_fisse %} st-liste-fisse{% endif %}"{% if eureka_logout_on_close %} data-logout-on-close="1"{% endif %}{% if back_url %} data-back-url="{{ back_url }}" data-back-label="{{ back_label }}"{% endif %}>
 {% if not request.is_embed %}
 <script>
 (function () {
@@ -244,7 +244,7 @@
 <script>window.EUREKA_SW_URL = "{% url 'core:service_worker' %}";</script>
 <script src="{% static 'eureka/js/app.js' %}?v=sidebar-scroll-14"></script>
 {% if user.is_authenticated and not request.is_embed %}
-<script src="{% static 'eureka/js/logout-on-close.js' %}?v=3"></script>
+<script src="{% static 'eureka/js/logout-on-close.js' %}?v=4"></script>
 {% endif %}
 {% if request.is_embed %}
 <script src="{% static 'eureka/js/embed.js' %}?v=1"></script>
@@ -291,8 +291,8 @@
         causali_trasp: "{% url 'causali_trasp:list' %}",
         causali_trasporto: "{% url 'causali_trasp:list' %}",
         destinazioni: "{% url 'destinazioni:list' %}",
-        pdc: "{% url 'pdc:list' %}",
-        piano_conti: "{% url 'pdc:list' %}",
+        pdc: "{% url 'pdc:list' %}?vista=sottoconti",
+        piano_conti: "{% url 'pdc:list' %}?vista=sottoconti",
         primanota: "{% url 'primanota:list' %}",
         prima_nota: "{% url 'primanota:list' %}",
         causali_contabili: "{% url 'causali_contabili:list' %}",

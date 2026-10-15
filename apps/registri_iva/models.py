@@ -47,3 +47,21 @@ class RegistroIva(models.Model):
     @property
     def label(self) -> str:
         return (self.descrizione or "").strip()
+
+
+class RegistroIvaStampaStato(models.Model):
+    """Stato ultima stampa definitiva libro registro IVA (tabella Eureka)."""
+
+    registro_codice = models.CharField(max_length=64, primary_key=True)
+    data_finale = models.DateField(null=True, blank=True)
+    ultimo_protocollo = models.IntegerField(null=True, blank=True)
+    ultima_pagina = models.IntegerField(null=True, blank=True, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "registri_iva_stampa_stato"
+        verbose_name = "Stato stampa definitiva registro IVA"
+        verbose_name_plural = "Stati stampa definitiva registri IVA"
+
+    def __str__(self) -> str:
+        return f"{self.registro_codice} @ {self.data_finale or '—'}"
