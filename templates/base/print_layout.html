@@ -6,8 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{{ print_title }} · Stampa lista{% if print_azienda_ragione_sociale %} · {{ print_azienda_ragione_sociale }}{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=81">
+    <link rel="stylesheet" href="{% static 'eureka/css/print-list.css' %}?v=90">
     <link rel="stylesheet" href="{% static 'eureka/css/date-it.css' %}?v=8">
+    {% if print_inventario_options %}
+    <link rel="stylesheet" href="{% static 'vendor/tabler-icons/tabler-icons.min.css' %}">
+    {% endif %}
 </head>
 <body class="eureka-print-body{% if print_orientation == 'landscape' %} eureka-print-body--landscape{% endif %}"{% if eureka_logout_on_close %} data-logout-on-close="1"{% endif %}>
 <div class="eureka-print-toolbar d-print-none">
@@ -29,7 +32,7 @@
         <div class="eureka-print-toolbar__panel">
             <form method="get" class="eureka-print-filters" action="{{ request.path }}">
                 {% for key, value in request.GET.items %}
-                    {% if key != "data_da" and key != "data_a" and key != "categoria_da" and key != "categoria_a" and key != "rottura" and key != "solo_anomalie" and key != "ignora_anomalie" and key != "q" and key != "tipo" and key != "causale" and key != "registro" and key != "attivo" and key != "elenco" and key != "anteprima" and key != "sort" and key != "dir" %}
+                    {% if key != "data_da" and key != "data_a" and key != "categoria_da" and key != "categoria_a" and key != "gruppo_da" and key != "gruppo_a" and key != "rottura" and key != "solo_anomalie" and key != "ignora_anomalie" and key != "valori" and key != "senza_valori" and key != "q" and key != "tipo" and key != "causale" and key != "registro" and key != "attivo" and key != "elenco" and key != "anteprima" and key != "sort" and key != "dir" %}
                     <input type="hidden" name="{{ key }}" value="{{ value }}">
                     {% endif %}
                 {% endfor %}
@@ -148,20 +151,14 @@
                     {% endif %}
 
                     {% if print_inventario_options %}
-                    <fieldset class="eureka-print-filters__group">
+                    <fieldset class="eureka-print-filters__group"
+                              data-linked-lookups
+                              data-lookup-url="{{ lookup_url }}">
                         <legend class="eureka-print-filters__legend">Articoli</legend>
                         <div class="eureka-print-filters__row">
                             <label class="eureka-print-field eureka-print-field--grow">
                                 <span class="eureka-print-field__label">Cerca</span>
                                 <input type="search" class="eureka-print-input" name="q" value="{{ q }}" placeholder="Codice o descrizione" maxlength="80" autocomplete="off">
-                            </label>
-                            <label class="eureka-print-field eureka-print-field--narrow">
-                                <span class="eureka-print-field__label">Da cat.</span>
-                                <input type="text" class="eureka-print-input" name="categoria_da" value="{{ categoria_da }}" maxlength="20" autocomplete="off" placeholder="1">
-                            </label>
-                            <label class="eureka-print-field eureka-print-field--narrow">
-                                <span class="eureka-print-field__label">A cat.</span>
-                                <input type="text" class="eureka-print-input" name="categoria_a" value="{{ categoria_a }}" maxlength="20" autocomplete="off" placeholder="99">
                             </label>
                             <label class="eureka-print-field">
                                 <span class="eureka-print-field__label">Ordina per</span>
@@ -179,6 +176,12 @@
                                 </select>
                             </label>
                         </div>
+                        <div class="eureka-print-filters__row">
+                            {% include "base/partials/print_linked_code.html" with name="categoria_da" value=categoria_da label_text="Cat. merc. da" tipo="categoria" resolved_label=categoria_da_label placeholder="AC" input_id="id_categoria_da" title="Categoria merceologica da" %}
+                            {% include "base/partials/print_linked_code.html" with name="categoria_a" value=categoria_a label_text="Cat. merc. a" tipo="categoria" resolved_label=categoria_a_label placeholder="XL" input_id="id_categoria_a" title="Categoria merceologica a" %}
+                            {% include "base/partials/print_linked_code.html" with name="gruppo_da" value=gruppo_da label_text="Gruppo da" tipo="gruppo" resolved_label=gruppo_da_label placeholder="GP01" input_id="id_gruppo_da" title="Gruppo articoli da" %}
+                            {% include "base/partials/print_linked_code.html" with name="gruppo_a" value=gruppo_a label_text="Gruppo a" tipo="gruppo" resolved_label=gruppo_a_label placeholder="GP06" input_id="id_gruppo_a" title="Gruppo articoli a" %}
+                        </div>
                         <div class="eureka-print-filters__row eureka-print-filters__row--toggles">
                             <div class="eureka-print-field eureka-print-field--toggles">
                                 <span class="eureka-print-field__label">Opzioni stampa</span>
@@ -189,6 +192,15 @@
                                         <span class="eureka-print-toggle__text">
                                             <span class="eureka-print-toggle__title">Rottura categoria</span>
                                             <span class="eureka-print-toggle__hint">Subtotali per cat.</span>
+                                        </span>
+                                    </label>
+                                    <label class="eureka-print-toggle{% if inventario_valori %} eureka-print-toggle--on{% endif %}">
+                                        <input type="hidden" name="valori" value="0">
+                                        <input type="checkbox" name="valori" value="1"{% if inventario_valori %} checked{% endif %}>
+                                        <span class="eureka-print-toggle__mark" aria-hidden="true"></span>
+                                        <span class="eureka-print-toggle__text">
+                                            <span class="eureka-print-toggle__title">Prezzi e valori</span>
+                                            <span class="eureka-print-toggle__hint">Disattiva per più descrizione</span>
                                         </span>
                                     </label>
                                     <label class="eureka-print-toggle eureka-print-toggle--warn{% if solo_anomalie %} eureka-print-toggle--on{% endif %}{% if ignora_anomalie %} eureka-print-toggle--disabled{% endif %}">
@@ -282,17 +294,17 @@
         {% if inventario_anomalie_total %}
         <div class="eureka-print-anomalie" aria-label="Legenda anomalie">
             <span class="eureka-print-anomalie__title">Anomalie evidenziate</span>
-            {% if inventario_anomalie.prezzo_zero_ultimo %}
+            {% if inventario_valori and inventario_anomalie.prezzo_zero_ultimo %}
             <span class="eureka-print-anomalie__item eureka-print-anomalie__item--zero">
                 Ultimo a zero: <strong>{{ inventario_anomalie.prezzo_zero_ultimo }}</strong>
             </span>
             {% endif %}
-            {% if inventario_anomalie.prezzo_zero_medio %}
+            {% if inventario_valori and inventario_anomalie.prezzo_zero_medio %}
             <span class="eureka-print-anomalie__item eureka-print-anomalie__item--zero">
                 Medio a zero: <strong>{{ inventario_anomalie.prezzo_zero_medio }}</strong>
             </span>
             {% endif %}
-            {% if inventario_anomalie.prezzo_discrepanza %}
+            {% if inventario_valori and inventario_anomalie.prezzo_discrepanza %}
             <span class="eureka-print-anomalie__item eureka-print-anomalie__item--discrepanza">
                 Ultimo/medio discrepanti (≥{{ inventario_discrepanza_pct|default:25 }}%): <strong>{{ inventario_anomalie.prezzo_discrepanza }}</strong>
             </span>
@@ -373,11 +385,13 @@
 <script src="{% static 'eureka/js/date-it.js' %}?v=9"></script>
 <script src="{% static 'eureka/js/print-preview-zoom.js' %}?v=2"></script>
 {% if print_inventario_options %}
+<script src="{% static 'eureka/js/linked-lookups.js' %}?v=29"></script>
 <script>
 (function () {
     var root = document.querySelector(".eureka-print-toggles");
     if (!root) return;
     var rottura = root.querySelector('input[name="rottura"]');
+    var valori = root.querySelector('input[type="checkbox"][name="valori"]');
     var solo = root.querySelector('input[name="solo_anomalie"]');
     var ignora = root.querySelector('input[name="ignora_anomalie"]');
 
@@ -399,6 +413,7 @@
             }
         }
         syncToggle(rottura);
+        syncToggle(valori);
         syncToggle(solo);
         syncToggle(ignora);
     }

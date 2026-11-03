@@ -710,6 +710,12 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     flex: 0 0 4.75rem;
 }
 
+.eureka-print-field--lookup {
+    flex: 1 1 8.5rem;
+    min-width: 7.5rem;
+    max-width: 12rem;
+}
+
 .eureka-print-field--presets {
     flex: 1 1 auto;
 }
@@ -1551,6 +1557,27 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     padding: 0.18rem 0.25rem;
 }
 
+/* Inventario senza prezzi/valori: più spazio alla descrizione */
+.eureka-print-table--inventario-senza-valori :is(th, td):nth-child(1) {
+    width: 12%;
+    white-space: nowrap;
+}
+.eureka-print-table--inventario-senza-valori :is(th, td):nth-child(2) {
+    width: 6%;
+    white-space: nowrap;
+}
+.eureka-print-table--inventario-senza-valori :is(th, td):nth-child(3) {
+    width: 58%;
+}
+.eureka-print-table--inventario-senza-valori :is(th, td):nth-child(4) {
+    width: 6%;
+    white-space: nowrap;
+}
+.eureka-print-table--inventario-senza-valori :is(th, td):nth-child(5) {
+    width: 12%;
+    white-space: nowrap;
+}
+
 .eureka-print-table td {
     padding: 0.35rem 0.5rem;
     border: 1px solid var(--eureka-print-border);
@@ -1615,6 +1642,12 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     padding-left: 1.25rem;
 }
 
+/* Inventario: righe OK bianco/nero; anomalie evidenziate a contrasto. */
+.eureka-print-table--inventario tbody tr:not([class*="eureka-print-row--prezzo"]):not(.eureka-print-row--giacenza-negativa):not(.eureka-print-row--subtotale):not(.eureka-print-row--totale) td {
+    background: #fff !important;
+    color: #000 !important;
+}
+
 .eureka-print-table tr.eureka-print-row--giacenza-negativa td:nth-child(5) {
     color: #b91c1c;
     font-weight: 700;
@@ -1632,14 +1665,14 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
 }
 
 .eureka-print-table .eureka-print-cell--anomalia-zero {
-    background: #fef3c7 !important;
-    color: #92400e !important;
+    background: #e5e7eb !important;
+    color: #111 !important;
     font-weight: 700;
 }
 
 .eureka-print-table .eureka-print-cell--anomalia-discrepanza {
-    background: #ffedd5 !important;
-    color: #9a3412 !important;
+    background: #e5e7eb !important;
+    color: #111 !important;
     font-weight: 700;
 }
 
@@ -1651,10 +1684,10 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     margin-top: 0.55rem;
     padding: 0.45rem 0.65rem;
     border-radius: 0.45rem;
-    border: 1px solid #fdba74;
-    background: #fff7ed;
+    border: 1px solid #cbd5e1;
+    background: #fff;
     font-size: 0.78rem;
-    color: #9a3412;
+    color: #000;
 }
 
 .eureka-print-anomalie__title {
@@ -1677,13 +1710,13 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
 }
 
 .eureka-print-anomalie__item--zero::before {
-    background: #fef3c7;
-    border: 1px solid #d97706;
+    background: #e5e7eb;
+    border: 1px solid #9ca3af;
 }
 
 .eureka-print-anomalie__item--discrepanza::before {
-    background: #ffedd5;
-    border: 1px solid #ea580c;
+    background: #e5e7eb;
+    border: 1px solid #9ca3af;
 }
 
 .eureka-print-anomalie__item--negativa::before {
@@ -1695,14 +1728,38 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
     .eureka-print-anomalie {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        background: #fff !important;
+        color: #000 !important;
+        border-color: #000 !important;
     }
-    .eureka-print-table .eureka-print-cell--anomalia-zero,
-    .eureka-print-table .eureka-print-cell--anomalia-discrepanza,
-    .eureka-print-table tr.eureka-print-row--prezzo-zero-ultimo,
-    .eureka-print-table tr.eureka-print-row--prezzo-zero-medio,
-    .eureka-print-table tr.eureka-print-row--prezzo-discrepanza {
+
+    /* Inventario in stampa: testo nero su fondo bianco; anomalie come a video. */
+    body.eureka-print-body .eureka-print-table--inventario tbody tr td {
+        background: #fff !important;
+        color: #000 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+    }
+
+    body.eureka-print-body .eureka-print-table--inventario tr.eureka-print-row--prezzo-zero-ultimo,
+    body.eureka-print-body .eureka-print-table--inventario tr.eureka-print-row--prezzo-zero-medio,
+    body.eureka-print-body .eureka-print-table--inventario tr.eureka-print-row--prezzo-discrepanza {
+        background: transparent !important;
+    }
+
+    body.eureka-print-body .eureka-print-table--inventario tbody tr td.eureka-print-cell--anomalia-zero,
+    body.eureka-print-body .eureka-print-table--inventario tbody tr td.eureka-print-cell--anomalia-discrepanza {
+        background: #e5e7eb !important;
+        color: #111 !important;
+        font-weight: 700;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body.eureka-print-body .eureka-print-table--inventario tr.eureka-print-row--giacenza-negativa td:nth-child(5) {
+        color: #000 !important;
+        font-weight: 700;
+        text-decoration: underline;
     }
 }
 
@@ -1721,7 +1778,12 @@ body.eureka-print-body--libro-iva .eureka-print-sheet {
 
 .eureka-print-libro-vuoto {
     position: relative;
-    height: 210mm;
+    /*
+     * Area sotto intestazione colonne / sopra totali.
+     * Non superare ~200mm: con masthead+header+totali, 240mm faceva
+     * traboccare su una 2ª pagina bianca (stampa browser Mac).
+     */
+    height: 200mm;
     vertical-align: top;
 }
 
@@ -1903,7 +1965,7 @@ body.eureka-print-body--landscape .eureka-print-table td {
     }
 
     body.eureka-print-body--libro-iva .eureka-print-libro-vuoto {
-        height: 220mm;
+        height: 200mm;
     }
 
     body.eureka-print-body--libro-iva .eureka-print-libro-vuoto__frame {
@@ -1964,6 +2026,20 @@ body.eureka-print-body--landscape .eureka-print-table td {
     body.eureka-print-body .eureka-print-table tbody tr:nth-child(even) td,
     body.eureka-print-body .eureka-print-table--libro-iva tbody tr:nth-child(even) td {
         background: transparent !important;
+    }
+
+    /* Inventario: dopo lo zebrato trasparente, ripristina OK bianco/nero e anomalie grigio chiaro. */
+    body.eureka-print-body .eureka-print-table--inventario tbody tr td {
+        background: #fff !important;
+        color: #000 !important;
+    }
+    body.eureka-print-body .eureka-print-table--inventario tbody tr td.eureka-print-cell--anomalia-zero,
+    body.eureka-print-body .eureka-print-table--inventario tbody tr td.eureka-print-cell--anomalia-discrepanza {
+        background: #e5e7eb !important;
+        color: #111 !important;
+        font-weight: 700;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
     body.eureka-print-body .eureka-print-table--libro-iva tbody tr.eureka-print-row--comp-successiva td {
@@ -2067,7 +2143,9 @@ body.eureka-print-body--landscape .eureka-print-table td {
     }
 }
 
-/* Lookup facilitato codice (partitario: clienti / fornitori / conti) */
+/* Lookup facilitato codice (partitario: clienti / fornitori / conti).
+   Gli stili del menu sono GLOBALI: linked-lookups.js porta il menu su body
+   (is-portaled), quindi non può dipendere dal wrapper --print. */
 .eureka-linked-field--print {
     display: flex;
     flex-direction: column;
@@ -2120,62 +2198,6 @@ body.eureka-print-body--landscape .eureka-print-table td {
     cursor: default;
     opacity: 0.5;
 }
-.eureka-linked-field--print .eureka-combo__menu {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(100% + 2px);
-    z-index: 40;
-    max-height: 260px;
-    overflow: auto;
-    margin: 0;
-    padding: 0.25rem;
-    list-style: none;
-    border: 1px solid var(--eureka-print-border);
-    border-radius: 0.5rem;
-    background: #fff;
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
-}
-.eureka-linked-field--print .eureka-combo__menu.is-portaled {
-    position: fixed;
-    z-index: 1060;
-}
-.eureka-linked-field--print .eureka-combo__menu[hidden] {
-    display: none !important;
-}
-.eureka-linked-field--print .eureka-combo__item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.05rem;
-    width: 100%;
-    border: 0;
-    border-radius: 0.35rem;
-    background: transparent;
-    text-align: left;
-    padding: 0.4rem 0.5rem;
-    cursor: pointer;
-    color: inherit;
-    font: inherit;
-}
-.eureka-linked-field--print .eureka-combo__item:hover,
-.eureka-linked-field--print .eureka-combo__item.is-active {
-    background: rgba(30, 64, 175, 0.1);
-}
-.eureka-linked-field--print .eureka-combo__item-code {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--eureka-print-blue);
-}
-.eureka-linked-field--print .eureka-combo__item-desc {
-    font-size: 0.8rem;
-    color: var(--eureka-print-text);
-}
-.eureka-linked-field--print .eureka-combo__loading,
-.eureka-linked-field--print .eureka-combo__empty {
-    padding: 0.45rem 0.55rem;
-    font-size: 0.8rem;
-    color: var(--eureka-print-muted);
-}
 .eureka-linked-field--print .eureka-linked-label {
     display: flex;
     align-items: center;
@@ -2196,4 +2218,75 @@ body.eureka-print-body--landscape .eureka-print-table td {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.eureka-combo__menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    z-index: 40;
+    max-height: 260px;
+    overflow: auto;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+    border: 1px solid var(--eureka-print-border, #cbd5e1);
+    border-radius: 0.5rem;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+.eureka-combo__menu.is-portaled {
+    position: fixed;
+    z-index: 1060;
+}
+.eureka-combo__menu[hidden] {
+    display: none !important;
+}
+.eureka-combo__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0.35rem;
+    background: transparent;
+    text-align: left;
+    padding: 0.45rem 0.55rem;
+    cursor: pointer;
+    color: var(--eureka-print-text, #1e293b);
+    font: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+}
+.eureka-combo__item:hover,
+.eureka-combo__item.is-active {
+    background: rgba(30, 64, 175, 0.1);
+}
+.eureka-combo__item.is-active {
+    box-shadow: inset 3px 0 0 var(--eureka-print-blue, #1e40af);
+}
+.eureka-combo__item-code {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--eureka-print-blue, #1e40af);
+    letter-spacing: 0.02em;
+}
+.eureka-combo__item-desc {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--eureka-print-text, #1e293b);
+    line-height: 1.25;
+    white-space: normal;
+}
+.eureka-combo__loading,
+.eureka-combo__empty {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
+    color: var(--eureka-print-muted, #64748b);
 }
